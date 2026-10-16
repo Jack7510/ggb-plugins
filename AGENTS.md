@@ -2,36 +2,36 @@
 
 ## Project Structure & Module Organization
 
-This repository is at its initial setup stage. It currently contains two empty top-level directories, `codex/` and `dsh/`. No source code, tests, assets, or package manifests are tracked yet.
+This repository currently implements the M1 GeoGebra prototype, not the complete plugin. Read `docs/ggb-plugins-design.md` for planned scope and `README.md` for implemented behavior.
 
-Place new work in the appropriate directory and document its purpose in a local `README.md`. Keep implementation, tests, and assets together within each component. Introduce shared directories only when multiple components need the same functionality.
+Keep this a single TypeScript package. `src/cli.ts` handles arguments and JSON output; `server.ts` serves local assets; `browser.ts` owns Playwright and applet lifecycle; `triangle.ts` constructs and checks the fixed example; `delivery.ts` exports, reloads, and previews files. Construction and preview share `viewer/index.html`. Tests live in `tests/`; the installer lives in `scripts/`.
+
+Do not commit `.runtime/`, `node_modules/`, `dist/`, or generated `output/`. Do not introduce dependencies on another checkout.
 
 ## Build, Test, and Development Commands
 
-No build system, development server, or test runner is configured. Do not assume commands such as `npm test` or `make build` are available.
-
-When adding a component, document its prerequisites and exact install, run, build, and test commands in its README. Prefer reproducible scripts over undocumented manual steps. Commit the relevant dependency manifest and lockfile when introducing a package manager.
-
-Useful repository checks:
-
-- `git status --short`: inspect pending changes before and after editing.
-- `git diff --check`: detect whitespace errors in tracked changes.
-- `git diff --stat`: review the scope of tracked changes.
+- `pnpm install --frozen-lockfile`: install pinned dependencies.
+- `pnpm setup:runtime`: download and verify the pinned GeoGebra bundle; requires `curl` and `unzip`.
+- `pnpm exec playwright install chromium`: install the matching browser.
+- `pnpm check`: run strict TypeScript checks.
+- `pnpm build`: compile source and tests into `dist/`.
+- `pnpm demo`: construct the fixed triangle and median, verify, export, and reload.
+- `pnpm preview --delivery <dir>`: open an interactive foreground preview.
+- `pnpm test`: check resource-server boundaries and cleanup.
+- `pnpm test:browser`: run real GeoGebra regression checks after building.
 
 ## Coding Style & Naming Conventions
 
-No language-specific style, formatter, or linter is established. Follow the conventions of the component being edited. For the first implementation, choose standard tooling for its language and commit its configuration.
+Use TypeScript ES modules, two-space indentation, single quotes, and `.js` extensions for local imports. Use descriptive camelCase function names. No formatter or linter is configured; match surrounding code and run `git diff --check`.
 
-Use descriptive file and directory names, consistent indentation, and small modules with clear responsibilities. Avoid mixing formatting-only changes with behavior changes. Keep configuration examples free of credentials and machine-specific paths.
+Keep resource lifecycle, geometry checks, and file delivery cohesive. Avoid generic frameworks, services, or configuration layers until actual functionality requires them.
 
 ## Testing Guidelines
 
-No testing framework or coverage threshold exists yet. Add automated tests with new executable functionality and document how to run them. Use descriptive test names that identify the behavior and expected outcome, following the selected framework's discovery conventions.
+Use Node's built-in test runner with `*.test.ts` files. Add behavioral regression checks for meaningful changes. Browser tests require the real installed runtime and Chromium; mocks cannot establish final construction correctness. No coverage threshold is set.
 
-Cover normal behavior, relevant edge cases, and failure handling. Include a regression test when fixing a reproducible defect.
+Verify both object relationships and dependencies. Keep destructive interaction checks on disposable reloaded applets. Never accept static coordinates as evidence of dynamic construction.
 
 ## Commit & Pull Request Guidelines
 
-There is no commit history from which to infer a message convention. Use concise, imperative subjects, such as `Add codex plugin configuration`, and keep each commit focused.
-
-Pull requests should explain the purpose, affected component, and validation performed. Link related issues when available. Include screenshots for visible UI changes and call out new dependencies, configuration requirements, or breaking changes. If validation cannot run, state why.
+Use concise, imperative commit subjects, following the existing `Add ...` convention. Keep commits focused. Pull requests should explain behavior, scope, validation, and remaining limitations; link related issues and include screenshots for visible changes. Preserve GeoGebra attribution and third-party licensing boundaries.

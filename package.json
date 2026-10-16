@@ -1,0 +1,21 @@
+{
+  "name": "ggb-plugins",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal local GeoGebra construction prototype for Codex",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "setup:runtime": "node scripts/setup-runtime.mjs",
+    "build": "tsc",
+    "check": "tsc --noEmit",
+    "demo": "node dist/src/cli.js demo",
+    "preview": "node dist/src/cli.js preview",
+    "test": "node --test dist/tests/server.test.js",
+    "test:browser": "node --test dist/tests/browser.test.js"
+  },
+  "dependencies": { "playwright": "1.64.1" },
+  "devDependencies": { "@types/node": "26.6.5", "typescript": "7.0.2" }
+}
