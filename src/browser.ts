@@ -55,17 +55,33 @@ async function launchBrowser(headed: boolean, signal?: AbortSignal) {
   const installed = JSON.parse(await readFile(resolve(root, '.runtime/runtime.json'), 'utf8')) as typeof lock;
   if (installed.version !== lock.version || installed.sha256 !== lock.sha256) throw new Error('Runtime mismatch; run pnpm setup:runtime');
   const service = await serve();
+  const startup = AbortSignal.any([AbortSignal.timeout(limits.operationMs), ...(signal ? [signal] : [])]);
   let browser: Browser | undefined;
+  const diagnostics: string[] = [];
+  let abortStartup: () => void = () => {};
+  const aborted = new Promise<never>((_, reject) => { abortStartup = () => reject(startup.reason); });
+  startup.addEventListener('abort', abortStartup, { once: true });
   try {
-    signal?.throwIfAborted();
-    browser = await chromium.launch({
+    startup.throwIfAborted();
+    const launch = chromium.launch({
+      timeout: limits.operationMs,
       headless: !headed, handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false,
+    }).then(async opened => {
+      // launch has no AbortSignal API. This handler owns any late result even
+      // after the caller has stopped waiting; native timeout bounds the launch.
+      if (startup.aborted) {
+        try { await opened.close(); } catch (cleanup) { diagnostics.push(String(cleanup)); }
+        throw startup.reason;
+      }
+      browser = opened;
+      return opened;
     });
-    signal?.throwIfAborted();
-    const context = await browser.newContext({ viewport: { width: 1050, height: 840 } });
+    await Promise.race([launch, aborted]);
+    const opened = browser!;
+    const context = await Promise.race([opened.newContext({ viewport: { width: 1050, height: 840 } }), aborted]);
     // All browser traffic is local, including GeoGebra resources.
-    await context.route('**/*', route => route.request().url().startsWith(service.url + '/') ? route.continue() : route.abort());
-    const opened = browser;
+    await Promise.race([context.route('**/*', route => route.request().url().startsWith(service.url + '/') ? route.continue() : route.abort()), aborted]);
+    startup.throwIfAborted();
     let closing: Promise<void> | undefined;
     // The caller owns cancellation and diagnostics; finally blocks await this same close.
     const stop = () => { void close().catch(() => {}); };
@@ -76,7 +92,7 @@ async function launchBrowser(headed: boolean, signal?: AbortSignal) {
     signal?.throwIfAborted();
     signal?.addEventListener('abort', stop, { once: true });
     return {
-      browser, url: service.url, close,
+      browser: opened, url: service.url, close,
       async page() {
         const page = await context.newPage();
         page.setDefaultTimeout(limits.operationMs);
@@ -88,13 +104,12 @@ async function launchBrowser(headed: boolean, signal?: AbortSignal) {
       },
     };
   } catch (error) {
-    const failure = toolError(error, 'runtime_unavailable', signal);
-    const diagnostics: string[] = [];
+    const failure = toolError(error, 'runtime_unavailable', startup);
     try { await browser?.close(); } catch (cleanup) { diagnostics.push(String(cleanup)); }
     try { await service.close(); } catch (cleanup) { diagnostics.push(String(cleanup)); }
-    if (diagnostics.length) failure.details = { cause: failure.details, cleanup: diagnostics };
+    failure.details = { cause: failure.details, cleanup: diagnostics };
     throw failure;
-  }
+  } finally { startup.removeEventListener('abort', abortStartup); }
 }
 
 export const runtimeVersion = (page: Page) => page.evaluate(() =>

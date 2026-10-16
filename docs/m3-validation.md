@@ -11,7 +11,7 @@ macOS 15.7.3 arm64、Node.js 26.5.1、pnpm 11.7.0、Playwright 1.64.1、Chromium
 | `pnpm check`、`pnpm build` | 通过 |
 | `pnpm ggb doctor` | CLI 返回 ok、smoke passed 和真实版本，正常退出 |
 | `pnpm test` | 23 项通过 |
-| `pnpm test:browser`、`GGB_HEADED=1 pnpm test:browser` | 15 项构造及交互回归、30 项故障验收通过 |
+| `pnpm test:browser`、`GGB_HEADED=1 pnpm test:browser` | 15 项构造及交互回归、40 项故障及启动验收通过 |
 | `git diff --check` | 通过 |
 
 无新增通用框架。`doctor.ts` 编排环境冒烟；`browser.ts` 继续拥有浏览器和服务；`delivery.ts` 继续拥有提交和失败诊断；CLI 仍拥有信号和退出码。几何规则保留在 `verify.ts`。
@@ -22,7 +22,7 @@ doctor 从空白真实 applet 创建临时点，导出 GGB，在新 applet 加�
 
 缺失 runtime、元数据版本不匹配及缺失 Chromium 均使 CLI 返回 runtime_unavailable 和非零退出码。取消、总时限及清理失败亦不能返回成功。runtime SHA-256 是安装时校验的压缩包锁值；doctor 不重新对全部已解压资源做完整性认证。
 
-限制集中在 schema：build 总时限 120 秒，doctor 总时限 45 秒，单次浏览器等待及导出/加载回调上限 30 秒。故障测试缩短进程内限制以触发相同超时路径，不改变发布默认值。
+限制集中在 schema：build 总时限 120 秒，doctor 总时限 45 秒，启动及上下文准备、单次浏览器等待和导出/加载回调上限为 30 秒。故障测试缩短进程内限制以触发相同超时路径，不改变发布默认值。
 
 ## 提交和清理
 
@@ -53,10 +53,25 @@ doctor 从空白真实 applet 创建临时点，导出 GGB，在新 applet 加�
 | A9 | 实际浏览器关闭、CLI 取消和加载失败释放资源，文件不变 |
 | A10 | 现有原语复用 M2 成功及拒绝路径；补充坐标、距离的初始范围正反例，保留数值、呈现及统一交付门禁 |
 
-故障注入仅在 `tests/faults.test.ts` 使用 Node 的实验性模块 mock。实际 applet 仍为固定 GeoGebra：测试中断原生回调、改变实际对象，或使文件系统操作返回错误。提交中断使用真实 SIGKILL；不使用 fake applet，不在生产代码加入故障参数。已验证 Node 26.5.1；故障测试要求 Node 支持 `--experimental-test-module-mocks`。
+故障注入仅在 `tests/faults.test.ts` 和 `tests/startup.test.ts` 使用 Node 的实验性模块 mock。实际 applet 仍为固定 GeoGebra：测试中断原生回调、改变实际对象，或使文件系统操作返回错误。提交中断使用真实 SIGKILL；不使用 fake applet，不在生产代码加入故障参数。已验证 Node 26.5.1；故障测试要求 Node 支持 `--experimental-test-module-mocks`。
+
+## Review 边界修复
+
+| 场景 | 新增证据 |
+| --- | --- |
+| 交互核验未验证，随后副本关闭失败 | 在真实 applet 将自由点移至接近共线的数值灰区。返回错误和 run.json 保留 verification_unverified 及原始检查证据，关闭错误作为附加诊断 |
+| 交互成功，副本关闭失败 | 关闭失败成为主错误，无正式交付 |
+| doctor 清理期间取消或到达时限 | 完成清理后再检查信号；不返回成功。CLI 的真实 SIGTERM 返回 cancelled，退出码 130 |
+| 原生启动结果延迟返回 | doctor 100ms 时限在延迟门闩解除前返回 limit_exceeded；服务已关闭。随后解除门闩，确认迟到的真实 Chromium 被关闭 |
+| 启动或上下文初始化期间取消 | 在延迟门闩解除前停止等待。已取得的浏览器立即关闭；迟到启动结果仍由启动完成处理器关闭 |
+| 上下文准备超过启动阶段时限 | 返回 limit_exceeded，浏览器和端口释放 |
+
+浏览器模块在启动前注册取消监听，并为原生 launch 显式设置超时。启动取消不能终止尚未返回句柄的原生调用，因此完成处理器继续拥有该调用，负责回收迟到结果；不是仅丢弃 Promise.race 的落败方。上下文初始化也受同一启动等待边界约束。doctor 仅在清理完成且取消、时限检查通过后返回成功。build 的既有提交后成功语义不变。
 
 ## 保证边界
 
 强制结束活跃浏览器阶段或系统崩溃不保证清理；本轮 SIGKILL 验证的是提交边界，并非任意时刻杀进程后的回收。残留浏览器可按 README 手动关闭，不自动续接画布。
 
 测试未模拟整机掉电，不承诺磁盘 fsync 耐久性、网络文件系统语义或其他操作系统行为。一般数学证明、任意布局、外部 GGB 和图片仍不在范围。A1、A2 的正式安装及目标客户端验收留待 M4，不能据此声称完整产品发布验收通过。
+
+总时限约束等待及结果判定，不承诺操作系统进程在截止瞬间退出；迟到原生启动及其关闭仍可能需要时间，原生启动本身另受 launch 超时约束。

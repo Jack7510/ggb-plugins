@@ -41,6 +41,8 @@ mock.module('../src/browser.js', { namedExports: { ...browser,
     return { ...session,
       async close() {
         await session.close();
+        if (fault === 'cleanup-cancel') cancellation!.abort(new Error('Cancelled during cleanup'));
+        if (fault === 'cleanup-deadline' && !signal!.aborted) await new Promise<void>(done => signal!.addEventListener('abort', () => done(), { once: true }));
         if (fault === 'cleanup' || fault === 'export-cleanup') throw new Error('Injected cleanup failure');
       },
       async page() {
@@ -62,9 +64,19 @@ mock.module('../src/browser.js', { namedExports: { ...browser,
           limits.operationMs = 150;
         }
         if (fault === 'browser-close') await session.browser.close();
+        if (count === 4 && fault.startsWith('interaction-')) {
+          const close = page.close.bind(page);
+          page.close = async () => { await close(); throw new Error('Injected interaction close failure'); };
+        }
         return page;
       },
     };
+  },
+  async dragPoint(...args: Parameters<typeof browser.dragPoint>) {
+    await browser.dragPoint(...args);
+    if (fault === 'interaction-unverified-close' && args[1].point === 'C') {
+      await args[0].evaluate(() => window.ggb.setCoords('C', 3, 2e-8));
+    }
   },
 } });
 const { build, openPreview } = await import('../src/delivery.js');
@@ -83,9 +95,10 @@ test('doctor reports real readiness and cleans up without producing deliveries',
   assert.equal(result.smoke, 'passed'); assert.equal(result.runtime.version, '5.4.932.1');
   assert.equal(result.limits.buildMs, 120_000); assert(result.commands.Circle && result.predicates.midpoint);
   assert.match(result.browser.version, /^\d/); await released();
-  for (const [name, code] of [['cancel', 'cancelled'], ['deadline', 'limit_exceeded'], ['cleanup', 'runtime_unavailable']]) await t.test(name!, async () => {
+  for (const [name, code] of [['cancel', 'cancelled'], ['deadline', 'limit_exceeded'], ['cleanup', 'runtime_unavailable'], ['cleanup-cancel', 'cancelled'], ['cleanup-deadline', 'limit_exceeded']]) await t.test(name!, async () => {
     fault = name!; cancellation = new AbortController();
     if (fault === 'deadline') limits.doctorMs = 1000;
+    if (fault === 'cleanup-deadline') limits.doctorMs = 1500;
     try {
       await assert.rejects(doctor(cancellation.signal), (error: any) => error.code === code);
       await released();
@@ -105,12 +118,14 @@ test('build failures preserve diagnostics, release resources and never commit', 
       ['failure-journal', 'export_failed'],
       ['export-cleanup', 'export_failed'],
       ['ggb-limit', 'limit_exceeded'], ['report-limit', 'limit_exceeded'],
+      ['interaction-unverified-close', 'verification_unverified'], ['interaction-close', 'verification_failed'],
     ]) await t.test(name!, async () => {
       fault = name!; output = join(directory, fault); cancellation = new AbortController();
       if (fault === 'deadline') limits.buildMs = 1000;
       if (fault === 'ggb-limit') limits.ggbBytes = 10;
       if (fault === 'report-limit') limits.reportBytes = 100;
       const input = structuredClone(fixture); input.outputDir = output;
+      if (fault.startsWith('interaction-')) input.plan.interactions.push({ point: 'C', dx: 40, dy: -30 });
       try {
         await assert.rejects(build(input, cancellation.signal), (error: any) => {
           assert.equal(error.code, code);
@@ -119,6 +134,11 @@ test('build failures preserve diagnostics, release resources and never commit', 
             assert.match(error.message, /Expected a GGB ZIP/);
             assert(error.details.diagnostics.some((s: string) => s.includes('Cleanup failed')));
           }
+          if (fault === 'interaction-unverified-close') {
+            assert(error.details.diagnostics.some((s: string) => s.includes('Interaction cleanup failed')));
+            assert(error.details.cause.some((r: any) => r.status === 'unverified'));
+          }
+          if (fault === 'interaction-close') assert.match(error.message, /Injected interaction close failure/);
           return true;
         });
         await released();
@@ -126,11 +146,39 @@ test('build failures preserve diagnostics, release resources and never commit', 
           await assert.rejects(fs.stat(join(output, run, 'delivery')), /ENOENT/);
           const state = JSON.parse(await fs.readFile(join(output, run, 'run.json'), 'utf8'));
           assert.equal(state.state, fault === 'failure-journal' ? 'running' : 'failed');
-          if (state.state === 'failed') assert.equal(state.error.code, code);
+          if (state.state === 'failed') {
+            assert.equal(state.error.code, code);
+            if (fault === 'interaction-unverified-close') {
+              assert(state.error.details.cause.some((r: any) => r.status === 'unverified'));
+              assert(state.diagnostics.some((s: string) => s.includes('Interaction cleanup failed')));
+            }
+          }
         }
       } finally { fault = ''; Object.assign(limits, defaults); }
     });
   } finally { await fs.rm(directory, { recursive: true, force: true }); }
+});
+
+test('doctor CLI reports SIGTERM during cleanup as cancelled, not successful', { timeout: 15_000 }, async () => {
+  const script = `
+    import { mock } from 'node:test';
+    import { once } from 'node:events';
+    import * as browser from ${JSON.stringify(join(root, 'dist/src/browser.js'))};
+    mock.module(${JSON.stringify(join(root, 'dist/src/browser.js'))}, { namedExports: { ...browser, async openBrowser(...args) {
+      const session = await browser.openBrowser(...args);
+      return { ...session, async close() {
+        await session.close();
+        const keeper = setTimeout(() => {}, 5000);
+        try { const interrupted = once(process, 'SIGTERM'); process.kill(process.pid, 'SIGTERM'); await interrupted; }
+        finally { clearTimeout(keeper); }
+      } };
+    } }});
+    await import(${JSON.stringify(join(root, 'dist/src/cli.js'))});
+  `;
+  await assert.rejects(promisify(execFile)(process.execPath, ['--experimental-test-module-mocks', '--input-type=module', '-e', script, 'doctor'], { timeout: 10_000 }), (error: any) => {
+    assert.equal(error.code, 130);
+    const result = JSON.parse(error.stdout); assert.equal(result.ok, false); assert.equal(result.error.code, 'cancelled'); return true;
+  });
 });
 
 test('committed files survive journal and preview errors; repeated calls remain independent', { timeout: 30_000 }, async () => {

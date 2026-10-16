@@ -16,7 +16,7 @@
     "demo": "node dist/src/cli.js demo",
     "preview": "node dist/src/cli.js preview",
     "test": "node --test dist/tests/schema.test.js dist/tests/server.test.js",
-    "test:browser": "node --test dist/tests/browser.test.js && node --experimental-test-module-mocks --test dist/tests/faults.test.js",
+    "test:browser": "node --test dist/tests/browser.test.js && node --experimental-test-module-mocks --test --test-concurrency=1 dist/tests/faults.test.js dist/tests/startup.test.js",
     "ggb": "node dist/src/cli.js"
   },
   "dependencies": {

@@ -25,11 +25,13 @@ export async function doctor(signal?: AbortSignal) {
     const reloaded = await session.page(); await loadGgb(reloaded, bytes);
     const objects = await snapshot(reloaded);
     assert(objects.length === 1 && objects[0]!.name === 'DoctorPoint' && objects[0]!.defined && objects[0]!.x === 0 && objects[0]!.y === 0, 'GGB reload failed');
-    running.throwIfAborted();
-    return { toolVersion: pkg.version, nodeVersion: process.version,
+    const result = { toolVersion: pkg.version, nodeVersion: process.version,
       browser: { version: session.browser.version(), executablePath: chromium.executablePath() },
       runtime: { version: await runtimeVersion(reloaded), url: lock.url, sha256: lock.sha256 },
       smoke: 'passed', limits, tolerance, commands, predicates };
+    await session.close(); session = undefined;
+    running.throwIfAborted();
+    return result;
   } catch (error) { failure = toolError(error, 'runtime_unavailable', running); throw failure; }
   finally {
     try { await session?.close(); }

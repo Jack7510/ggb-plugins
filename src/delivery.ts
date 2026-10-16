@@ -32,6 +32,7 @@ export async function build(input: unknown, signal?: AbortSignal) {
   let run: string | undefined;
   let session: Awaited<ReturnType<typeof openBrowser>> | undefined;
   let stage = 'export_failed';
+  const diagnostics: string[] = [];
   try {
     await mkdir(request.outputDir, { recursive: true });
     run = await mkdtemp(join(resolve(request.outputDir), 'ggb-'));
@@ -60,6 +61,7 @@ export async function build(input: unknown, signal?: AbortSignal) {
     const samples = [];
     for (const sample of request.plan.interactions) {
       const candidate = await session.page();
+      let interactionFailed = false;
       try {
         await loadGgb(candidate, data, request.prompt);
         const before = await snapshot(candidate);
@@ -68,7 +70,14 @@ export async function build(input: unknown, signal?: AbortSignal) {
         samples.push({ point: sample.point, before, after });
         await save(join(run, 'verification.json'), { construction, reload, samples });
         requirePassed(after);
-      } finally { await candidate.close(); }
+      } catch (error) { interactionFailed = true; throw error; }
+      finally {
+        try { await candidate.close(); }
+        catch (cleanup) {
+          if (!interactionFailed) throw cleanup;
+          diagnostics.push(`Interaction cleanup failed: ${cleanup instanceof Error ? cleanup.message : String(cleanup)}`);
+        }
+      }
     }
     const zoomResult = await zoom(reloaded);
     compareSnapshots(await snapshot(original), construction.objects);
@@ -91,7 +100,6 @@ export async function build(input: unknown, signal?: AbortSignal) {
     return { delivery, file: join(delivery, 'result.ggb'), report: join(delivery, 'verification.json'), ...(warnings.length ? { warnings } : {}) };
   } catch (error) {
     const failure = toolError(error, stage, running);
-    const diagnostics: string[] = [];
     try { await session?.close(); }
     catch (cleanup) { diagnostics.push(`Cleanup failed: ${cleanup instanceof Error ? cleanup.message : String(cleanup)}`); }
     failure.details = { run, stage, cause: failure.details, diagnostics };
