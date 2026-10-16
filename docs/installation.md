@@ -45,30 +45,15 @@ Git 版本包含源码。只要存在 src/cli.ts，setup-plugin 就安装构建�
 
 ## 其他本地工具
 
-ZIP 中的 CLI 可独立使用。解压后执行 `node <plugin>/scripts/setup-plugin.mjs`，再让工具读取 `<plugin>/skills/ggb-construction/SKILL.md` 并调用：
+ZIP 中的 CLI 可独立使用。解压后执行 `node <plugin>/scripts/setup-plugin.mjs`，再让工具读取包内 Skill；调用用法见下节 README 链接。
 
-```sh
-node <plugin>/dist/src/cli.js doctor
-node <plugin>/dist/src/cli.js build --request <absolute-request.json>
-node <plugin>/dist/src/cli.js preview --delivery <absolute-delivery> --headless
-```
+Skill 自动发现规则由各客户端决定。不能只复制 SKILL.md，运行还需要整个包的 CLI、页面及依赖。此入口不代表已验证所有客户端的原生插件安装。
 
-自动发现 Skill 的目录和插件格式由客户端决定；不要只复制 SKILL.md，运行还需要整个包的 CLI、页面及依赖。此入口不依赖 Codex API 或额外模型 Key，也不代表已验证所有客户端的原生插件安装。
+## 安装后使用
 
-## 使用和交付
+安装并启用后，在新宿主会话中提出题目。题目示例、CLI 用法、交付文件及预览操作统一见 [项目 README](https://github.com/Jack7510/ggb-plugins#提交一道题)。Agent 读取包内 Skill 和引用契约，不依赖开发 checkout。
 
-例如：“作三角形 ABC，取 AB 的中点 M，连接 CM，将中线标红，并打开可交互预览。”未给坐标时，由 Codex 选择并说明初始构型。能力受当前操作和谓词限制，不能删除无法核验的必需要求后宣称成功。
-
-M7 / 0.8.0 继续使用请求协议 2；交付报告标记 M6，旧交付目录须重新构造。doctor 的 smoke、casSmoke 均应通过。纯代数结果保存在原生对象中，使用 Algebra 视图；CAS 物化结果不自动保留动态 CAS 依赖。不同客户端的安装验收与全部命令覆盖记录独立维护，不因发布 ZIP 而自动完成。
-
-请求和产物写在用户工作区，使用绝对路径，不能写进安装缓存。正式目录包含 result.ggb、request.json、verification.json、preview.png 和 manifest.json。构图、doctor 和自动验证使用 headless，截图保存为 preview.png。验证完成后，Skill 自动调用 preview，用系统默认浏览器加载原文件，支持自由点拖动和缩放；点击页面“结束预览”或按 Ctrl+C 释放服务，不回写文件。仅关闭标签页不保证结束进程。最终预览需要系统可打开 HTTP URL 的默认浏览器；自动化预览检查可以添加 --headless。宿主必须保留前台进程：使用交互客户端或保持连接的 app-server；一次性 codex exec 退出会回收预览会话，不能据此承诺答复后预览继续存在。
-
-```sh
-node <installed-plugin>/dist/src/cli.js doctor
-node <installed-plugin>/dist/src/cli.js preview --delivery <absolute-delivery>
-```
-
-失败保留已有诊断，不自动恢复。提交后仅外层清单写入失败时，成功结果附带 warnings，完整交付仍有效。强制杀进程可能留下浏览器，可确认对应进程后手动关闭。
+发布版本与仓库未发布行为的区别见 [CHANGES](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)。本文只说明安装、依赖准备、更新与卸载，不复制数学契约或预览生命周期。
 
 ## 更新与卸载
 

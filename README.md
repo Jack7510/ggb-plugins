@@ -1,105 +1,58 @@
 # ggb-plugins
 
-面向本地 Codex 的 GeoGebra 构图工具。**M7 / 0.7.0**：Codex 根据文字或图片题生成原生二维数学程序，经统一 CLI 构造、逐条件核验、导出、重载和交互检查，再打开独立预览。题意分析由宿主 Codex 完成，本地工具不额外调用模型 API。
+把文字或图片中的二维数学题变成可交互的 GeoGebra 文件。支持 Codex 与 DeepSeek Harness（DSH）：宿主 Agent 理解题意并编写原生 Algebra／CAS 程序，本地工具执行、核验、导出并重新加载，交付 `.ggb`、报告和截图。
 
-新题通过 GeoGebra 原生命令与表达式解决。生产执行器和验证器不按题型分支；M1 三角形现在是 `examples/triangle.json` 回归输入。支持范围及完整请求格式见 [Skill 能力契约](skills/ggb-construction/references/capabilities.md)，阶段划分见 [设计文档](docs/ggb-plugins-design.md)。M4 提供可安装插件 ZIP、本地 marketplace 和安装器。目标客户端验收使用 Codex CLI 0.162.1 的运行时；桌面 UI 自动化不在本轮已验证范围。
+本插件不增加模型服务或额外模型密钥。新题通过程序和检查组合表达，适用于二维几何、函数、方程、微积分、列表矩阵和统计等问题。它不提供外部 GGB 续题、三维构图或一般数学证明；原生命令开放也不表示全部命令及重载已经验收。
 
-M5 已接通 Algebra/CAS、原生核验表达式及完整交付链路，不按题型或逐数学命令增加包装。CAS 等待就绪后把当次结果保存为原生对象；纯代数使用独立 Algebra 视图，无需自由点或拖动。旧结构化原语仅保留为回归编写形式，同样进入统一管线。实现与边界见[通用二维目标](docs/ggb-plugins-design.md#13-通用二维数学与代数目标)和 [M5 验收记录](docs/m5-validation.md)。支持原生输入不代表全部命令已验收，M6 增加嵌套列表／矩阵核验、显式符号假设、原生多输出和滑块参数采样；见 [M6 验收记录](docs/m6-validation.md)。复杂局部绑定、动态 CAS 单元和全部命令及重载仍未验收。
+## 安装
 
-## 插件打包与安装
+[GitHub Releases](https://github.com/Jack7510/ggb-plugins/releases) 提供 Codex ZIP、DSH TGZ 和各自校验文件。安装完整包，并在实际安装副本中准备运行依赖：
 
-最新稳定版：[0.7.0 Release](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.7.0)，提供编译插件 ZIP 和 SHA-256 校验文件。Codex 可通过 `codex plugin marketplace add Jack7510/ggb-plugins --ref v0.7.0` 注册固定版本；其他本地工具可以使用包内 Skill 和统一 CLI。完整步骤见 [安装说明](docs/installation.md)。
+- Codex：[安装与升级说明](docs/installation.md)。
+- DSH：[独立 headless profile 安装说明](dsh/README.md)。
 
-M7 增加[固定 runtime 覆盖记录](docs/command-coverage.json)和 [Skill 覆盖边界](skills/ggb-construction/references/command-coverage.md)。运行 `pnpm coverage:commands` 可重建记录及 headless 截图。502 个官方目录名称中，28 个有六个跨域交付中的调用证据；其余未实测。记录区分构造与检查调用，不宣称全部重载已通过。安装后真实客户端证据见 [M7 验收](docs/m7-validation.md)。
+两个客户端各自安装，同样使用一套数学执行与核验管线。源码开发从 [AGENTS.md](AGENTS.md) 开始。
 
-```sh
-pnpm pack:plugin
-```
+## 提交一道题
 
-命令先编译，再输出插件目录、ZIP 和 SHA-256 路径。每次使用独立输出目录，不覆盖旧包。包内包含根 plugin.json、marketplace、Skill 及能力说明、八个编译模块、页面、两项安装脚本、锁文件和许可说明。不包含源码、测试、开发文档、node_modules、GeoGebra、Chromium 或用户产物；生产依赖和 runtime 在安装后准备。
+插件启用后，在新的宿主会话中直接提出题目，图片可以随题附上。例如：
 
-按 [安装说明](docs/installation.md) 注册 marketplace、安装插件，再在安装缓存内执行 setup-plugin。ZIP 已编译；存在源码时，同一安装器始终安装构建依赖并重新编译。插件自动发现路径来自安装缓存，构图不依赖开发仓库。客户端验收见 [M4 验收记录](docs/m4-validation.md)。
+> 用 GeoGebra 作三角形 ABC，取 AB 的中点 M，连接 CM，将中线标红。拖动 A 验证中点和中线联动，保存文件并打开交互预览。
 
-维护者推送与 package.json/plugin.json 一致的 `v<version>` 标签后，发布工作流执行类型检查、构建及基础／打包测试，上传 ZIP 和校验文件后发布 Release。每个标签需提供 `docs/releases/<tag>.md` 发布说明；不要移动已发布标签。
+纯代数也可以直接提问，例如“求 x²−5x+6=0 的实数解，保存原生结果和核验报告”。没有必要条件时 Agent 会澄清；未指定坐标时应说明自行选择的初始构型。
 
-也可在 Actions 中手动运行 Release plugin，输入已存在的版本标签。工作流从该标签检出源码，不把 main 的后续改动混入发布包。
-
-## 源码开发环境
-
-需要 Node.js 22+、pnpm 11，以及系统 `curl`、`unzip`。已在 macOS arm64 验证；其他平台尚未验收。
-
-```sh
-pnpm install --frozen-lockfile
-pnpm setup:runtime
-pnpm exec playwright install chromium
-pnpm build
-pnpm ggb doctor
-```
-
-安装器从官方版本化地址下载 GeoGebra，核对 `runtime.lock.json` 中的 SHA-256 后解压到 `.runtime/`。也可以执行 `pnpm setup:runtime /absolute/path/to/bundle.zip`。已有目录不会被覆盖，重新安装前先移走旧目录。
-
-安装阶段需要网络；浏览器执行只允许访问本机资源。GeoGebra 不提交到 Git，其许可独立于本项目 MIT 许可，见 [第三方说明](THIRD_PARTY_NOTICES.md)。
-
-## 环境检查与失败处理
-
-`pnpm ggb doctor` 使用与 build 相同的本地服务和浏览器，检查 runtime 元数据及真实版本，执行临时构造、CAS 计算、GGB 导出和重载。成功输出 JSON，包含工具、Node.js、Chromium、runtime 版本、限制和能力表。结束后关闭浏览器和服务，不创建交付目录。失败返回非零退出码，不要继续作图；按错误信息安装依赖或修正版本。
-
-构图总时限 120 秒，doctor 总时限 45 秒，启动及上下文准备、单次浏览器等待和导出/加载回调上限 30 秒。取消停止启动等待并关闭已取得资源；迟到的原生启动结果返回后也会被关闭。CLI 取消返回 130。doctor 在清理后再次检查取消和时限。失败保留原始错误，清理错误附加为诊断；不自动重试或恢复。
-
-工具先关闭构图资源，再原子提交 `delivery/`。提交前失败没有正式交付；提交后更新外层 `run.json` 失败会返回成功路径及 warnings。此时以完整交付目录为准，不要仅凭外层 running 状态重复构造。预览失败不删除或修改交付文件。
-
-强制结束进程或系统崩溃可能留下浏览器。可关闭对应 Chromium 窗口，或在活动监视器中按 PID 确认并结束本次运行的残留进程；不要批量结束其他浏览器。没有正式交付的旧运行只保留作诊断，重新调用会创建新目录。
-
-## 在 Codex 中作图
-
-让 Codex 读取 [ggb-construction Skill](skills/ggb-construction/SKILL.md)，提交文字或图片题。Skill 指导 Codex 保留条件来源、生成可组合程序和检查条件、处理执行反馈并交付结果。插件安装并启用后，在新会话自动发现 `ggb-plugins:ggb-construction`。源码开发时也可手动读取仓库中的 Skill；这不代替安装验收。
-
-CLI 消费 Codex 生成的协议 2 JSON 请求，结果信封仍为协议 1。请求包含用户原文、locale、outputDir，以及 program、requirements、styles 和交互样本；使用绝对产物路径可避免工作目录歧义。
-
-```sh
-pnpm ggb build --request /absolute/path/to/request.json
-```
-
-可直接运行不同示例，所有示例共用同一管线：
-
-```sh
-pnpm ggb build --request examples/triangle.json
-pnpm ggb build --request examples/parabola.json
-pnpm ggb build --request examples/algebra.json
-pnpm ggb build --request examples/functions.json
-pnpm ggb build --request examples/statistics.json
-pnpm ggb build --request examples/bisector.json
-pnpm ggb build --request examples/circle.json
-pnpm ggb build --request examples/transfer.json
-# M1 开发快捷入口，同样调用统一 build：
-pnpm demo
-```
-
-示例将文件写到 `output/` 下新的 `ggb-*/delivery/`，命令返回结果 JSON。运行一次只接受一个候选程序；失败尽可能保留 `run.json`、已写入的 `request.json` 和已有证据，修正后重新构造，不恢复半完成画布。
+构造、重载和自动核验使用 headless 浏览器，过程中不打开中间窗口。失败时保留诊断；无法核验的必需条件不能作为成功交付。对成功结果，报告会说明实际检查与有限交互样本的范围。
 
 ## 交付与预览
 
-正式交付目录包含 `result.ggb`、`request.json`、`verification.json`、`preview.png` 和 `manifest.json`。构造、重载或必需检查失败及数值灰区均阻止正式交付。报告记录逐要求结果和有限交互样本；采样通过不代表一般数学命题已证明。
+成功后得到一个完整 delivery 目录：
+
+| 文件 | 用途 |
+| --- | --- |
+| result.ggb | 可在 GeoGebra 中打开和编辑的原生文件 |
+| verification.json | 数学条件、重载及交互核验报告 |
+| preview.png | 原始交付构型截图 |
+| request.json、manifest.json | 输入留档和交付清单 |
+
+交互预览加载同一 GGB，支持适用的点拖动、参数变化及缩放，不回写交付文件。需要手动调用或接入其他本地工具时：
 
 ```sh
-pnpm preview --delivery /absolute/path/to/delivery
+node <installed-plugin>/dist/src/cli.js doctor
+node <installed-plugin>/dist/src/cli.js build --request /absolute/request.json
+node <installed-plugin>/dist/src/cli.js preview --delivery /absolute/delivery
 ```
 
-预览核对文件完整性、摘要、报告覆盖和实际重载事实，再输出就绪 JSON 并保持前台运行。图形视图可拖动自由点、路径点，改变滑块并缩放；代数视图展示原生计算结果。预览修改不覆盖交付文件。预览依赖宿主保留前台进程：交互客户端或保持连接的 app-server 可保留；一次性 codex exec 退出会回收其进程会话。不要把刚输出就绪后即退出的 exec 当作持久预览。关闭 GGB 预览标签页或窗口，程序会退出本次专用浏览器并释放本地服务；按 Ctrl+C 也会清理。
+请求编写方式见 [Skill 能力契约](skills/ggb-construction/references/capabilities.md)。自动复核预览加 `--headless`。预览需要持续运行的调用方保留进程；一次性宿主退出后，窗口不保证继续可用。
 
-M6 继续接受协议 2 请求，包括 M1/M5 示例；交付报告标记 M6，旧交付目录须重新构造以补齐证据。图片由宿主提取条件后进入同一接口；当前不接受外部 GGB 续题、三维、宿主脚本或通用证明。无法核验的必需要求不得作为成功结果交付。
+保持预览进程，按 Ctrl+C 可结束会话。浏览器选择和关页退出行为以所用版本为准，发布版本与未发布预览改动的区别只在 [修改记录](docs/CHANGES.md)维护。
 
-构图、doctor 和自动回归均使用 headless，过程中不弹出浏览器，交付截图保存在 preview.png。全部验证完成后，preview 使用本机已安装的 Google Chrome 加载 result.ggb。自动化预览检查使用 `preview --delivery <dir> --headless`。
+## 仓库入口
 
-## 验证与实现边界
+- `src/`、`viewer/`：本地执行、核验与页面。
+- `skills/`、`dsh/`：共享 Skill 和宿主接入。
+- `examples/`、`tests/`：可运行输入与回归用例。
+- `scripts/`：依赖准备、两种打包和覆盖记录工具。
+- [需求与设计](docs/ggb-plugins-design.md)：为什么采用这些边界与门禁。
+- [重要修改记录](docs/CHANGES.md)：版本演进及对应验收证据。
 
-```sh
-pnpm check
-pnpm build
-pnpm test
-pnpm test:browser
-```
-
-离线测试覆盖严格输入、依赖图、拒绝路径、容差、资源边界和插件归档。真实浏览器测试覆盖四种构造、对象改名和坐标旋转、M1 呈现反例、伪造依赖、错误关系、数值灰区、文件缺项和 CLI 取消。M3 故障测试另覆盖依赖缺失、回调超时、写盘及提交失败、清理异常、资源释放和提交前后真实 SIGKILL。故障注入仅使用 Node 测试模块 mock，需支持 `--experimental-test-module-mocks` 的 Node.js；未增加运行依赖。记录见 [M3 验收记录](docs/m3-validation.md) 及 [M2 验收记录](docs/m2-validation.md)。
-
-`schema.ts` 定义能力和契约，`compile.ts` 检查原生程序封装及引用，保留回归原语编译，`browser.ts` 执行并采集事实，`verify.ts` 只消费数据判定，`delivery.ts` 编排文件交付，`cli.ts` 拥有进程信号和退出码，`doctor.ts` 编排依赖冒烟检查。所有构图共用一个页面、一个 TypeScript 包，不引入常驻构图服务或第二套几何引擎。
+项目采用 MIT 许可，GeoGebra 的独立许可和归属见 [第三方说明](THIRD_PARTY_NOTICES.md)。
