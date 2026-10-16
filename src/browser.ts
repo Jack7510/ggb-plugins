@@ -2,6 +2,7 @@ import { chromium, type Browser, type Page } from 'playwright';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { root, serve } from './server.js';
+import { limits, toolError } from './schema.js';
 
 export interface GgbAPI {
   evalCommand(command: string): boolean;
@@ -44,6 +45,11 @@ declare global {
 }
 
 export async function openBrowser(headed = false, signal?: AbortSignal) {
+  try { return await launchBrowser(headed, signal); }
+  catch (error) { throw toolError(error, 'runtime_unavailable', signal); }
+}
+
+async function launchBrowser(headed: boolean, signal?: AbortSignal) {
   signal?.throwIfAborted();
   const lock = JSON.parse(await readFile(resolve(root, 'runtime.lock.json'), 'utf8')) as { version: string; sha256: string };
   const installed = JSON.parse(await readFile(resolve(root, '.runtime/runtime.json'), 'utf8')) as typeof lock;
@@ -73,7 +79,7 @@ export async function openBrowser(headed = false, signal?: AbortSignal) {
       browser, url: service.url, close,
       async page() {
         const page = await context.newPage();
-        page.setDefaultTimeout(30_000);
+        page.setDefaultTimeout(limits.operationMs);
         await page.goto(service.url);
         await page.waitForFunction(() => typeof window.ggb?.getXML === 'function');
         const version = await runtimeVersion(page);
@@ -82,26 +88,29 @@ export async function openBrowser(headed = false, signal?: AbortSignal) {
       },
     };
   } catch (error) {
-    await browser?.close();
-    await service.close();
-    throw error;
+    const failure = toolError(error, 'runtime_unavailable', signal);
+    const diagnostics: string[] = [];
+    try { await browser?.close(); } catch (cleanup) { diagnostics.push(String(cleanup)); }
+    try { await service.close(); } catch (cleanup) { diagnostics.push(String(cleanup)); }
+    if (diagnostics.length) failure.details = { cause: failure.details, cleanup: diagnostics };
+    throw failure;
   }
 }
 
 export const runtimeVersion = (page: Page) => page.evaluate(() =>
   new DOMParser().parseFromString(window.ggb.getXML(), 'text/xml').documentElement.getAttribute('version'));
 
-export const exportGgb = (page: Page) => page.evaluate(() =>
+export const exportGgb = (page: Page) => page.evaluate(timeout =>
   new Promise<string>((done, reject) => {
-    const timer = setTimeout(() => reject(new Error('GGB export timed out')), 30_000);
+    const timer = setTimeout(() => reject(new Error('GGB export timed out')), timeout);
     window.ggb.getBase64(data => { clearTimeout(timer); done(data); });
-  }));
+  }), limits.operationMs);
 
 export async function loadGgb(page: Page, base64: string, prompt?: string) {
-  await page.evaluate(data => new Promise<void>((done, reject) => {
-    const timer = setTimeout(() => reject(new Error('GGB load timed out')), 30_000);
+  await page.evaluate(({ data, timeout }) => new Promise<void>((done, reject) => {
+    const timer = setTimeout(() => reject(new Error('GGB load timed out')), timeout);
     window.ggb.setBase64(data, () => { clearTimeout(timer); done(); });
-  }), base64);
+  }), { data: base64, timeout: limits.operationMs });
   if (prompt) await page.locator('h1').evaluate((element, text) => { element.textContent = text; }, prompt);
   await page.bringToFront();
   await page.locator('#applet canvas').first().waitFor({ state: 'visible' });

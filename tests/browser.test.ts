@@ -184,6 +184,21 @@ test('different constructions use one execution, verification and delivery pipel
       assert(!report.reload.objects.some((o: any) => ['A', 'B', 'C', 'M', 'shape', 'median'].includes(o.name)));
     });
 
+    await t.test('coordinate and distance requirements keep their initial scope', async () => {
+      const request = await fixture('triangle'); request.outputDir = join(directory, 'initial');
+      request.prompt += 'A的初始坐标为(0,0)，AB的初始长度为6。';
+      const coordinate = { kind: 'coordinate', subjects: ['A'], coordinates: [0, 0] as [number, number], scope: 'initial' as const };
+      const distance = { kind: 'distance', subjects: ['A', 'B'], value: 6, scope: 'initial' as const };
+      request.plan.requirements.push({ id: 'initial', source: 'A的初始坐标为(0,0)，AB的初始长度为6', checks: [coordinate, distance] });
+      const result = await build(request);
+      const session = await openPreview(result.delivery, process.env.GGB_HEADED === '1');
+      try {
+        const objects = await snapshot(session.page);
+        coordinate.coordinates = [1, 0]; assert.equal(verify(request, objects, 'initial').status, 'failed');
+        coordinate.coordinates = [0, 0]; distance.value = 7; assert.equal(verify(request, objects, 'initial').status, 'failed');
+      } finally { await session.close(); }
+    });
+
     await t.test('false relationships, counterfeit dependencies, gray zones and degenerate geometry do not produce deliveries', async () => {
       for (const [name, mutate] of [
         ['fixedMidpoint', (r: Request) => { r.plan.program[4] = { id: 'M', op: 'freePoint', x: 3, y: 0 }; }],

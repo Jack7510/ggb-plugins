@@ -4,7 +4,12 @@ export class ToolError extends Error {
   constructor(public code: string, message: string, public details?: unknown) { super(message); }
 }
 
-export const limits = { requestBytes: 128 * 1024, reportBytes: 16 * 1024 * 1024, promptChars: 12000, steps: 64, requirements: 64, checks: 256, samples: 12, coordinate: 10000, ggbBytes: 10 * 1024 * 1024 };
+export function toolError(error: unknown, code: string, signal?: AbortSignal): ToolError {
+  if (signal?.aborted) return new ToolError(signal.reason?.name === 'TimeoutError' ? 'limit_exceeded' : 'cancelled', String(signal.reason?.message ?? 'Cancelled'));
+  return error instanceof ToolError ? error : new ToolError(code, error instanceof Error ? error.message : String(error));
+}
+
+export const limits = { requestBytes: 128 * 1024, reportBytes: 16 * 1024 * 1024, promptChars: 12000, steps: 64, requirements: 64, checks: 256, samples: 12, coordinate: 10000, ggbBytes: 10 * 1024 * 1024, operationMs: 30_000, buildMs: 120_000, doctorMs: 45_000 };
 export const commands: Record<string, { signatures: string[][]; output: string; native?: string; variadic?: boolean }> = {
   Segment: { signatures: [['point', 'point']], output: 'segment' },
   Line: { signatures: [['point', 'point'], ['point', 'line']], output: 'line' },

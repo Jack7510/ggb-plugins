@@ -1,6 +1,6 @@
 {
   "name": "ggb-plugins",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Minimal local GeoGebra construction prototype for Codex",
@@ -16,7 +16,7 @@
     "demo": "node dist/src/cli.js demo",
     "preview": "node dist/src/cli.js preview",
     "test": "node --test dist/tests/schema.test.js dist/tests/server.test.js",
-    "test:browser": "node --test dist/tests/browser.test.js",
+    "test:browser": "node --test dist/tests/browser.test.js && node --experimental-test-module-mocks --test dist/tests/faults.test.js",
     "ggb": "node dist/src/cli.js"
   },
   "dependencies": {

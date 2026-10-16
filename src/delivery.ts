@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rename, stat, writeFile } from 'node:fs/promi
 import { join, resolve } from 'node:path';
 import { dragPoint, execute, exportGgb, loadGgb, openBrowser, runtimeVersion, snapshot, zoom, type Snapshot } from './browser.js';
 import { compile } from './compile.js';
-import { limits, parseRequest, ToolError, type Request } from './schema.js';
+import { limits, parseRequest, ToolError, toolError, type Request } from './schema.js';
 import { compareSnapshots, equivalent, verify, type Verification } from './verify.js';
 
 export const sha256 = (data: Buffer) => createHash('sha256').update(data).digest('hex');
@@ -12,7 +12,8 @@ const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n';
 const save = (path: string, value: unknown) => writeFile(path, json(value));
 export async function readJson(path: string, max = limits.requestBytes): Promise<unknown> {
   const info = await stat(path);
-  assert(info.isFile() && info.size > 0 && info.size <= max, 'Expected a nonempty JSON file within the size limit');
+  if (info.size > max) throw new ToolError('limit_exceeded', 'JSON file exceeds the size limit');
+  assert(info.isFile() && info.size > 0, 'Expected a nonempty JSON file');
   return JSON.parse(await readFile(path, 'utf8'));
 }
 function requirePassed(result: Verification) {
@@ -21,20 +22,23 @@ function requirePassed(result: Verification) {
 
 /** All problems use this one pipeline. Problem understanding belongs to the calling Codex. */
 export async function build(input: unknown, signal?: AbortSignal) {
-  signal?.throwIfAborted();
-  const request = parseRequest(input), compiled = compile(request);
+  let request: Request, compiled: ReturnType<typeof compile>;
+  try { signal?.throwIfAborted(); request = parseRequest(input); compiled = compile(request); }
+  catch (error) { throw toolError(error, 'invalid_input', signal); }
   const requestBytes = Buffer.from(json(request));
-  assert(requestBytes.length <= limits.requestBytes, 'Request exceeds the size limit');
-  const running = AbortSignal.any([AbortSignal.timeout(120_000), ...(signal ? [signal] : [])]);
-  await mkdir(request.outputDir, { recursive: true });
-  const run = await mkdtemp(join(resolve(request.outputDir), 'ggb-'));
-  const temp = join(run, 'delivery.tmp'); await mkdir(temp);
+  if (requestBytes.length > limits.requestBytes) throw new ToolError('limit_exceeded', 'Request exceeds the size limit');
+  const running = AbortSignal.any([AbortSignal.timeout(limits.buildMs), ...(signal ? [signal] : [])]);
   const requestSha256 = sha256(requestBytes);
-  await writeFile(join(run, 'request.json'), requestBytes);
-  await save(join(run, 'run.json'), { state: 'running', requestSha256 });
+  let run: string | undefined;
   let session: Awaited<ReturnType<typeof openBrowser>> | undefined;
-  let stage = 'runtime_unavailable';
+  let stage = 'export_failed';
   try {
+    await mkdir(request.outputDir, { recursive: true });
+    run = await mkdtemp(join(resolve(request.outputDir), 'ggb-'));
+    const temp = join(run, 'delivery.tmp'); await mkdir(temp);
+    await writeFile(join(run, 'request.json'), requestBytes);
+    await save(join(run, 'run.json'), { state: 'running', requestSha256 });
+    stage = 'runtime_unavailable';
     session = await openBrowser(false, running);
     const original = await session.page();
     stage = 'execution_failed'; await execute(original, compiled, request.prompt);
@@ -42,7 +46,8 @@ export async function build(input: unknown, signal?: AbortSignal) {
     await save(join(run, 'verification.json'), construction); requirePassed(construction);
     stage = 'export_failed';
     const bytes = Buffer.from(await exportGgb(original), 'base64');
-    assert(bytes.length <= limits.ggbBytes && bytes.subarray(0, 2).toString() === 'PK', 'Expected a bounded GGB ZIP archive');
+    if (bytes.length > limits.ggbBytes) throw new ToolError('limit_exceeded', 'GGB file exceeds the size limit');
+    assert(bytes.subarray(0, 2).toString() === 'PK', 'Expected a GGB ZIP archive');
     await writeFile(join(temp, 'result.ggb'), bytes);
     stage = 'reload_failed';
     const reloaded = await session.page();
@@ -50,7 +55,7 @@ export async function build(input: unknown, signal?: AbortSignal) {
     await loadGgb(reloaded, data, request.prompt);
     const reload = verify(request, await snapshot(reloaded), 'initial'); requirePassed(reload);
     compareSnapshots(reload.objects, construction.objects);
-    await reloaded.screenshot({ path: join(temp, 'preview.png') });
+    stage = 'export_failed'; await reloaded.screenshot({ path: join(temp, 'preview.png') });
     stage = 'verification_failed';
     const samples = [];
     for (const sample of request.plan.interactions) {
@@ -68,22 +73,32 @@ export async function build(input: unknown, signal?: AbortSignal) {
     const zoomResult = await zoom(reloaded);
     compareSnapshots(await snapshot(original), construction.objects);
     const report = { milestone: 'M2', requestSha256, construction, reload, interaction: { status: 'passed', samples, zoom: zoomResult } };
-    assert(Buffer.byteLength(json(report)) <= limits.reportBytes, 'Verification report exceeds the size limit');
+    stage = 'export_failed';
+    if (Buffer.byteLength(json(report)) > limits.reportBytes) throw new ToolError('limit_exceeded', 'Verification report exceeds the size limit');
     await save(join(temp, 'verification.json'), report);
     await writeFile(join(temp, 'request.json'), requestBytes);
     await save(join(temp, 'manifest.json'), {
       protocolVersion: 1, milestone: 'M2', runtimeVersion: await runtimeVersion(original), file: 'result.ggb',
       sha256: sha256(bytes), requestSha256, objects: construction.objects,
     });
-    stage = 'export_failed'; running.throwIfAborted();
+    // Close resources before the commit point. No fallible cleanup follows rename.
+    stage = 'export_failed'; await session.close(); session = undefined;
+    running.throwIfAborted();
     const delivery = join(run, 'delivery'); await rename(temp, delivery);
-    await save(join(run, 'run.json'), { state: 'delivered', requestSha256, delivery: 'delivery' });
-    return { delivery, file: join(delivery, 'result.ggb'), report: join(delivery, 'verification.json') };
+    const warnings: string[] = [];
+    try { await save(join(run, 'run.json'), { state: 'delivered', requestSha256, delivery: 'delivery' }); }
+    catch (error) { warnings.push(`Delivery committed; run.json update failed: ${error instanceof Error ? error.message : String(error)}`); }
+    return { delivery, file: join(delivery, 'result.ggb'), report: join(delivery, 'verification.json'), ...(warnings.length ? { warnings } : {}) };
   } catch (error) {
-    const failure = error instanceof ToolError ? error : new ToolError(running.aborted ? (signal?.aborted ? 'cancelled' : 'limit_exceeded') : stage, error instanceof Error ? error.message : String(error));
-    await save(join(run, 'run.json'), { state: 'failed', requestSha256, error: { code: failure.code, message: failure.message, details: failure.details } });
+    const failure = toolError(error, stage, running);
+    const diagnostics: string[] = [];
+    try { await session?.close(); }
+    catch (cleanup) { diagnostics.push(`Cleanup failed: ${cleanup instanceof Error ? cleanup.message : String(cleanup)}`); }
+    failure.details = { run, stage, cause: failure.details, diagnostics };
+    if (run) try { await save(join(run, 'run.json'), { state: 'failed', requestSha256, error: { code: failure.code, message: failure.message, details: failure.details }, diagnostics }); }
+    catch (write) { diagnostics.push(`Cannot save run.json: ${write instanceof Error ? write.message : String(write)}`); }
     throw failure;
-  } finally { await session?.close(); }
+  }
 }
 
 function validatePhase(request: Request, input: any, phase: 'initial' | 'sampled') {
@@ -93,6 +108,11 @@ function validatePhase(request: Request, input: any, phase: 'initial' | 'sampled
 }
 
 export async function openPreview(deliveryDir: string, headed = true, signal?: AbortSignal) {
+  try { return await preview(deliveryDir, headed, signal); }
+  catch (error) { throw toolError(error, 'preview_failed', signal); }
+}
+
+async function preview(deliveryDir: string, headed: boolean, signal?: AbortSignal) {
   signal?.throwIfAborted();
   const delivery = resolve(deliveryDir);
   const manifest = await readJson(join(delivery, 'manifest.json'), 2 * 1024 * 1024) as any;
@@ -128,5 +148,10 @@ export async function openPreview(deliveryDir: string, headed = true, signal?: A
     compareSnapshots(actual.objects, manifest.objects);
     assert.equal(await runtimeVersion(page), manifest.runtimeVersion);
     return { ...session, page, delivery, request };
-  } catch (error) { await session.close(); throw error; }
+  } catch (error) {
+    const failure = toolError(error, 'preview_failed', signal);
+    try { await session.close(); }
+    catch (cleanup) { failure.details = { cause: failure.details, cleanup: String(cleanup) }; }
+    throw failure;
+  }
 }
