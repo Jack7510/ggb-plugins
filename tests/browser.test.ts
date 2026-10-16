@@ -113,7 +113,8 @@ test('different constructions use one execution, verification and delivery pipel
           await session.page.evaluate(() => window.ggb.setColor('M', 0, 0, 255));
           assert.equal(verify(request, await snapshot(session.page), 'initial').status, 'failed'); await reset();
         });
-        await dragPoint(session.page, request.plan.interactions[0]!);
+        const sample = request.plan.interactions[0]!; assert('point' in sample);
+        await dragPoint(session.page, sample);
         assert.equal(verify(request, await snapshot(session.page), 'sampled').status, 'passed');
         const z = await zoom(session.page); assert.notEqual(z.before, z.after);
       } finally { await session.close(); await session.close(); }
@@ -177,7 +178,7 @@ test('different constructions use one execution, verification and delivery pipel
         for (const check of requirement.checks) check.subjects = check.subjects.map(rename);
       }
       for (const style of request.plan.styles ?? []) style.object = rename(style.object);
-      for (const sample of request.plan.interactions) sample.point = rename(sample.point);
+      for (const sample of request.plan.interactions) { assert('point' in sample); sample.point = rename(sample.point); }
       const result = await build(request);
       const report = JSON.parse(await readFile(result.report, 'utf8'));
       assert.equal(report.reload.status, 'passed'); assert.equal(report.interaction.status, 'passed');

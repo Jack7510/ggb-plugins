@@ -38,9 +38,11 @@ export const predicates: Record<string, { types: string[]; extra?: string; varia
 };
 export interface Style { visible?: boolean; labelVisible?: boolean; color?: string; lineThickness?: number; lineStyle?: number; caption?: string; fixed?: boolean; }
 export type Argument = number | { ref: string };
+export type MathValue = number | boolean | MathValue[];
+export type Interaction = { point: string; dx: number; dy: number } | { parameter: string; value: number };
 export type Step = { id: string; op: 'freePoint'; x: number; y: number } | { id: string; op: 'command'; name: string; args: Argument[] }
   | { id: string; op: 'native'; source: string; mode: 'algebra' | 'cas'; outputs?: string[]; initial?: [number, number] };
-export interface Check { kind: string; subjects: string[]; scope: 'initial' | 'sampled'; coordinates?: [number, number]; value?: number; properties?: Style; objectType?: string; expression?: string; mode?: 'algebra' | 'cas'; expected?: number | boolean; }
+export interface Check { kind: string; subjects: string[]; scope: 'initial' | 'sampled'; coordinates?: [number, number]; value?: number; properties?: Style; objectType?: string; expression?: string; mode?: 'algebra' | 'cas'; expected?: MathValue; assumptions?: string[]; }
 export interface Request {
   protocolVersion: 2; prompt: string; locale: string; outputDir: string;
   clarifications?: { question: string; answer: string }[];
@@ -48,7 +50,7 @@ export interface Request {
     program: Step[];
     requirements: { id: string; source: string; checks: Check[] }[];
     styles?: { object: string; properties: Style }[];
-    interactions: { point: string; dx: number; dy: number }[];
+    interactions: Interaction[];
     view?: { xMin: number; xMax: number; yMin: number; yMax: number };
     display?: 'graphics' | 'algebra';
   };
@@ -63,7 +65,7 @@ function text(value: unknown, max = 2048): asserts value is string {
   assert(typeof value === 'string' && value.trim().length > 0 && value.length <= max, 'Invalid text');
 }
 function identifier(value: unknown): asserts value is string {
-  assert(typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,31}$/.test(value)
+  assert(typeof value === 'string' && value.length <= 32 && /^[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?$/.test(value)
     && !['e', 'i', 'x', 'y', 'z', 'pi'].includes(value) && !value.startsWith('GgbProbe'), 'Invalid or reserved object identifier');
 }
 function finite(value: unknown, max = limits.coordinate): asserts value is number {
@@ -128,7 +130,7 @@ export function parseRequest(value: unknown): Request {
     assert(sources.some(source => source.includes(r.source)), 'Requirement source is not in the input');
     array(r.checks, 1, limits.checks);
     for (const input of r.checks) {
-      const c = record(input, ['kind', 'subjects', 'scope', 'value', 'coordinates', 'properties', 'objectType', 'expression', 'expected', 'mode']);
+      const c = record(input, ['kind', 'subjects', 'scope', 'value', 'coordinates', 'properties', 'objectType', 'expression', 'expected', 'mode', 'assumptions']);
       if (typeof c.kind !== 'string' || !Object.hasOwn(predicates, c.kind)) throw new ToolError('unsupported_operation', 'Unsupported verification method');
       const spec = predicates[c.kind]!;
       array(c.subjects, spec.types.length, spec.variadic ? 16 : spec.types.length);
@@ -136,11 +138,24 @@ export function parseRequest(value: unknown): Request {
       assert(['initial', 'sampled'].includes(c.scope), 'Check scope must be initial or sampled');
       if (c.kind === 'expression') {
         mathSource(c.expression); assert(['algebra', 'cas'].includes(c.mode), 'Invalid check mode');
-        assert(typeof c.expected === 'boolean' || typeof c.expected === 'number', 'Expected boolean or number');
-        if (typeof c.expected === 'number') finite(c.expected, Number.MAX_VALUE);
+        let values = 0;
+        const expected = (value: unknown, depth = 0) => {
+          assert(++values <= 256 && depth <= 8, 'Expected value exceeds structural limits');
+          if (Array.isArray(value)) { value.forEach(v => expected(v, depth + 1)); return; }
+          assert(typeof value === 'boolean' || typeof value === 'number', 'Expected boolean, number or nested list');
+          if (typeof value === 'number') finite(value, Number.MAX_VALUE);
+        };
+        expected(c.expected);
+        if ('assumptions' in c) {
+          assert(c.mode === 'cas', 'Assumptions require CAS'); array(c.assumptions, 1, 8);
+          for (const assumption of c.assumptions) {
+            mathSource(assumption);
+            assert(sources.some(source => source.includes(assumption)), 'Assumption is not in the input');
+          }
+        }
         const tokens = mathTokens(c.expression);
         assert(c.subjects.every((id: string) => tokens.includes(id)), 'Expression must reference every declared subject');
-      } else for (const key of ['expression', 'expected', 'mode']) assert(!(key in c), 'Unexpected expression field');
+      } else for (const key of ['expression', 'expected', 'mode', 'assumptions']) assert(!(key in c), 'Unexpected expression field');
       for (const key of ['value', 'coordinates', 'properties', 'objectType']) assert((key in c) === (spec.extra === key), `Unexpected or missing ${key}`);
       if (spec.extra === 'value') { finite(c.value); assert(c.value >= 0); }
       if (spec.extra === 'coordinates') { array(c.coordinates, 2, 2); c.coordinates.forEach((n: unknown) => finite(n)); }
@@ -161,10 +176,12 @@ export function parseRequest(value: unknown): Request {
   array(p.interactions, 0, limits.samples);
   const points = new Set<string>();
   for (const input of p.interactions) {
-    const sample = record(input, ['point', 'dx', 'dy']); identifier(sample.point);
-    finite(sample.dx, 120); finite(sample.dy, 120);
-    assert(Math.hypot(sample.dx, sample.dy) >= 20, 'Drag sample is too small');
-    assert(!points.has(sample.point), 'Duplicate interaction point'); points.add(sample.point);
+    const sample = record(input, input && 'parameter' in input ? ['parameter', 'value'] : ['point', 'dx', 'dy']);
+    const id = sample.parameter ?? sample.point; identifier(id);
+    if ('parameter' in sample) finite(sample.value);
+    else { finite(sample.dx, 120); finite(sample.dy, 120); assert(Math.hypot(sample.dx, sample.dy) >= 20, 'Drag sample is too small'); }
+    const key = 'parameter' in sample ? `${id}:${sample.value}` : id;
+    assert(!points.has(key), 'Duplicate interaction sample'); points.add(key);
   }
   if ('view' in p) {
     const v = record(p.view, ['xMin', 'xMax', 'yMin', 'yMax']);
@@ -179,7 +196,7 @@ export function parseRequest(value: unknown): Request {
 // effects; browser isolation and post-execution object/material audits also apply.
 const effects = new Set(('Execute Repeat Delete Rename SetValue SetCoords SetFixed SetColor SetCaption SetVisibleInView SetConditionToShowObject SetDynamicColor SetFilling SetLayer SetLineStyle SetLineThickness SetPointSize SetPointStyle SetTrace SetLabelMode ShowLabel ShowAxes ShowGrid SetAxesRatio SetBackgroundColor SetPerspective SetActiveView SetConstructionStep SetSeed SetSpinSpeed StartAnimation StartRecord RunClickScript RunUpdateScript ExportImage Download InsertImage Image Turtle Button Checkbox InputBox PlaySound ReadText Pan ZoomIn ZoomOut CenterView SelectObjects CopyFreeObject AttachCopyToView ParseToFunction ParseToNumber UpdateConstruction JavaScript RunJavaScript').toLowerCase().split(' '));
 export function mathTokens(source: string): string[] {
-  return (source.replace(/"(?:\\.|[^"\\])*"/g, ' ').match(/[A-Za-z][A-Za-z0-9_]*/g) ?? []);
+  return (source.replace(/"(?:\\.|[^"\\])*"/g, ' ').match(/[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?/g) ?? []);
 }
 export function mathSource(source: unknown): asserts source is string {
   text(source, 8192);

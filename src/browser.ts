@@ -2,11 +2,12 @@ import { chromium, type Browser, type Page } from 'playwright';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { root, serve } from './server.js';
-import { limits, toolError, type Request } from './schema.js';
+import { limits, toolError, type Request, type MathValue, type Interaction } from './schema.js';
 
 export interface GgbAPI {
   evalCommand(command: string): boolean;
   evalCommandGetLabels(command: string): string | null;
+  asyncEvalCommandGetLabels(command: string): Promise<string | null>;
   evalCommandCAS(command: string): string;
   getValueString(name: string, localized?: boolean): string;
   deleteObject(name: string): void;
@@ -33,6 +34,7 @@ export interface GgbAPI {
   setCaption(name: string, caption: string): void;
   setLineStyle(name: string, style: number): void;
   setCoords(name: string, x: number, y: number): void;
+  setValue(name: string, value: number): void;
   setCoordSystem(xmin: number, xmax: number, ymin: number, ymax: number): void;
   setAxesVisible(x: boolean, y: boolean): void;
   setGridVisible(visible: boolean): void;
@@ -107,6 +109,14 @@ async function launchBrowser(headed: boolean, signal?: AbortSignal) {
         await page.waitForFunction(() => typeof window.ggb?.getXML === 'function');
         const version = await runtimeVersion(page);
         if (version !== lock.version) throw new Error(`Unexpected GeoGebra version: ${version}`);
+        await page.evaluate(timeout => {
+          const evaluate = window.ggb.asyncEvalCommandGetLabels.bind(window.ggb);
+          // GeoGebra owns lazy module loading. Every native asynchronous call is bounded.
+          window.ggb.asyncEvalCommandGetLabels = source => new Promise((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error('Native command timed out')), timeout);
+            Promise.resolve().then(() => evaluate(source)).then(resolve, reject).finally(() => clearTimeout(timer));
+          });
+        }, limits.operationMs);
         return page;
       },
     };
@@ -140,11 +150,11 @@ export async function loadGgb(page: Page, base64: string, prompt?: string, displ
   // Material loading precedes the first painted frame in visible Chromium.
   // A screenshot waits for that frame without introducing a fixed sleep.
   await page.screenshot();
-  await page.locator('#status').evaluate((element, display) => { element.textContent = display === 'algebra' ? '原生代数结果已显示。' : '拖动可移动点观察构图联动；使用右下角按钮缩放。'; }, display);
+  await page.locator('#status').evaluate((element, display) => { element.textContent = display === 'algebra' ? '原生代数结果已显示。' : '拖动点或改变滑块观察联动；使用右下角按钮缩放。'; }, display);
 }
 
 export async function snapshot(page: Page) {
-  return page.evaluate(() => {
+  const facts = await page.evaluate(() => {
     const api = window.ggb;
     const xml = new DOMParser().parseFromString(api.getXML(), 'text/xml');
     const elements = new Map([...xml.querySelectorAll('construction > element')].map(e => [e.getAttribute('label'), e]));
@@ -159,6 +169,10 @@ export async function snapshot(page: Page) {
       const nativeType = api.getObjectType(name);
       const type = ['triangle', 'quadrilateral', 'pentagon', 'hexagon', 'polygon'].includes(nativeType) ? 'polygon' : nativeType;
       const element = elements.get(name);
+      const expression = expressions.get(name) ?? '';
+      // Canonical function declarations explicitly name their bound variables.
+      // Nested commands with local binders remain ambiguous.
+      const parameters = /^[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?\(([^()]*)\)\s*=/.exec(expression)?.[1]?.split(',').map(s => s.trim()) ?? [];
       const c = element?.querySelector('coords');
       const m = element?.querySelector('matrix');
       const coefficients = type === 'line' && c ? ['x', 'y', 'z'].map(k => Number(c.getAttribute(k))) : null;
@@ -179,13 +193,13 @@ export async function snapshot(page: Page) {
           const args = definitions.get(name)?.args;
           // Local binders and nested expressions cannot be resolved by token
           // matching alone. Preserve them as evidence, never certify such edges.
-          const expression = expressions.get(name) ?? '';
-          const scopedExpression = !args && (!api.isIndependent(name) && /function/.test(nativeType)
-            || /[A-Za-z][A-Za-z0-9_]*\s*[\[(][^\])]*,/.test(expression));
-          return scopedExpression || args && (new Set(args).size !== args.length || args.some(s => !/^(?:[A-Za-z][A-Za-z0-9_]*|-?\d+(?:\.\d+)?(?:E[-+]?\d+)?)$/.test(s))) ? 'ambiguous' : 'direct';
+          const body = expression.replace(/^[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?\([^()]*\)\s*=/, '');
+          const scopedExpression = !args && ((!api.isIndependent(name) && /function/.test(nativeType) && !parameters.length)
+            || /[A-Za-z][A-Za-z0-9_]*\s*[\[(][^\])]*,/.test(body));
+          return scopedExpression || args && (new Set(args).size !== args.length || args.some(s => !/^(?:[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?|-?\d+(?:\.\d+)?(?:E[-+]?\d+)?)$/.test(s))) ? 'ambiguous' : 'direct';
         })(),
         expression: expressions.get(name) ?? null,
-        inputs: [...new Set([...(definitions.get(name)?.args ?? []), expressions.get(name) ?? ''].flatMap(s => s.replace(/"(?:\\.|[^"\\])*"/g, ' ').match(/[A-Za-z][A-Za-z0-9_]*/g) ?? []).filter(token => token !== name && names.includes(token)))],
+        inputs: [...new Set([...(definitions.get(name)?.args ?? []), expression].flatMap(s => s.replace(/"(?:\\.|[^"\\])*"/g, ' ').match(/[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?/g) ?? []).filter(token => token !== name && !parameters.includes(token) && names.includes(token)))],
         valueString: api.getValueString(name, false),
         x: type === 'point' ? finite(api.getXcoord(name)) : null,
         y: type === 'point' ? finite(api.getYcoord(name)) : null,
@@ -195,32 +209,44 @@ export async function snapshot(page: Page) {
         lineStyle: api.getLineStyle(name),
         caption: api.getCaption(name, false),
         fixed: element?.querySelector('fixed')?.getAttribute('val') === 'true',
+        slider: element?.querySelector('slider') ? {
+          min: api.getValue(element.querySelector('slider')!.getAttribute('min')!),
+          max: api.getValue(element.querySelector('slider')!.getAttribute('max')!),
+        } : null,
       };
     });
   });
+  const lists = facts.filter(fact => fact.type === 'list').map(fact => fact.name);
+  const values = lists.length ? await page.evaluate(nativeValues, lists) : [];
+  return facts.map(fact => ({ ...fact, data: fact.type === 'list' ? values[lists.indexOf(fact.name)] ?? null : null }));
 }
 export type Snapshot = Awaited<ReturnType<typeof snapshot>>;
 
 /** Execute only compiler-produced data, never model-authored JavaScript. */
 export async function execute(page: Page, compiled: import('./compile.js').Compiled, prompt: string) {
   if (compiled.program.some(step => step.mode === 'cas')) await waitForCAS(page);
-  await page.evaluate(({ program, styles, view, prompt, display, native }) => {
+  await page.evaluate(async ({ program, styles, view, prompt, display, native }) => {
     const api = window.ggb;
     document.querySelector('h1')!.textContent = prompt;
     document.querySelector('h1')!.title = prompt;
     document.title = 'GeoGebra · ' + prompt.slice(0, 60);
-    document.querySelector('#status')!.textContent = display === 'algebra' ? '原生代数结果已显示。' : '拖动可移动点观察构图联动；使用右下角按钮缩放。';
+    document.querySelector('#status')!.textContent = display === 'algebra' ? '原生代数结果已显示。' : '拖动点或改变滑块观察联动；使用右下角按钮缩放。';
     if (api.getAllObjectNames().length) throw new Error('Expected an empty canvas');
     api.setPerspective(display === 'algebra' ? 'A' : 'G');
     for (const { step, command, mode, outputs, initial } of program) {
-      if (outputs.some(id => api.getAllObjectNames().includes(id))) throw new Error(`Object name collision: ${step.id}`);
+      const before = api.getAllObjectNames();
+      if (outputs.some(id => before.includes(id))) throw new Error(`Object name collision: ${step.id}`);
       let source = command;
       if (mode === 'cas') {
         const result = api.evalCommandCAS(command);
         if (!result || result.includes('?') || /undefined|error/i.test(result)) throw new Error(`CAS result unresolved: ${step.id}: ${result}`);
         source = `${step.id}=(${result})`;
       }
-      if (!api.evalCommand(source) || outputs.some(id => !api.isDefined(id))) throw new Error(`Execution failed or output undefined: ${step.id}`);
+      const labels = step.op === 'native' ? (await api.asyncEvalCommandGetLabels(source))?.split(',').filter(Boolean) : null;
+      if ((step.op === 'native' ? !labels?.length : !api.evalCommand(source)) || outputs.some(id => !api.isDefined(id))) throw new Error(`Execution failed or output undefined: ${step.id}`);
+      if (labels && (labels.length !== outputs.length || labels.some(id => !outputs.includes(id)))) throw new Error(`Incomplete native outputs: ${step.id}: ${labels.join(',')}`);
+      if (step.op === 'native' && api.getAllObjectNames().some(id => !before.includes(id) && !outputs.includes(id) && api.isIndependent(id)))
+        throw new Error(`Undeclared independent output: ${step.id}`);
       if (initial) {
         if (api.getObjectType(step.id) !== 'point' || !api.isMoveable(step.id)) throw new Error('Initial coordinates require a movable point');
         api.setCoords(step.id, initial[0], initial[1]);
@@ -240,7 +266,13 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
       if (p.caption !== undefined) { api.setCaption(object, p.caption); api.setLabelStyle(object, 3); }
     }
     api.setAxesVisible(native, native); api.setGridVisible(false);
-    if (view) api.setCoordSystem(view.xMin, view.xMax, view.yMin, view.yMax);
+    if (view) {
+      const size = JSON.parse(api.getViewProperties(1));
+      const ratio = size.width / size.height;
+      const height = Math.max(view.yMax - view.yMin, (view.xMax - view.xMin) / ratio), width = height * ratio;
+      const x = (view.xMin + view.xMax) / 2, y = (view.yMin + view.yMax) / 2;
+      api.setCoordSystem(x - width / 2, x + width / 2, y - height / 2, y + height / 2);
+    }
     api.setMode(0);
   }, { ...compiled, prompt });
   if (!compiled.view && compiled.display === 'graphics') {
@@ -290,6 +322,25 @@ export async function dragPoint(page: Page, sample: { point: string; dx: number;
   } finally { await page.mouse.up(); }
 }
 
+/** Parameter samples exercise the native value setter, not simulated mouse drags. */
+export async function interact(page: Page, sample: Interaction) {
+  if ('point' in sample) { await dragPoint(page, sample); return 'mouse' as const; }
+  await page.evaluate(({ parameter, value }) => {
+    const api = window.ggb;
+    const xml = new DOMParser().parseFromString(api.getXML(parameter), 'text/xml');
+    const slider = xml.querySelector('slider');
+    if (api.getObjectType(parameter) !== 'numeric' || !api.isIndependent(parameter) || !api.isMoveable(parameter) || !slider
+      || xml.querySelector('fixed')?.getAttribute('val') === 'true')
+      throw new Error('Expected an independent movable numeric slider');
+    const min = api.getValue(slider.getAttribute('min')!), max = api.getValue(slider.getAttribute('max')!);
+    if (![min, max, value].every(Number.isFinite) || value < min || value > max || Math.abs(api.getValue(parameter) - value) <= 1e-8)
+      throw new Error('Parameter sample is outside the slider interval or unchanged');
+    api.setValue(parameter, value);
+    if (Math.abs(api.getValue(parameter) - value) > 1e-8) throw new Error('Parameter did not reach the requested value');
+  }, sample);
+  return 'native_value' as const;
+}
+
 export async function zoom(page: Page) {
   await page.bringToFront();
   const scale = () => page.evaluate(() => Number(new DOMParser().parseFromString(window.ggb.getXML(), 'text/xml').querySelector('euclidianView coordSystem')?.getAttribute('scale')));
@@ -308,6 +359,49 @@ export async function waitForCAS(page: Page) {
 export interface Observation {
   id: string; expression: string; mode: 'algebra' | 'cas'; type: string | null;
   defined: boolean; value: number | null; result: string | null; error?: string;
+  data?: MathValue | null; assumptions?: string[];
+}
+
+/** Runs in the applet. Read list elements through typed native probes, never formatted strings. */
+async function nativeValues(names: string[]): Promise<(MathValue | null)[]> {
+  const api = window.ggb, originals = api.getAllObjectNames();
+  const xml = originals.map(name => api.getXML(name));
+  const created: string[] = [];
+  let failure: Error | undefined;
+  let nodes = 0;
+  const probe = async (expression: string) => {
+    const name = `GgbProbeValue${created.length}`; created.push(name);
+    if (!await api.asyncEvalCommandGetLabels(`${name}=(${expression})`)) throw new Error('Cannot read native list value');
+    return name;
+  };
+  const read = async (name: string, depth = 0): Promise<MathValue | null> => {
+    if (++nodes > 256 || depth > 8) throw new Error('Native value exceeds structural limits');
+    if (!api.isDefined(name)) return null;
+    const type = api.getObjectType(name), value = api.getValue(name);
+    if (type === 'numeric') return Number.isFinite(value) ? value : null;
+    if (type === 'boolean') return value === 1 ? true : value === 0 ? false : null;
+    if (type !== 'list') return null;
+    const size = api.getValue(await probe(`Length(${name})`));
+    if (!Number.isInteger(size) || size < 0 || size > 256) throw new Error('Invalid native list length');
+    const items: (MathValue | null)[] = [];
+    for (let i = 0; i < size; i++) items.push(await read(await probe(`Element(${name},${i + 1})`), depth + 1));
+    return items.every(item => item !== null) ? items as MathValue[] : null;
+  };
+  try {
+    const values: (MathValue | null)[] = [];
+    for (const name of names) { nodes = 0; values.push(await read(name)); }
+    return values;
+  } catch (error) { failure = error instanceof Error ? error : new Error(String(error)); throw failure; }
+  finally {
+    try {
+      for (const name of created.reverse()) api.deleteObject(name);
+      if (api.getAllObjectNames().length !== originals.length || originals.some((name, i) => api.getXML(name) !== xml[i]))
+        throw new Error('Native value collection modified construction objects');
+    } catch (cleanup) {
+      if (!failure) throw cleanup;
+      failure.message += `; Value cleanup failed: ${String(cleanup)}`;
+    }
+  }
 }
 /** Probes are temporary native objects. Originals are audited before/after. */
 export async function observe(page: Page, request: Request, phase: 'initial' | 'sampled') {
@@ -315,29 +409,45 @@ export async function observe(page: Page, request: Request, phase: 'initial' | '
     await page.locator('.algebraPanel').waitFor({ state: 'visible' });
   }
   const checks = request.plan.requirements.flatMap(r => r.checks.flatMap((c, i) =>
-    c.kind === 'expression' && (phase === 'initial' || c.scope === 'sampled') ? [{ id: `${r.id}:${i}`, expression: c.expression!, mode: c.mode! }] : []));
+    c.kind === 'expression' && (phase === 'initial' || c.scope === 'sampled') ? [{ id: `${r.id}:${i}`, expression: c.expression!, mode: c.mode!, assumptions: c.assumptions ?? [] }] : []));
   if (checks.some(c => c.mode === 'cas')) await waitForCAS(page);
-  const observations = await page.evaluate(checks => {
-    const api = window.ggb;
-    const originals = api.getAllObjectNames();
-    const originalXML = originals.map(name => api.getXML(name));
-    return checks.map((check, index) => {
-      const name = `GgbProbe${index}`;
-      let observation: Observation = { ...check, type: null, defined: false, value: null, result: null };
-      try {
-        const result = check.mode === 'cas' ? api.evalCommandCAS(check.expression) : check.expression;
-        observation.result = result;
-        if (!result || (check.mode === 'cas' && result.includes('?')) || !api.evalCommand(`${name}=(${result})`)) throw new Error('Native probe did not resolve');
-        observation.type = api.getObjectType(name); observation.defined = api.isDefined(name);
-        const value = api.getValue(name); observation.value = Number.isFinite(value) ? value : null;
-        if (api.getAllObjectNames().some(added => !originals.includes(added) && added !== name)) throw new Error('Probe introduced undeclared objects');
-      } catch (error) { observation.error = String(error); }
-      finally {
-        for (const added of api.getAllObjectNames().filter(name => !originals.includes(name))) api.deleteObject(added);
-        if (api.getAllObjectNames().length !== originals.length || originals.some((name, i) => api.getXML(name) !== originalXML[i])) throw new Error('Verification modified construction objects');
+  const originals = await page.evaluate(() => window.ggb.getAllObjectNames().map(name => ({ name, xml: window.ggb.getXML(name) })));
+  let observations: Observation[];
+  let failure: ReturnType<typeof toolError> | undefined;
+  try {
+    observations = await page.evaluate(async checks => {
+      const api = window.ggb;
+      const originals = api.getAllObjectNames();
+      const observations: Observation[] = [];
+      for (const [index, check] of checks.entries()) {
+        const name = `GgbProbe${index}`;
+        let observation: Observation = { ...check, type: null, defined: false, value: null, result: null };
+        try {
+          const source = check.assumptions.length ? `Assume(${check.assumptions.map(a => `(${a})`).join(' && ')},${check.expression})` : check.expression;
+          const result = check.mode === 'cas' ? api.evalCommandCAS(source) : source;
+          observation.result = result;
+          if (!result || (check.mode === 'cas' && result.includes('?')) || !await api.asyncEvalCommandGetLabels(`${name}=(${result})`)) throw new Error('Native probe did not resolve');
+          observation.type = api.getObjectType(name); observation.defined = api.isDefined(name);
+          const value = api.getValue(name); observation.value = Number.isFinite(value) ? value : null;
+          if (api.getAllObjectNames().some(added => !originals.includes(added) && added !== name && !/^GgbProbe\d+$/.test(added))) throw new Error('Probe introduced undeclared objects');
+        } catch (error) { observation.error = String(error); }
+        observations.push(observation);
       }
-      return observation;
-    });
-  }, checks);
+      return observations;
+    }, checks);
+    const values = await page.evaluate(nativeValues, checks.map((_, i) => `GgbProbe${i}`));
+    observations.forEach((observation, i) => { observation.data = values[i] ?? null; });
+  } catch (error) { failure = toolError(error, 'execution_failed'); throw failure; }
+  finally {
+    try { await page.evaluate(originals => {
+      const api = window.ggb;
+      for (const name of api.getAllObjectNames()) if (!originals.some(o => o.name === name)) api.deleteObject(name);
+      if (api.getAllObjectNames().length !== originals.length || originals.some(o => api.getXML(o.name) !== o.xml)) throw new Error('Verification modified construction objects');
+    }, originals); }
+    catch (cleanup) {
+      if (!failure) throw cleanup;
+      failure.details = { cause: failure.details, cleanup: String(cleanup) };
+    }
+  }
   return { objects: await snapshot(page), observations };
 }

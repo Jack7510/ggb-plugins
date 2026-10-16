@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import type { Snapshot, Observation } from './browser.js';
-import { commands, ToolError, type Check, type Request, type Style } from './schema.js';
+import { commands, ToolError, type Check, type Request, type Style, type MathValue } from './schema.js';
 
 export const tolerance = 1e-8;
 export type Status = 'passed' | 'failed' | 'unverified';
@@ -13,6 +13,12 @@ const numeric = (error: number, scale = 1): Status => {
 };
 const all = (statuses: Status[]): Status => statuses.includes('failed') ? 'failed' : statuses.includes('unverified') ? 'unverified' : 'passed';
 const truth = (value: boolean): Status => value ? 'passed' : 'failed';
+const mathStatus = (actual: MathValue | null | undefined, expected: MathValue): Status => {
+  if (Array.isArray(expected)) return !Array.isArray(actual) ? 'unverified' : actual.length !== expected.length ? 'failed'
+    : all(expected.map((value, i) => mathStatus(actual[i], value)));
+  if (typeof actual !== typeof expected) return 'unverified';
+  return typeof expected === 'number' ? numeric((actual as number) - expected, expected) : truth(actual === expected);
+};
 
 export function definition(fact: Fact) {
   // These objects already have complete numeric facts, compared with tolerance.
@@ -27,7 +33,7 @@ export function definition(fact: Fact) {
   }
   const name = Object.entries(commands).find(([key, spec]) => (spec.native ?? key) === native.name)?.[0] ?? native.name;
   const args = native.args.map(s => {
-    if (/^[A-Za-z][A-Za-z0-9_]*$/.test(s)) return { ref: s };
+    if (/^[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?$/.test(s)) return { ref: s };
     const n = Number(s); if (s && Number.isFinite(n)) return n;
     return { expression: s };
   });
@@ -47,7 +53,7 @@ export function compareSnapshots(a: Snapshot, b: Snapshot) {
   // Explicit presentation requirements are still checked by verify.
   const normalize = (facts: Snapshot) => facts.map(({ command, nativeDefinition, expression, valueString, labelStyle, labelVisible, ...fact }) => ({ ...fact,
     ...(['numeric', 'list', 'boolean'].includes(fact.type) ? {} : { labelStyle, labelVisible }),
-    ...( ['function', 'functionnvar', 'list', 'text'].includes(fact.type) ? { valueString } : {}),
+    ...(['function', 'functionnvar', 'text'].includes(fact.type) || (fact.type === 'list' && fact.data === null) ? { valueString } : {}),
     definition: definition({ ...fact, command, nativeDefinition, expression, valueString, labelStyle, labelVisible }) })).sort((x, y) => x.name.localeCompare(y.name));
   assert(equivalent(normalize(a), normalize(b)), 'Construction facts changed');
 }
@@ -126,7 +132,7 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
     catch (error) { status = 'unverified'; evidence = { message: error instanceof Error ? error.message : String(error) }; }
     results.push({ requirementId, checkId: `${requirementId}:${index}`, subjects, method, scope, status, evidence });
   };
-  add('$canvas', 0, objects.map(o => o.name), 'objects_defined', () => truth(objects.length > 0 && objects.every(o => o.defined)));
+  add('$canvas', 0, objects.map(o => o.name), 'objects_defined', () => truth(objects.length > 0 && objects.every(o => o.defined && (o.type !== 'numeric' || o.value !== null))));
   for (const step of request.plan.program) {
     const outputs = step.op === 'native' ? step.outputs ?? [step.id] : [step.id];
     add('$program:' + step.id, 0, outputs, 'construction', () => {
@@ -150,7 +156,10 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
       add(requirement.id, index, check.subjects, check.kind, () => {
         if (check.kind !== 'expression') return methods[check.kind]!(check);
         check.subjects.forEach(get);
-        if (!observation?.defined || observation.error || observation.expression !== check.expression || observation.mode !== check.mode || observation.value === null) return 'unverified';
+        if (!observation?.defined || observation.error || observation.expression !== check.expression || observation.mode !== check.mode
+          || !equivalent(observation.assumptions ?? [], check.assumptions ?? [])) return 'unverified';
+        if (Array.isArray(check.expected)) return observation.type === 'list' ? mathStatus(observation.data, check.expected) : 'unverified';
+        if (observation.value === null) return 'unverified';
         if (typeof check.expected === 'boolean') return observation.type === 'boolean' ? truth(observation.value === (check.expected ? 1 : 0)) : 'unverified';
         return observation.type === 'numeric' ? numeric(observation.value - check.expected!, check.expected!) : 'unverified';
       }, check.scope);

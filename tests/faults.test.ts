@@ -5,9 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test, { mock } from 'node:test';
 import { promisify } from 'node:util';
-import * as browser from '../src/browser.js';
 import { limits } from '../src/schema.js';
-import { root } from '../src/server.js';
 import { compareSnapshots } from '../src/verify.js';
 
 // Fault injection stays in tests. Every successful launch still uses real GeoGebra.
@@ -15,6 +13,12 @@ let fault = '', output = '', cancellation: AbortController | undefined;
 const sessions: Awaited<ReturnType<typeof browser.openBrowser>>[] = [];
 const exports = Object.fromEntries(Object.entries(fs).filter(([name]) => name !== 'default'));
 mock.module('node:fs/promises', { namedExports: { ...exports,
+  async readFile(...args: Parameters<typeof fs.readFile>) {
+    const value = await fs.readFile(...args);
+    if (!fault.startsWith('native-wait-') || String(args[0]) !== join(root, 'viewer/index.html')) return value;
+    const html = String(value).replace('window.ggb = api;', 'api.asyncEvalCommandGetLabels = () => new Promise(() => {}); window.ggb = api;');
+    return typeof value === 'string' ? html : Buffer.from(html);
+  },
   async mkdir(...args: Parameters<typeof fs.mkdir>) {
     if (fault === 'mkdir' && String(args[0]) === output) throw new Error('ENOSPC: output unavailable');
     return fs.mkdir(...args);
@@ -35,6 +39,9 @@ mock.module('node:fs/promises', { namedExports: { ...exports,
     return fs.rename(...args);
   },
 } });
+// Load the server after the file mock so startup faults reach the real viewer.
+const { root } = await import('../src/server.js');
+const browser = await import('../src/browser.js');
 mock.module('../src/browser.js', { namedExports: { ...browser,
   async exportGgb(page: Parameters<typeof browser.exportGgb>[0]) {
     if (!fault.startsWith('export-equation:')) return browser.exportGgb(page);
@@ -65,13 +72,14 @@ mock.module('../src/browser.js', { namedExports: { ...browser,
         }
         if (count === 1 && fault === 'probe-mutation') {
           await page.evaluate(() => {
-            const evaluate = window.ggb.evalCommand.bind(window.ggb);
-            window.ggb.evalCommand = command => {
+            const evaluate = window.ggb.asyncEvalCommandGetLabels.bind(window.ggb);
+            window.ggb.asyncEvalCommandGetLabels = command => {
               if (command.startsWith('GgbProbe')) window.ggb.setCoords('A', -1, 1);
               return evaluate(command);
             };
           });
         }
+        if (count === 1 && fault === 'native-wait-cancel') setTimeout(() => cancellation!.abort(new Error('Cancelled during native evaluation')), 40);
         if (count === 1 && ['export', 'export-cleanup', 'export-timeout', 'cancel', 'deadline', 'failure-journal'].includes(fault)) {
           await page.evaluate(invalid => { window.ggb.getBase64 = callback => { if (invalid) callback('invalid'); }; }, ['export', 'export-cleanup', 'failure-journal'].includes(fault));
           limits.operationMs = fault === 'deadline' ? 30_000 : 150;
@@ -114,6 +122,22 @@ async function released() {
     await assert.rejects(fetch(session.url));
   }
 }
+
+test('native asynchronous module waits are bounded and cancellation releases resources', { timeout: 20_000 }, async t => {
+  const directory = await fs.mkdtemp(join(tmpdir(), 'ggb-native-wait-'));
+  try {
+    for (const [name, code] of [['timeout', 'execution_failed'], ['cancel', 'cancelled'], ['deadline', 'limit_exceeded']]) await t.test(name!, async () => {
+      fault = `native-wait-${name}`; cancellation = new AbortController(); limits.operationMs = 1500;
+      if (name === 'deadline') limits.buildMs = 1000;
+      const input = JSON.parse(await fs.readFile(join(root, 'examples/functions.json'), 'utf8')); input.outputDir = directory;
+      await assert.rejects(build(input, cancellation.signal), (error: any) => {
+        assert.equal(error.code, code); if (name === 'timeout') assert.match(error.message, /Native command timed out/); return true;
+      });
+      await released(); Object.assign(limits, defaults);
+    });
+    for (const run of await fs.readdir(directory)) assert(!(await fs.readdir(join(directory, run))).includes('delivery'));
+  } finally { fault = ''; cancellation = undefined; Object.assign(limits, defaults); await fs.rm(directory, { recursive: true, force: true }); }
+});
 
 test('independent equations survive delivery and changed exports cannot commit', { timeout: 60_000 }, async t => {
   const directory = await fs.mkdtemp(join(tmpdir(), 'ggb-equation-fault-'));

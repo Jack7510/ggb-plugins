@@ -30,7 +30,7 @@
         randomize: false, errorDialogsActive: false,
         appletOnLoad: api => {
           window.ggb = api;
-          document.getElementById('status').textContent = '拖动可移动点观察构图联动；使用右下角按钮缩放。';
+          document.getElementById('status').textContent = '拖动点或改变滑块观察联动；使用右下角按钮缩放。';
           resolve(api);
         }
       }, true);

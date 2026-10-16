@@ -10,6 +10,19 @@ import { root } from '../src/server.js';
 import { equivalent } from '../src/verify.js';
 
 const fixture = JSON.parse(await readFile(join(root, 'examples/triangle.json'), 'utf8'));
+test('M6 value, assumption and interaction envelopes reject invalid extensions before execution', async () => {
+  const original = JSON.parse(await readFile(join(root, 'examples/statistics.json'), 'utf8'));
+  const cases = [
+    (r: any) => { r.plan.requirements[0].checks[0].expected = ['symbolic']; },
+    (r: any) => { r.plan.requirements[0].checks[0].expected = Array(256).fill(0); },
+    (r: any) => { r.plan.requirements[0].checks[0].expected = [[[[[[[[[[0]]]]]]]]]]; },
+    (r: any) => { r.plan.requirements[0].checks[5].mode = 'algebra'; },
+    (r: any) => { r.plan.interactions = [{parameter:'matrixA',value:Infinity}]; },
+    (r: any) => { r.plan.interactions = [{parameter:'matrixA',value:1,point:'A'}]; },
+    (r: any) => { r.plan.interactions = [{parameter:'matrixA',value:1},{parameter:'matrixA',value:1}]; },
+  ];
+  for (const change of cases) { const input = structuredClone(original); change(input); assert.throws(() => parseRequest(input)); }
+});
 test('programs can reference later declarations and compile in dependency order', () => {
   const input = structuredClone(fixture);
   input.plan.program.reverse();

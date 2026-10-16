@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-M5 runs native GeoGebra Algebra/CAS programs for Codex. Read `docs/ggb-plugins-design.md` and `README.md`. Authoring: `skills/ggb-construction/SKILL.md`.
+M6 runs GeoGebra Algebra/CAS programs for Codex. Read `docs/ggb-plugins-design.md` and `README.md`. Authoring: `skills/ggb-construction/SKILL.md`.
 
 `src/schema.ts` owns request validation and capabilities; `compile.ts` checks references and types; `browser.ts` executes operations and reads real facts; `verify.ts` evaluates facts without browser calls; `delivery.ts` exports, reloads, and previews; `cli.ts` owns arguments, output, signals, and exit codes. `doctor.ts` checks readiness through the same browser APIs. `server.ts` serves fixed local resources. Tasks share `viewer/index.html`.
 
@@ -27,7 +27,7 @@ M5 runs native GeoGebra Algebra/CAS programs for Codex. Read `docs/ggb-plugins-d
 
 Use TypeScript ES modules, two-space indentation, single quotes, and `.js` local import extensions. No formatter/linter is configured. Check `git diff --check`.
 
-Use native math programs and independent checks without command wrappers. Wait for CAS and persist results. Never add problem-type dispatch, keyword templates, or fixed object names to production execution. New questions change inputs. Keep M1 fixtures. Avoid frameworks, service layers, and mechanical file splitting.
+Use native math programs and independent checks without command wrappers. Wait for CAS when used; persist results. Never add problem-type dispatch, keyword templates, or fixed object names to production execution. New questions change inputs. Keep M1 fixtures. Avoid frameworks, service layers, and mechanical file splitting.
 
 ## Testing Guidelines
 

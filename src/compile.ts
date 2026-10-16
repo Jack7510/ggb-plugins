@@ -24,7 +24,7 @@ function numberLiteral(value: number): string {
 
 export function compile(request: Request): Compiled {
   if (request.plan.program.some(step => step.op === 'native')) {
-    if (request.plan.display === 'algebra') assert(request.plan.interactions.length === 0, 'Algebra-only view cannot provide canvas drag evidence');
+    if (request.plan.display === 'algebra') assert(request.plan.interactions.every(sample => 'parameter' in sample), 'Algebra-only view cannot provide canvas drag evidence');
     const program = request.plan.program.map(step => {
       assert(step.op === 'native', 'Use native statements consistently within a native program');
       return { step, type: 'native', command: step.source, mode: step.mode, outputs: step.outputs ?? [step.id], initial: step.initial };
@@ -34,7 +34,7 @@ export function compile(request: Request): Compiled {
     const has = (id: string) => assert(ids.includes(id), `Unknown object reference: ${id}`);
     for (const style of request.plan.styles ?? []) has(style.object);
     for (const requirement of request.plan.requirements) for (const check of requirement.checks) check.subjects.forEach(has);
-    request.plan.interactions.forEach(sample => has(sample.point));
+    request.plan.interactions.forEach(sample => has('point' in sample ? sample.point : sample.parameter));
     for (const requirement of request.plan.requirements) for (const check of requirement.checks) {
       if (check.scope === 'sampled') assert(request.plan.interactions.length > 0, 'Sampled checks need interaction evidence');
     }
@@ -76,7 +76,7 @@ export function compile(request: Request): Compiled {
     const spec = predicates[check.kind]!;
     check.subjects.forEach((id, i) => assert(types.has(id) && matches(types.get(id)!, spec.types[Math.min(i, spec.types.length - 1)]!), `Invalid ${check.kind} subject: ${id}`));
   }
-  for (const sample of request.plan.interactions) assert(byId.get(sample.point)?.op === 'freePoint', 'Only declared free points can be dragged');
+  for (const sample of request.plan.interactions) assert('point' in sample && byId.get(sample.point)?.op === 'freePoint', 'Only declared free points can be dragged');
   const rootCache = new Map<string, string[]>();
   const roots = (id: string): string[] => {
     if (!rootCache.has(id)) {
@@ -88,7 +88,7 @@ export function compile(request: Request): Compiled {
   };
   for (const requirement of request.plan.requirements) for (const check of requirement.checks) {
     if (check.scope === 'sampled' && !['exists', 'type', 'style', 'dependsOn'].includes(check.kind)) {
-      assert(request.plan.interactions.some(sample => check.subjects.flatMap(roots).includes(sample.point)), 'Sampled relationship needs a relevant drag point');
+      assert(request.plan.interactions.some(sample => 'point' in sample && check.subjects.flatMap(roots).includes(sample.point)), 'Sampled relationship needs a relevant drag point');
     }
   }
   const program = ordered.map(step => {

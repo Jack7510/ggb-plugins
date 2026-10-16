@@ -1,10 +1,10 @@
 # ggb-plugins
 
-面向本地 Codex 的 GeoGebra 构图工具。**M5 / 0.5.0**：Codex 根据文字或图片题生成原生二维数学程序，经统一 CLI 构造、逐条件核验、导出、重载和交互检查，再打开独立预览。题意分析由宿主 Codex 完成，本地工具不额外调用模型 API。
+面向本地 Codex 的 GeoGebra 构图工具。**M6 / 0.6.0**：Codex 根据文字或图片题生成原生二维数学程序，经统一 CLI 构造、逐条件核验、导出、重载和交互检查，再打开独立预览。题意分析由宿主 Codex 完成，本地工具不额外调用模型 API。
 
 新题通过 GeoGebra 原生命令与表达式解决。生产执行器和验证器不按题型分支；M1 三角形现在是 `examples/triangle.json` 回归输入。支持范围及完整请求格式见 [Skill 能力契约](skills/ggb-construction/references/capabilities.md)，阶段划分见 [设计文档](docs/ggb-plugins-design.md)。M4 提供可安装插件 ZIP、本地 marketplace 和安装器。目标客户端验收使用 Codex CLI 0.162.1 的运行时；桌面 UI 自动化不在本轮已验证范围。
 
-M5 已接通 Algebra/CAS、原生核验表达式及完整交付链路，不按题型或逐数学命令增加包装。CAS 等待就绪后把当次结果保存为原生对象；纯代数使用独立 Algebra 视图，无需自由点或拖动。旧结构化原语仅保留为回归编写形式，同样进入统一管线。实现与边界见[通用二维目标](docs/ggb-plugins-design.md#13-通用二维数学与代数目标)和 [M5 验收记录](docs/m5-validation.md)。支持原生输入不代表全部命令已验收，复杂依赖、条件解、CAS 单元与滑块交互仍需后续覆盖。
+M5 已接通 Algebra/CAS、原生核验表达式及完整交付链路，不按题型或逐数学命令增加包装。CAS 等待就绪后把当次结果保存为原生对象；纯代数使用独立 Algebra 视图，无需自由点或拖动。旧结构化原语仅保留为回归编写形式，同样进入统一管线。实现与边界见[通用二维目标](docs/ggb-plugins-design.md#13-通用二维数学与代数目标)和 [M5 验收记录](docs/m5-validation.md)。支持原生输入不代表全部命令已验收，M6 增加嵌套列表／矩阵核验、显式符号假设、原生多输出和滑块参数采样；见 [M6 验收记录](docs/m6-validation.md)。复杂局部绑定、动态 CAS 单元和全部命令覆盖仍未验收。
 
 ## 插件打包与安装
 
@@ -58,6 +58,8 @@ pnpm ggb build --request /absolute/path/to/request.json
 pnpm ggb build --request examples/triangle.json
 pnpm ggb build --request examples/parabola.json
 pnpm ggb build --request examples/algebra.json
+pnpm ggb build --request examples/functions.json
+pnpm ggb build --request examples/statistics.json
 pnpm ggb build --request examples/bisector.json
 pnpm ggb build --request examples/circle.json
 pnpm ggb build --request examples/transfer.json
@@ -75,9 +77,9 @@ pnpm demo
 pnpm preview --delivery /absolute/path/to/delivery
 ```
 
-预览核对文件完整性、摘要、报告覆盖和实际重载事实，再输出就绪 JSON 并保持前台运行。图形视图可拖动自由点及路径点并缩放；代数视图展示原生计算结果。预览修改不覆盖交付文件。预览依赖宿主保留前台进程：交互客户端或保持连接的 app-server 可保留；一次性 codex exec 退出会回收其进程会话。不要把刚输出就绪后即退出的 exec 当作持久预览。关闭 GGB 预览标签页或窗口，程序会退出本次专用浏览器并释放本地服务；按 Ctrl+C 也会清理。
+预览核对文件完整性、摘要、报告覆盖和实际重载事实，再输出就绪 JSON 并保持前台运行。图形视图可拖动自由点、路径点，改变滑块并缩放；代数视图展示原生计算结果。预览修改不覆盖交付文件。预览依赖宿主保留前台进程：交互客户端或保持连接的 app-server 可保留；一次性 codex exec 退出会回收其进程会话。不要把刚输出就绪后即退出的 exec 当作持久预览。关闭 GGB 预览标签页或窗口，程序会退出本次专用浏览器并释放本地服务；按 Ctrl+C 也会清理。
 
-M5 请求与交付升级为协议 2，旧文件需重新生成。图片由宿主提取条件后进入同一接口；当前不接受外部 GGB 续题、三维、宿主脚本或通用证明。无法核验的必需要求不得作为成功结果交付。
+M6 继续接受协议 2 请求，包括 M1/M5 示例；交付报告标记 M6，旧交付目录须重新构造以补齐证据。图片由宿主提取条件后进入同一接口；当前不接受外部 GGB 续题、三维、宿主脚本或通用证明。无法核验的必需要求不得作为成功结果交付。
 
 构图、doctor 和自动回归均使用 headless，过程中不弹出浏览器，交付截图保存在 preview.png。全部验证完成后，preview 使用本机已安装的 Google Chrome 加载 result.ggb。自动化预览检查使用 `preview --delivery <dir> --headless`。
 

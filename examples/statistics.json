@@ -1,0 +1,164 @@
+{
+  "protocolVersion": 2,
+  "prompt": "对样本 {1,2,3,4} 求均值与总体标准差；计算矩阵 {{1,2},{3,4}} 的逆矩阵并验证乘积为单位矩阵。在 x>0 条件下验证 sqrt(x^2)=x，并保留复数 1+2i。",
+  "locale": "zh-CN",
+  "outputDir": "output/statistics",
+  "plan": {
+    "program": [
+      {
+        "id": "samples",
+        "op": "native",
+        "mode": "algebra",
+        "source": "samples={1,2,3,4}"
+      },
+      {
+        "id": "meanA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "meanA=Mean(samples)"
+      },
+      {
+        "id": "spread",
+        "op": "native",
+        "mode": "algebra",
+        "source": "spread=SD(samples)"
+      },
+      {
+        "id": "matrixA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "matrixA={{1,2},{3,4}}"
+      },
+      {
+        "id": "inverse",
+        "op": "native",
+        "mode": "algebra",
+        "source": "inverse=Invert(matrixA)"
+      },
+      {
+        "id": "identityA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "identityA=matrixA*inverse"
+      },
+      {
+        "id": "absoluteA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "absoluteA(x)=sqrt(x^2)"
+      },
+      {
+        "id": "complexA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "complexA=1+2i"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "conditions",
+        "source": "对样本 {1,2,3,4} 求均值与总体标准差；计算矩阵 {{1,2},{3,4}} 的逆矩阵并验证乘积为单位矩阵。在 x>0 条件下验证 sqrt(x^2)=x，并保留复数 1+2i。",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "samples"
+            ],
+            "expression": "samples",
+            "expected": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "scope": "initial",
+            "mode": "algebra"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "meanA"
+            ],
+            "expression": "meanA",
+            "expected": 2.5,
+            "scope": "initial",
+            "mode": "algebra"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "spread"
+            ],
+            "expression": "spread",
+            "expected": 1.118033988749895,
+            "scope": "initial",
+            "mode": "algebra"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "inverse"
+            ],
+            "expression": "inverse",
+            "expected": [
+              [
+                -2,
+                1
+              ],
+              [
+                1.5,
+                -0.5
+              ]
+            ],
+            "scope": "initial",
+            "mode": "algebra"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "identityA"
+            ],
+            "expression": "identityA",
+            "expected": [
+              [
+                1,
+                0
+              ],
+              [
+                0,
+                1
+              ]
+            ],
+            "scope": "initial",
+            "mode": "algebra"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "absoluteA"
+            ],
+            "expression": "Simplify(absoluteA(x)-x)",
+            "expected": 0,
+            "scope": "initial",
+            "mode": "cas",
+            "assumptions": [
+              "x>0"
+            ]
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "complexA"
+            ],
+            "expression": "abs(complexA)^2",
+            "expected": 5,
+            "scope": "initial",
+            "mode": "algebra"
+          }
+        ]
+      }
+    ],
+    "interactions": [],
+    "display": "algebra"
+  }
+}

@@ -30,7 +30,7 @@ test('M5 uses the same delivery pipeline for conics, CAS, M1 and an independent 
       const result = await build(input);
       const before = await readFile(result.file);
       const report = JSON.parse(await readFile(result.report, 'utf8'));
-      assert.equal(report.milestone, 'M5'); assert.equal(report.reload.status, 'passed');
+      assert.equal(report.milestone, 'M6'); assert.equal(report.reload.status, 'passed');
       assert.equal(report.interaction.samples.length, input.plan.interactions.length);
       const session = await openPreview(result.delivery, false);
       try {
