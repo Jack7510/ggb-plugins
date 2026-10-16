@@ -35,3 +35,13 @@
 `pnpm check`、`pnpm build`、`pnpm test` 31 项、`pnpm test:browser` 55 项构图与 53 项故障／启动回归全部通过，共 139 项。Skill quick_validate 和 `git diff --check` 通过。额外六个覆盖交付及真实客户端交付也通过；自动化全部 headless 并保存截图。
 
 打包加入 Skill 覆盖说明，继续排除源码、测试、目录记录、runtime、依赖和用户产物。源码安装始终重建、部分 dist 和纯编译包的三个安装回归继续保留。
+
+## 公开发布与最终安装
+
+固定标签 `v0.7.0` 指向 `e9412f1`。[发布工作流 38872243247](https://github.com/Jack7510/ggb-plugins/actions/runs/38872243247) 实际通过版本、类型、构建和 31 项基础测试，生成并发布 [0.7.0 Release](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.7.0)。公开 ZIP SHA-256：`cf938e874508bcf7566ea482eac997bfaf87c5755e06ea3e71b62fc6eec822a9`。匿名下载和校验通过；CI 不替代上述本机真实浏览器验收。
+
+本机 marketplace 最终切换到 `Jack7510/ggb-plugins --ref v0.7.0`，重新安装并执行源码安装分支，doctor 两项均通过。全新 app-server 的 skills/list 仍发现启用的 `ggb-plugins:ggb-construction`，路径为 0.7.0 安装缓存；记录在 `output/m7-client/skill-discovery-final.json`。这次列表检查用于最终安装确认，自动选用及构图证据来自前述真实 exec 回合。
+
+公开 ZIP 在 `output/m7-public/ggb-plugins` 独立完成生产依赖安装、doctor、客户端题目的新构造和 headless preview。八个编译模块与安装副本及开发构建逐字节一致，Skill 覆盖说明也一致。关闭后浏览器、服务退出，文件摘要不变。完整独立验收见 `output/m7-public/acceptance.json`，交付位于 `standalone/ggb-hiNp3a/delivery`，保存两张截图。
+
+全部自动验证通过后，调用方用最终安装副本的 CLI 在本机 Google Chrome 展示客户端原始交付文件。此次展示不修改 GGB；持续前台会话负责关窗清理。未将物理点击关闭窗口计为本次新的自动验收。
