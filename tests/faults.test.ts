@@ -8,6 +8,7 @@ import { promisify } from 'node:util';
 import * as browser from '../src/browser.js';
 import { limits } from '../src/schema.js';
 import { root } from '../src/server.js';
+import { compareSnapshots } from '../src/verify.js';
 
 // Fault injection stays in tests. Every successful launch still uses real GeoGebra.
 let fault = '', output = '', cancellation: AbortController | undefined;
@@ -35,6 +36,13 @@ mock.module('node:fs/promises', { namedExports: { ...exports,
   },
 } });
 mock.module('../src/browser.js', { namedExports: { ...browser,
+  async exportGgb(page: Parameters<typeof browser.exportGgb>[0]) {
+    if (!fault.startsWith('export-equation:')) return browser.exportGgb(page);
+    const [original, changed] = fault.slice('export-equation:'.length).split('|');
+    await page.evaluate(source => { if (!window.ggb.evalCommand(source!)) throw new Error('Cannot inject equation'); }, changed);
+    try { return await browser.exportGgb(page); }
+    finally { await page.evaluate(source => { if (!window.ggb.evalCommand(source!)) throw new Error('Cannot restore equation'); }, original); }
+  },
   async openBrowser(headed = false, signal?: AbortSignal) {
     const session = await browser.openBrowser(headed, signal); sessions.push(session);
     let count = 0;
@@ -47,6 +55,9 @@ mock.module('../src/browser.js', { namedExports: { ...browser,
       },
       async page() {
         const page = await session.page(); count++;
+        if (fault === 'algebra-without-cas') {
+          await page.evaluate(() => { window.ggb.evalCommandCAS = () => { throw new Error('CAS is unavailable'); }; });
+        }
         if (count === 1 && ['cas-ready', 'cas-cancel'].includes(fault)) {
           await page.evaluate(() => { window.ggb.evalCommandCAS = () => '?'; });
           limits.operationMs = 150;
@@ -103,6 +114,54 @@ async function released() {
     await assert.rejects(fetch(session.url));
   }
 }
+
+test('independent equations survive delivery and changed exports cannot commit', { timeout: 60_000 }, async t => {
+  const directory = await fs.mkdtemp(join(tmpdir(), 'ggb-equation-fault-'));
+  try {
+    for (const [original, changed, objectType] of [
+      ['p:y^2=4x', 'p:y^2=8x', 'parabola'],
+      ['p:x^2/9+y^2/4=1', 'p:x^2/16+y^2/4=1', 'ellipse'],
+    ]) await t.test(objectType!, async () => {
+      const input = { protocolVersion: 2, prompt: '绘制圆锥曲线', locale: 'zh-CN', outputDir: join(directory, objectType!), plan: {
+        program: [{ id: 'p', op: 'native', mode: 'algebra', source: original }],
+        requirements: [{ id: 'conic', source: '绘制圆锥曲线', checks: [{ kind: 'type', subjects: ['p'], objectType, scope: 'initial' }] }],
+        interactions: [],
+      } };
+      const result = await build(input);
+      const preview = await openPreview(result.delivery, false); await preview.close(); await released();
+      const report = JSON.parse(await fs.readFile(result.report, 'utf8'));
+      const facts = report.construction.objects;
+      assert(facts[0].independent && facts[0].expression);
+      const missing = structuredClone(facts); missing[0].expression = null; missing[0].nativeDefinition = null; missing[0].command = '';
+      assert.throws(() => compareSnapshots(missing, missing), (error: any) => error.code === 'verification_unverified');
+      fault = `export-equation:${original}|${changed}`;
+      input.outputDir = join(directory, `${objectType}-changed`);
+      await assert.rejects(build(input), /Construction facts changed/);
+      await released();
+      for (const run of await fs.readdir(input.outputDir)) assert(!(await fs.readdir(join(input.outputDir, run))).includes('delivery'));
+      fault = '';
+    });
+  } finally { fault = ''; await fs.rm(directory, { recursive: true, force: true }); }
+});
+
+test('Algebra execution and conditional probes do not require CAS', { timeout: 30_000 }, async () => {
+  const directory = await fs.mkdtemp(join(tmpdir(), 'ggb-algebra-no-cas-'));
+  fault = 'algebra-without-cas';
+  const input = { protocolVersion: 2, prompt: '计算条件表达式，正数时返回 1', locale: 'zh-CN', outputDir: directory, plan: {
+    program: [{ id: 'a', op: 'native', mode: 'algebra', source: 'a=1' }, { id: 'A', op: 'native', mode: 'algebra', source: 'A=(0,0)' }],
+    requirements: [{ id: 'condition', source: '正数时返回 1', checks: [{ kind: 'expression', subjects: ['a'], expression: 'If(a>0,1,?)', mode: 'algebra', expected: 1, scope: 'initial' }] }],
+    interactions: [],
+  } };
+  try {
+    const result = await build(input);
+    const preview = await openPreview(result.delivery, false); await preview.close(); await released();
+    const report = JSON.parse(await fs.readFile(result.report, 'utf8'));
+    assert.equal(report.reload.observations[0].defined, true);
+    assert.equal(report.reload.observations[0].value, 1);
+    input.plan.program[0]!.source = 'a=-1';
+    await assert.rejects(build(input), (error: any) => error.code === 'verification_unverified'); await released();
+  } finally { fault = ''; await fs.rm(directory, { recursive: true, force: true }); }
+});
 
 test('native CAS waits and verification mutation obey the same cleanup gates', { timeout: 30_000 }, async t => {
   const directory = await fs.mkdtemp(join(tmpdir(), 'ggb-native-fault-'));

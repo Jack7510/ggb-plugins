@@ -203,7 +203,7 @@ export type Snapshot = Awaited<ReturnType<typeof snapshot>>;
 
 /** Execute only compiler-produced data, never model-authored JavaScript. */
 export async function execute(page: Page, compiled: import('./compile.js').Compiled, prompt: string) {
-  if (compiled.native) await waitForCAS(page);
+  if (compiled.program.some(step => step.mode === 'cas')) await waitForCAS(page);
   await page.evaluate(({ program, styles, view, prompt, display, native }) => {
     const api = window.ggb;
     document.querySelector('h1')!.textContent = prompt;
@@ -327,7 +327,7 @@ export async function observe(page: Page, request: Request, phase: 'initial' | '
       try {
         const result = check.mode === 'cas' ? api.evalCommandCAS(check.expression) : check.expression;
         observation.result = result;
-        if (!result || result.includes('?') || !api.evalCommand(`${name}=(${result})`)) throw new Error('Native probe did not resolve');
+        if (!result || (check.mode === 'cas' && result.includes('?')) || !api.evalCommand(`${name}=(${result})`)) throw new Error('Native probe did not resolve');
         observation.type = api.getObjectType(name); observation.defined = api.isDefined(name);
         const value = api.getValue(name); observation.value = Number.isFinite(value) ? value : null;
         if (api.getAllObjectNames().some(added => !originals.includes(added) && added !== name)) throw new Error('Probe introduced undeclared objects');

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import type { Snapshot, Observation } from './browser.js';
-import { commands, type Check, type Request, type Style } from './schema.js';
+import { commands, ToolError, type Check, type Request, type Style } from './schema.js';
 
 export const tolerance = 1e-8;
 export type Status = 'passed' | 'failed' | 'unverified';
@@ -15,12 +15,15 @@ const all = (statuses: Status[]): Status => statuses.includes('failed') ? 'faile
 const truth = (value: boolean): Status => value ? 'passed' : 'failed';
 
 export function definition(fact: Fact) {
-  if (fact.independent) return null;
+  // These objects already have complete numeric facts, compared with tolerance.
+  // Other independent objects still need their native mathematical definition.
+  if (fact.independent && ((fact.type === 'point' && fact.x !== null && fact.y !== null)
+    || (['numeric', 'boolean'].includes(fact.type) && fact.value !== null) || fact.line || fact.circle)) return null;
   const match = /^([A-Za-z]+)\[(.*)\]$/.exec(fact.command);
   const native = fact.nativeDefinition ?? (match ? { name: match[1]!, args: match[2]!.split(',').map(s => s.trim()) } : null);
   if (!native) {
     if (fact.expression) return { expression: fact.expression };
-    throw new Error(`Unrecognized definition: ${fact.name}`);
+    throw new ToolError('verification_unverified', `Missing mathematical definition: ${fact.name}`);
   }
   const name = Object.entries(commands).find(([key, spec]) => (spec.native ?? key) === native.name)?.[0] ?? native.name;
   const args = native.args.map(s => {
