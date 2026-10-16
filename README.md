@@ -4,6 +4,8 @@
 
 新题通过组合原语解决。生产执行器和验证器不按题型分支；M1 三角形现在是 `examples/triangle.json` 回归输入。支持范围及完整请求格式见 [Skill 能力契约](skills/ggb-construction/references/capabilities.md)，阶段划分见 [设计文档](docs/ggb-plugins-design.md)。M4 提供可安装插件 ZIP、本地 marketplace 和安装器。目标客户端验收使用 Codex CLI 0.162.1 的运行时；桌面 UI 自动化不在本轮已验证范围。
 
+下一阶段目标是覆盖 GeoGebra 原生二维数学与代数能力：Codex 生成原生程序和核验表达式，GeoGebra 负责解析与计算，插件统一执行、核验和交付；不逐题或逐数学命令增加包装。新设计及 M5–M7 验收见[通用二维目标](docs/ggb-plugins-design.md#13-通用二维数学与代数目标拟议)。这是后续目标，当前 0.4.2 仍使用有限能力契约，尚不支持全部二维命令。
+
 ## 插件打包与安装
 
 ```sh
