@@ -8,6 +8,8 @@ M5 已接通 Algebra/CAS、原生核验表达式及完整交付链路，不按�
 
 ## 插件打包与安装
 
+最新稳定版：[0.6.0 Release](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.6.0)，提供编译插件 ZIP 和 SHA-256 校验文件。Codex 可通过 `codex plugin marketplace add Jack7510/ggb-plugins --ref v0.6.0` 注册固定版本；其他本地工具可以使用包内 Skill 和统一 CLI。完整步骤见 [安装说明](docs/installation.md)。
+
 ```sh
 pnpm pack:plugin
 ```
@@ -15,6 +17,8 @@ pnpm pack:plugin
 命令先编译，再输出插件目录、ZIP 和 SHA-256 路径。每次使用独立输出目录，不覆盖旧包。包内包含根 plugin.json、marketplace、Skill 及能力说明、八个编译模块、页面、两项安装脚本、锁文件和许可说明。不包含源码、测试、开发文档、node_modules、GeoGebra、Chromium 或用户产物；生产依赖和 runtime 在安装后准备。
 
 按 [安装说明](docs/installation.md) 注册 marketplace、安装插件，再在安装缓存内执行 setup-plugin。ZIP 已编译；存在源码时，同一安装器始终安装构建依赖并重新编译。插件自动发现路径来自安装缓存，构图不依赖开发仓库。客户端验收见 [M4 验收记录](docs/m4-validation.md)。
+
+维护者推送与 package.json/plugin.json 一致的 `v<version>` 标签后，发布工作流执行类型检查、构建及基础／打包测试，上传 ZIP 和校验文件后发布 Release。每个标签需提供 `docs/releases/<tag>.md` 发布说明；不要移动已发布标签。
 
 ## 源码开发环境
 
