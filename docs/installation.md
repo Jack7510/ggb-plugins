@@ -4,11 +4,11 @@
 
 ## 安装 ZIP
 
-从 [0.7.0 Release](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.7.0) 下载 `ggb-plugins-0.7.0.zip` 和 `.zip.sha256`。不要将 GitHub 自动生成的 Source code ZIP 当作编译插件包。
+从 [0.8.0 Release](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.0) 下载 `ggb-plugins-0.8.0.zip` 和 `.zip.sha256`。不要将 GitHub 自动生成的 Source code ZIP 当作编译插件包。
 
 ```sh
-shasum -a 256 -c ggb-plugins-0.7.0.zip.sha256
-unzip ggb-plugins-0.7.0.zip
+shasum -a 256 -c ggb-plugins-0.8.0.zip.sha256
+unzip ggb-plugins-0.8.0.zip
 ```
 
 1. 校验下载 ZIP 的 SHA-256，并解压。下文 `<plugin>` 指解压后的 `ggb-plugins` 绝对路径。
@@ -35,13 +35,13 @@ ZIP 包含编译后的 CLI。安装器通过 frozen lockfile 安装生产依赖�
 ## 从 GitHub 安装
 
 ```sh
-codex plugin marketplace add Jack7510/ggb-plugins --ref v0.7.0
+codex plugin marketplace add Jack7510/ggb-plugins --ref v0.8.0
 codex plugin add ggb-plugins@ggb-plugins-local --json
 ```
 
 Git 版本包含源码。只要存在 src/cli.ts，setup-plugin 就安装构建依赖并重新编译，即使 dist 已存在或不完整。只有无源码的 ZIP 发布包安装生产依赖并使用已有编译产物。已配置同名本地 marketplace 时，先移除该 marketplace 再添加 GitHub 来源，避免来源冲突。运行位置不依赖原仓库。发布新版本时同步更新 plugin.json 和 package.json 的 version。更新后重新获取 marketplace、安装副本及依赖；不要覆盖正在使用的交付目录。
 
-固定标签用于安装已发布版本。需要跟随开发分支时，可将 `--ref v0.7.0` 改为 `--ref main`。固定标签不会通过 marketplace upgrade 自动切换版本；升级时重新注册目标标签。
+固定标签用于安装已发布版本。需要跟随开发分支时，可将 `--ref v0.8.0` 改为 `--ref main`。固定标签不会通过 marketplace upgrade 自动切换版本；升级时重新注册目标标签。
 
 ## 其他本地工具
 
@@ -59,9 +59,9 @@ node <plugin>/dist/src/cli.js preview --delivery <absolute-delivery> --headless
 
 例如：“作三角形 ABC，取 AB 的中点 M，连接 CM，将中线标红，并打开可交互预览。”未给坐标时，由 Codex 选择并说明初始构型。能力受当前操作和谓词限制，不能删除无法核验的必需要求后宣称成功。
 
-M7 / 0.7.0 继续使用请求协议 2；交付报告标记 M6，旧交付目录须重新构造。doctor 的 smoke、casSmoke 均应通过。纯代数结果保存在原生对象中，使用 Algebra 视图；CAS 物化结果不自动保留动态 CAS 依赖。不同客户端的安装验收与全部命令覆盖记录独立维护，不因发布 ZIP 而自动完成。
+M7 / 0.8.0 继续使用请求协议 2；交付报告标记 M6，旧交付目录须重新构造。doctor 的 smoke、casSmoke 均应通过。纯代数结果保存在原生对象中，使用 Algebra 视图；CAS 物化结果不自动保留动态 CAS 依赖。不同客户端的安装验收与全部命令覆盖记录独立维护，不因发布 ZIP 而自动完成。
 
-请求和产物写在用户工作区，使用绝对路径，不能写进安装缓存。正式目录包含 result.ggb、request.json、verification.json、preview.png 和 manifest.json。构图、doctor 和自动验证使用 headless，截图保存为 preview.png。验证完成后，预览使用本机 Google Chrome 加载原文件，支持自由点拖动和缩放；关闭预览标签页或窗口后自动退出本次专用浏览器并释放服务，Ctrl+C 也会清理，不回写文件。最终预览需要安装 Google Chrome；自动化预览检查可以添加 --headless。宿主必须保留前台进程：使用交互客户端或保持连接的 app-server；一次性 codex exec 退出会回收预览会话，不能据此承诺答复后预览继续存在。
+请求和产物写在用户工作区，使用绝对路径，不能写进安装缓存。正式目录包含 result.ggb、request.json、verification.json、preview.png 和 manifest.json。构图、doctor 和自动验证使用 headless，截图保存为 preview.png。验证完成后，Skill 自动调用 preview，用系统默认浏览器加载原文件，支持自由点拖动和缩放；点击页面“结束预览”或按 Ctrl+C 释放服务，不回写文件。仅关闭标签页不保证结束进程。最终预览需要系统可打开 HTTP URL 的默认浏览器；自动化预览检查可以添加 --headless。宿主必须保留前台进程：使用交互客户端或保持连接的 app-server；一次性 codex exec 退出会回收预览会话，不能据此承诺答复后预览继续存在。
 
 ```sh
 node <installed-plugin>/dist/src/cli.js doctor
@@ -80,3 +80,7 @@ codex plugin marketplace remove ggb-plugins-local
 ```
 
 GeoGebra 的独立许可和归属见插件根目录 `THIRD_PARTY_NOTICES.md`。有限交互样本不能证明一般数学命题；图片由宿主读取并提取题干；外部 GGB 续题、三维、完整命令覆盖及通用证明不在已验收范围。
+
+## DeepSeek Harness
+
+Codex 使用上述 ZIP；DSH 使用同版本 `ggb-plugins-dsh-0.8.0.tgz`。两包共用 Skill、编译 CLI 和核验管线，分别注册宿主插件。DSH 包独立携带资源，不依赖 Codex 安装缓存。安装到独立 headless profile 的步骤见 [DSH 安装说明](https://github.com/Jack7510/ggb-plugins/blob/v0.8.0/dsh/README.md)，职责与验收边界见 [双生态兼容设计](https://github.com/Jack7510/ggb-plugins/blob/v0.8.0/docs/dual-ecosystem.md)。

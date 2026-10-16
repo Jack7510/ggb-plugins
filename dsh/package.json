@@ -1,9 +1,9 @@
 {
   "name": "@local/ggb-plugins-dsh",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
-  "description": "DeepSeek Harness bundle that exposes the ggb-plugins GeoGebra construction skill with resolved runtime paths.",
+  "description": "Self-contained GeoGebra skill and native Algebra/CAS delivery runtime for DeepSeek Harness.",
   "exports": {
     ".": "./index.js",
     "./package.json": "./package.json"
@@ -12,11 +12,25 @@
     "index.js",
     "cordis.patch.yml",
     "locale",
-    "README.md"
+    "README.md",
+    "dist/src/*.js",
+    "viewer/index.html",
+    "scripts/setup-plugin.mjs",
+    "scripts/setup-runtime.mjs",
+    "skills/ggb-construction/SKILL.md",
+    "skills/ggb-construction/references",
+    "dependencies.lock",
+    "runtime.lock.json",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
   }
 }

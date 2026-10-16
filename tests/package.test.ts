@@ -1,14 +1,48 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import test from 'node:test';
 import { promisify } from 'node:util';
+import { pathToFileURL } from 'node:url';
 import { root } from '../src/server.js';
 
 const run = promisify(execFile);
+
+test('DSH tarball carries its own skill, references and the identical compiled runtime', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ggb-dsh-package-'));
+  try {
+    const result = JSON.parse((await run(process.execPath, [join(root, 'scripts/package-plugin.mjs'), directory, '--target=dsh'])).stdout);
+    const listing = (await run('tar', ['-tzf', result.archive])).stdout.trim().split('\n');
+    assert(listing.every(path => path.startsWith('package/') && !path.includes('..')));
+    assert(!listing.some(path => /^package\/(?:node_modules|\.runtime|src\/|tests\/|\.agents\/|plugin.json)/.test(path)));
+    assert.equal(createHash('sha256').update(await readFile(result.archive)).digest('hex'), result.sha256);
+    await run('tar', ['-xzf', result.archive, '-C', directory]);
+    const bundle = join(directory, 'package');
+    const pkg = JSON.parse(await readFile(join(bundle, 'package.json'), 'utf8'));
+    const shared = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
+    assert.equal(pkg.name, '@local/ggb-plugins-dsh');
+    assert.equal(pkg.version, shared.version);
+    assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml');
+    assert.deepEqual(pkg.dependencies, shared.dependencies);
+    assert.deepEqual(await readFile(join(bundle, 'dependencies.lock')), await readFile(join(root, 'pnpm-lock.yaml')));
+    for (const module of ['cli','doctor','server','browser','schema','compile','verify','delivery']) {
+      assert.deepEqual(await readFile(join(bundle, 'dist/src', module + '.js')), await readFile(join(root, 'dist/src', module + '.js')));
+    }
+    for (const file of ['SKILL.md','references/capabilities.md','references/command-coverage.md']) {
+      assert.deepEqual(await readFile(join(bundle, 'skills/ggb-construction', file)), await readFile(join(root, 'skills/ggb-construction', file)));
+    }
+    const { createProvider } = await import(pathToFileURL(join(bundle, 'index.js')).href);
+    const { provider, candidate, pluginRoot } = createProvider();
+    const canonical = await realpath(bundle);
+    assert.equal(pluginRoot, canonical);
+    assert.equal(candidate.resourceBase.path, join(canonical, 'skills/ggb-construction'));
+    assert((await provider.get(candidate)).content.includes(canonical));
+    assert(!String(await readFile(join(bundle, 'index.js'))).includes('.codex'));
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
 
 for (const scenario of ['stale dist', 'partial dist', 'compiled release']) {
   test(`installer prepares ${scenario} before doctor`, async () => {
@@ -21,6 +55,7 @@ for (const scenario of ['stale dist', 'partial dist', 'compiled release']) {
       const cli = "import value from './implementation.js'; console.log('doctor:' + value);\n";
       await writeFile(join(directory, 'dist/src/cli.js'), cli);
       const source = scenario !== 'compiled release';
+      if (!source) await writeFile(join(directory, 'dependencies.lock'), 'pinned dependencies');
       if (source) {
         await mkdir(join(directory, 'src'));
         await writeFile(join(directory, 'src/cli.ts'), 'updated');
@@ -31,7 +66,7 @@ for (const scenario of ['stale dist', 'partial dist', 'compiled release']) {
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 const args = process.argv.slice(2);
 appendFileSync('commands.jsonl', JSON.stringify(args) + '\\n');
-if (args[0] === 'build') {
+if (args.includes('build')) {
   const value = readFileSync('src/cli.ts', 'utf8');
   writeFileSync('dist/src/cli.js', ${JSON.stringify(cli)});
   writeFileSync('dist/src/implementation.js', 'export default ' + JSON.stringify(value) + ';');
@@ -43,12 +78,13 @@ if (args[0] === 'build') {
       assert.match(stdout, new RegExp(`doctor:${source ? 'updated' : 'release'}`));
       const commands = (await readFile(join(directory, 'commands.jsonl'), 'utf8')).trim().split('\n').map(line => JSON.parse(line));
       assert.deepEqual(commands, [
-        ['install', ...(source ? [] : ['--prod']), '--frozen-lockfile', '--ignore-scripts'],
-        ...(source ? [['build']] : []),
-        ['exec', 'playwright', 'install', 'chromium'],
+        ['--ignore-workspace', 'install', ...(source ? [] : ['--prod']), '--frozen-lockfile', '--ignore-scripts'],
+        ...(source ? [['--ignore-workspace', 'build']] : []),
+        ['--ignore-workspace', 'exec', 'playwright', 'install', 'chromium'],
       ]);
       assert.equal(await readFile(join(directory, 'dist/src/cli.js'), 'utf8'), cli);
       if (!source) assert.equal(await readFile(join(directory, 'dist/src/implementation.js'), 'utf8'), "export default 'release';");
+      if (!source) assert.equal(await readFile(join(directory, 'pnpm-lock.yaml'), 'utf8'), 'pinned dependencies');
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
 }

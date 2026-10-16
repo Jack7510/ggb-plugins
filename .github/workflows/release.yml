@@ -39,11 +39,13 @@ jobs:
           pnpm build
           pnpm test
           node scripts/package-plugin.mjs > release.json
-      - name: Publish ZIP and checksum
+          node scripts/package-plugin.mjs --target=dsh > release-dsh.json
+      - name: Publish Codex ZIP and DSH TGZ with checksums
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           archive=$(node -p 'JSON.parse(require("fs").readFileSync("release.json")).archive')
-          gh release create "$RELEASE_TAG" "$archive" "$archive.sha256" --verify-tag --draft --title "GeoGebra Construction $RELEASE_TAG" --notes-file "docs/releases/$RELEASE_TAG.md"
+          dsh_archive=$(node -p 'JSON.parse(require("fs").readFileSync("release-dsh.json")).archive')
+          gh release create "$RELEASE_TAG" "$archive" "$archive.sha256" "$dsh_archive" "$dsh_archive.sha256" --verify-tag --draft --title "GeoGebra Construction $RELEASE_TAG" --notes-file "docs/releases/$RELEASE_TAG.md"
           gh release edit "$RELEASE_TAG" --draft=false --latest

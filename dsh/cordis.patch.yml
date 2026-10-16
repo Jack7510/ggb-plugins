@@ -1,15 +1,4 @@
-# Mounts the ggb-plugins DSH bundle into a Harness profile.
-#
-# The bundle registers the `ggb-construction` skill from the same SKILL.md the
-# Codex plugin ships, and appends the absolute GeoGebra CLI paths it resolved at
-# load time. No configuration is required: the plugin finds a checkout or the
-# newest Codex-installed copy on its own.
-#
-# Pin a source explicitly when discovery would pick the wrong copy:
-#   config:
-#     pluginRoot: /absolute/path/to/a/built/ggb-plugins   # runtime with dist/src/cli.js
-#     skillRoot: /absolute/path/to/a/ggb-plugins          # skill bundle to read
-#     rank: 300                                           # precedence among same-name skills
+# Registers the skill from this bundle's own resources and compiled runtime.
 - insert:
     - id: ggb-plugins-dsh
       name: '@local/ggb-plugins-dsh'

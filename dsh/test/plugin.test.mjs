@@ -105,7 +105,7 @@ test('the provider serves the shared body plus resolved absolute paths', async (
   assert.equal(definition.description, candidate.description);
   assert.ok(definition.content.includes('# GeoGebra 二维数学与代数'));
   assert.ok(definition.content.includes(join(root, 'dist/src/cli.js')));
-  assert.ok(definition.content.includes(JSON.stringify(process.execPath)));
+  assert.ok(definition.content.includes('"node": "node"'));
 });
 
 test('an unbuilt checkout still loads and states how to fix it', async () => {
@@ -132,7 +132,18 @@ test('renderInjection reports paths only for a resolved runtime', () => {
   assert.ok(!renderInjection(undefined).includes('```json'));
   const rendered = renderInjection('/tmp/ggb-plugin-root');
   assert.ok(rendered.includes(join('/tmp/ggb-plugin-root', 'dist/src/cli.js')));
-  assert.ok(rendered.includes(JSON.stringify(process.execPath)));
+  assert.ok(rendered.includes('"node": "node"'));
+});
+
+test('isolated bundle resolves its own payload without Codex or a checkout', async () => {
+  const root = await fakePlugin({ runtime: true });
+  await rm(join(root, 'plugin.json'));
+  assert.deepEqual(resolveRoots({}, { from: root }), { skillSource: root, pluginRoot: root });
+  const other = await fakePlugin({ runtime: true });
+  assert.throws(() => resolveRoots({ skillRoot: root, pluginRoot: other }), /same bundle/);
+  process.env.DSH_GGB_PLUGIN_ROOT = 'relative';
+  try { assert.throws(() => resolveRoots({}, { from: root }), /absolute path/); }
+  finally { delete process.env.DSH_GGB_PLUGIN_ROOT; }
 });
 
 test('the Codex plugin remains the shipped client contract', async () => {
