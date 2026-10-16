@@ -2,11 +2,17 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "ggb-plugins",
   "version": "0.8.0",
-  "description": "根据文字或图片中的二维数学与代数题生成原生程序、核验并交付可交互 GeoGebra 文件。",
-  "author": { "name": "Jack7510" },
+  "description": "根据中英文文字或图片中的二维数学题生成原生程序、核验并交付 GeoGebra 文件；Agent 自选中文或英文工作语言。",
+  "author": {
+    "name": "Jack7510"
+  },
   "repository": "https://github.com/Jack7510/ggb-plugins",
   "license": "MIT",
-  "keywords": ["geogebra", "geometry", "mathematics"],
+  "keywords": [
+    "geogebra",
+    "geometry",
+    "mathematics"
+  ],
   "extensions": {
     "com.openai": {
       "requires_local_executor": true,

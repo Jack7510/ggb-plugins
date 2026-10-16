@@ -1,3 +1,6 @@
+/**
+ * @fileoverview Validates independent package contents and installer behavior.
+ */
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -124,3 +127,41 @@ test('plugin ZIP contains a standalone compiled tool and discoverable skill, not
     assert.match(await readFile(join(plugin, 'README.md'), 'utf8'), /installed-plugin/);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
+
+
+test('both packages ship English and Chinese readmes and a Chinese guide',
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'ggb-readme-package-'));
+    try {
+      for (const target of ['codex', 'dsh']) {
+        const command = [join(root, 'scripts/package-plugin.mjs'),
+          directory, '--target=' + target];
+        const result = JSON.parse((await run(process.execPath, command)).stdout);
+        const extracted = join(directory, target);
+        await mkdir(extracted);
+        if (target === 'codex') {
+          await run('unzip', ['-q', result.archive, '-d', extracted]);
+        } else {
+          await run('tar', ['-xzf', result.archive, '-C', extracted]);
+        }
+        const plugin = join(extracted,
+          target === 'codex' ? 'ggb-plugins' : 'package');
+        const english = await readFile(join(plugin, 'README.md'), 'utf8');
+        const chinese = await readFile(join(plugin, 'README.zh-CN.md'), 'utf8');
+        assert.match(english, /## Installation/);
+        assert.match(chinese, /## 安装/);
+        for (const text of [english, chinese]) {
+          assert(text.includes('](INSTALL.md)'));
+          for (const match of text.matchAll(/\]\(([^)]+)\)/g)) {
+            const link = match[1];
+            assert(link);
+            if (!link.includes('://')) {
+              assert((await stat(join(plugin, link))).isFile());
+            }
+          }
+        }
+        const guide = await readFile(join(plugin, 'INSTALL.md'), 'utf8');
+        assert(/[\u4e00-\u9fff]/.test(guide));
+      }
+    } finally { await rm(directory, { recursive: true, force: true }); }
+  });

@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "GeoGebra 构图（DSH）",
-    "description": "注册 ggb-construction 技能，并为当前 harness 解析 GeoGebra CLI 的绝对路径。"
+    "description": "注册 GeoGebra 构图技能，由 Agent 选择中文或英文工作语言。"
   }
 }

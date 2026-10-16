@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Packages independent Codex and DSH distributions with a shared
+ * runtime and bilingual entry documentation.
+ */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -20,6 +24,7 @@ const plugin = join(staging, pkg.name);
 try {
   const modules = (await readdir(join(root, 'src'))).filter(name => name.endsWith('.ts')).map(name => 'dist/src/' + name.replace(/\.ts$/, '.js'));
   const files = [...modules, 'pnpm-lock.yaml', 'runtime.lock.json',
+    'README.md', 'README.zh-CN.md',
     'LICENSE', 'THIRD_PARTY_NOTICES.md', 'viewer/index.html', 'scripts/setup-plugin.mjs', 'scripts/setup-runtime.mjs',
     'skills/ggb-construction/SKILL.md', 'skills/ggb-construction/references/capabilities.md', 'skills/ggb-construction/references/command-coverage.md',
     ...(target === 'codex' ? ['plugin.json', '.agents/plugins/marketplace.json', 'skills/ggb-construction/agents/openai.yaml'] : [])];
@@ -38,7 +43,17 @@ try {
     for (const file of ['index.js', 'cordis.patch.yml', 'locale']) await cp(join(root, 'dsh', file), join(plugin, file), { recursive: true });
   }
   await writeFile(join(plugin, 'package.json'), JSON.stringify(metadata, null, 2) + '\n');
-  await cp(join(root, target === 'codex' ? 'docs/installation.md' : 'dsh/README.md'), join(plugin, 'README.md'));
+  const guide = target === 'codex' ? 'docs/installation.md' : 'dsh/README.md';
+  await cp(join(root, guide), join(plugin, 'INSTALL.md'));
+  for (const file of ['README.md', 'README.zh-CN.md']) {
+    let text = await readFile(join(plugin, file), 'utf8');
+    for (const path of ['docs/installation.md', 'dsh/README.md']) {
+      const link = path === guide ? 'INSTALL.md' :
+        'https://github.com/Jack7510/ggb-plugins/blob/main/' + path;
+      text = text.replaceAll('](' + path + ')', '](' + link + ')');
+    }
+    await writeFile(join(plugin, file), text);
+  }
   const archive = join(staging, `${pkg.name}${target === 'dsh' ? '-dsh' : ''}-${pkg.version}.${target === 'dsh' ? 'tgz' : 'zip'}`);
   if (target === 'codex') execFileSync('zip', ['-qr', archive, pkg.name], { cwd: staging });
   else {

@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "GeoGebra Construction (DSH)",
-    "description": "Registers the ggb-construction skill and resolves the GeoGebra CLI paths for this harness."
+    "description": "GeoGebra construction in Chinese or English, with language chosen by the agent."
   }
 }

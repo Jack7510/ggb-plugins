@@ -51,7 +51,7 @@ Skill 自动发现规则由各客户端决定。不能只复制 SKILL.md，运�
 
 ## 安装后使用
 
-安装并启用后，在新宿主会话中提出题目。题目示例、CLI 用法、交付文件及预览操作统一见 [项目 README](https://github.com/Jack7510/ggb-plugins#提交一道题)。Agent 读取包内 Skill 和引用契约，不依赖开发 checkout。
+安装并启用后，在新宿主会话中提出题目。题目示例、CLI 用法、交付文件及预览操作统一见 [项目 README](https://github.com/Jack7510/ggb-plugins/blob/main/README.zh-CN.md#提交一道题)。Agent 读取包内 Skill 和引用契约，不依赖开发 checkout。
 
 发布版本与仓库未发布行为的区别见 [CHANGES](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)。本文只说明安装、依赖准备、更新与卸载，不复制数学契约或预览生命周期。
 

@@ -1,6 +1,6 @@
 ---
 name: ggb-construction
-description: 根据文字或图片中的二维数学与代数题生成 GeoGebra 原生程序，通过 Algebra/CAS 构造、逐条件核验并交付可交互 GGB。适用于二维几何、函数和代数结果；不用于三维、已有 GGB 续题或一般数学证明。
+description: 根据中英文文字或图片中的二维数学与代数题生成 GeoGebra 原生程序，通过 Algebra/CAS 构造、逐条件核验并交付可交互 GGB。适用于二维几何、函数和代数结果；不用于三维、已有 GGB 续题或一般数学证明。
 ---
 
 # GeoGebra 二维数学与代数
@@ -8,6 +8,10 @@ description: 根据文字或图片中的二维数学与代数题生成 GeoGebra 
 你负责理解题目、选择构法、生成原生数学程序和独立检查；工具负责真实执行、事实采集、核验和交付。新题改变程序，不增加题型分支、命令包装或专用旁路脚本。
 
 先读取 [能力和请求契约](references/capabilities.md)。从本 Skill 目录向上两级定位 `<plugin>`。只调用当前安装副本的 `dist/src/cli.js`，不依赖开发仓库。首次缺少依赖时按插件 README 执行 setup-plugin；其他故障不要重复安装。在本宿主会话首次使用该安装副本时调用 `node <plugin>/dist/src/cli.js doctor`，确认 smoke、casSmoke 通过。同一会话、同一安装副本未变化时复用这次结果；新会话、插件升级、runtime 重装或环境错误后必须重新执行。不读取其他会话的成功标记来跳过检查。build 和 preview 始终执行各自的运行时及数学门禁；不需要额外模型 API Key。
+
+## 工作语言
+
+支持中文和英文，由 Agent 根据用户明确偏好、用户语言和上下文自行选择，无需为语言单独询问。回复、澄清问题、讲解、caption 和 Text 对象使用所选语言；用户明确指定的名称或文字优先。请求 locale 设为 zh-CN 或 en，最终预览界面跟随该选择。题目原文、source、已发生的澄清及 assumptions 保留来源语言，不为翻译改变条件。GeoGebra 命令、协议字段、错误码保持固定名称；Agent 用所选语言解释原始诊断。中文 Skill 文档不限制实际工作语言，不创建两份 Skill。
 
 ## 生成程序与检查
 

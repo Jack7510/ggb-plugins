@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GeoGebra 构图</title>
+  <title>GeoGebra Construction</title>
   <style>
     body { margin: 0; background: #f5f7fa; color: #243043; font: 15px system-ui, sans-serif; }
     header { padding: 16px 24px; }
@@ -16,27 +16,73 @@
   <script src="/runtime/GeoGebra/deployggb.js"></script>
 </head>
 <body>
-  <header><h1>GeoGebra 构图</h1><p id="status">正在加载…</p></header>
+  <header><h1>GeoGebra Construction</h1><p id="status">Loading…</p></header>
   <div id="applet"></div>
-  <footer><a href="https://www.geogebra.org/" target="_blank" rel="noreferrer">Made with GeoGebra®</a> · <span id="closing">关闭此浏览器窗口即可结束预览。</span><button id="finish" hidden>结束预览</button></footer>
+  <footer><a href="https://www.geogebra.org/" target="_blank" rel="noreferrer">Made with GeoGebra®</a> · <span id="closing">Close this browser window to end the preview.</span><button id="finish" hidden>End preview</button></footer>
   <script>
+    /**
+     * @fileoverview Loads one GGB and owns Chinese/English viewer messages.
+     */
     const material = window.previewMaterial;
+    const translations = {
+      en: {
+        title: 'GeoGebra Construction',
+        loading: 'Loading…',
+        graphics: 'Drag points or change sliders; use the lower-right zoom buttons.',
+        algebra: 'Native algebra results are displayed.',
+        finish: 'End preview',
+        closing: 'Click End preview to stop this session.',
+        windowClosing: 'Close this browser window to end the preview.',
+        closed: 'Preview ended. You can close this tab.',
+        connectionError: 'Cannot connect to the local preview service.',
+      },
+      zh: {
+        title: 'GeoGebra 构图',
+        loading: '正在加载…',
+        graphics: '拖动点或改变滑块观察联动；使用右下角按钮缩放。',
+        algebra: '原生代数结果已显示。',
+        finish: '结束预览',
+        closing: '点击结束预览以结束本次会话。',
+        windowClosing: '关闭此浏览器窗口即可结束预览。',
+        closed: '预览已结束，可以关闭此标签页。',
+        connectionError: '无法连接本地预览服务。',
+      },
+    };
+    let messages = translations.en;
+    /** Updates viewer text; problem statements retain their original language. */
+    function setViewerLocale(locale, display = 'graphics') {
+      const chinese = locale.toLowerCase().startsWith('zh');
+      messages = chinese ? translations.zh : translations.en;
+      document.documentElement.lang = chinese ? 'zh-CN' : 'en';
+      document.title = messages.title;
+      if (material || !window.ggb) {
+        document.querySelector('h1').textContent =
+          material?.prompt ?? messages.title;
+      }
+      document.getElementById('status').textContent =
+        display === 'algebra' ? messages.algebra : messages.graphics;
+      document.getElementById('closing').textContent =
+        material ? messages.closing : messages.windowClosing;
+      document.getElementById('finish').textContent = messages.finish;
+    }
+    window.setViewerLocale = setViewerLocale;
+    setViewerLocale(material?.locale ?? 'en', material?.display);
+    document.getElementById('status').textContent = messages.loading;
     if (material) {
-      document.querySelector('h1').textContent = material.prompt;
-      document.getElementById('closing').textContent = '点击结束预览以释放本地服务。';
       const finish = document.getElementById('finish');
       finish.hidden = false;
       finish.onclick = async () => {
         await fetch('/preview-close', { method: 'POST' });
         finish.disabled = true;
-        document.getElementById('status').textContent = '预览已结束，本地服务已关闭。';
+        document.getElementById('status').textContent = messages.closed;
       };
     }
     window.appletReady = new Promise(resolve => {
       const applet = new GGBApplet({
         ...(material ? { ggbBase64: material.base64 } : {}),
         appName: 'classic', id: 'ggb', width: 1000, height: 700,
-        language: 'en', perspective: 'G', showToolBar: false, showMenuBar: false,
+        language: document.documentElement.lang.startsWith('zh') ? 'zh' : 'en',
+        perspective: 'G', showToolBar: false, showMenuBar: false,
         showAlgebraInput: false, showZoomButtons: true,
         enableLabelDrags: false, enableShiftDragZoom: true,
         disableJavaScript: true, useBrowserForJS: true,
@@ -44,10 +90,10 @@
         appletOnLoad: api => {
           window.ggb = api;
           if (material?.display === 'algebra') api.setPerspective('A');
-          document.getElementById('status').textContent = material?.display === 'algebra' ? '原生代数结果已显示。' : '拖动点或改变滑块观察联动；使用右下角按钮缩放。';
+          setViewerLocale(document.documentElement.lang, material?.display);
           resolve(api);
           if (material) fetch('/preview-ready', { method: 'POST' }).catch(() => {
-            document.getElementById('status').textContent = '无法连接本地预览服务。';
+            document.getElementById('status').textContent = messages.connectionError;
           });
         }
       }, true);

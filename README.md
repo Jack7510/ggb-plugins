@@ -1,40 +1,44 @@
 # ggb-plugins
 
-把文字或图片中的二维数学题变成可交互的 GeoGebra 文件。支持 Codex 与 DeepSeek Harness（DSH）：宿主 Agent 理解题意并编写原生 Algebra／CAS 程序，本地工具执行、核验、导出并重新加载，交付 `.ggb`、报告和截图。
+**English** | [简体中文](README.zh-CN.md)
 
-本插件不增加模型服务或额外模型密钥。新题通过程序和检查组合表达，适用于二维几何、函数、方程、微积分、列表矩阵和统计等问题。它不提供外部 GGB 续题、三维构图或一般数学证明；原生命令开放也不表示全部命令及重载已经验收。
+Turn a 2D math problem, given as text or an image, into an interactive GeoGebra file. Supports Codex and DeepSeek Harness (DSH): the host agent interprets the problem and writes native Algebra/CAS commands; the local tool executes, verifies, exports, and reloads them to deliver a `.ggb` file, a verification report, and a screenshot.
 
-## 安装
+Chinese and English are supported. The agent chooses the working language from your preferences and context, including explanations and diagram text. Original problem statements and condition sources are preserved.
 
-[GitHub Releases](https://github.com/Jack7510/ggb-plugins/releases) 提供 Codex ZIP、DSH TGZ 和各自校验文件。安装完整包，并在实际安装副本中准备运行依赖：
+The plugin adds no model service or extra model API key. New problems use different programs and checks, covering geometry, functions, equations, calculus, lists, matrices, and statistics. External GGB continuation, 3D construction, and general mathematical proofs are outside the current scope. Accepting native commands does not mean every command or overload has been validated.
 
-- Codex：[安装与升级说明](docs/installation.md)。
-- DSH：[独立 headless profile 安装说明](dsh/README.md)。
+## Installation
 
-两个客户端各自安装，同样使用一套数学执行与核验管线。源码开发从 [AGENTS.md](AGENTS.md) 开始。
+[GitHub Releases](https://github.com/Jack7510/ggb-plugins/releases) provides a Codex ZIP, a DSH TGZ, and checksums. Install the complete package and prepare its runtime dependencies:
 
-## 提交一道题
+- Codex: [installation and upgrade guide](docs/installation.md), in Chinese.
+- DSH: [independent headless profile guide](dsh/README.md), in Chinese.
 
-插件启用后，在新的宿主会话中直接提出题目，图片可以随题附上。例如：
+Each client installs independently and uses the same execution and verification pipeline. For source development, start with [AGENTS.md](https://github.com/Jack7510/ggb-plugins/blob/main/AGENTS.md). Supporting documentation remains in Chinese.
 
-> 用 GeoGebra 作三角形 ABC，取 AB 的中点 M，连接 CM，将中线标红。拖动 A 验证中点和中线联动，保存文件并打开交互预览。
+## Submit a problem
 
-纯代数也可以直接提问，例如“求 x²−5x+6=0 的实数解，保存原生结果和核验报告”。没有必要条件时 Agent 会澄清；未指定坐标时应说明自行选择的初始构型。
+After enabling the plugin, start a new host session and describe the problem. You can attach an image. For example:
 
-构造、重载和自动核验使用 headless 浏览器，过程中不打开中间窗口。失败时保留诊断；无法核验的必需条件不能作为成功交付。对成功结果，报告会说明实际检查与有限交互样本的范围。
+> Use GeoGebra to construct triangle ABC, mark the midpoint M of AB, and connect CM. Color the median red. Drag A to verify that the midpoint and median update, save the file, and open the interactive preview.
 
-## 交付与预览
+For algebra, ask: “Find the real solutions of x²−5x+6=0 and save the native results and verification report.” The agent asks when necessary conditions are missing or ambiguous. If you do not specify coordinates, it explains the initial configuration it chooses.
 
-成功后得到一个完整 delivery 目录：
+Construction, reloading, and automated checks run headless, without intermediate windows. Failures retain diagnostics. A required condition that fails or remains unverified blocks delivery. Successful reports state the checks performed and the scope of finite interaction samples.
 
-| 文件 | 用途 |
+## Delivery and preview
+
+A successful run produces a complete delivery directory:
+
+| File | Purpose |
 | --- | --- |
-| result.ggb | 可在 GeoGebra 中打开和编辑的原生文件 |
-| verification.json | 数学条件、重载及交互核验报告 |
-| preview.png | 原始交付构型截图 |
-| request.json、manifest.json | 输入留档和交付清单 |
+| result.ggb | Native GeoGebra file that you can open and edit |
+| verification.json | Mathematical, reload, and interaction verification report |
+| preview.png | Screenshot of the delivered configuration |
+| request.json, manifest.json | Archived input and delivery manifest |
 
-交互预览加载同一 GGB，支持适用的点拖动、参数变化及缩放，不回写交付文件。需要手动调用或接入其他本地工具时：
+The interactive preview loads the same GGB file. It supports applicable point dragging, parameter changes, and zooming, without overwriting the delivered file. For manual calls or integration with other local tools:
 
 ```sh
 node <installed-plugin>/dist/src/cli.js doctor
@@ -42,17 +46,17 @@ node <installed-plugin>/dist/src/cli.js build --request /absolute/request.json
 node <installed-plugin>/dist/src/cli.js preview --delivery /absolute/delivery
 ```
 
-请求编写方式见 [Skill 能力契约](skills/ggb-construction/references/capabilities.md)。自动复核预览加 `--headless`。预览需要持续运行的调用方保留进程；一次性宿主退出后，窗口不保证继续可用。
+Request authoring is documented in the [Skill capability contract](skills/ggb-construction/references/capabilities.md), in Chinese. Use `--headless` for automated preview checks. The caller must keep the preview process running; a one-shot host may terminate it when the host exits.
 
-保持预览进程，按 Ctrl+C 可结束会话。浏览器选择和关页退出行为以所用版本为准，发布版本与未发布预览改动的区别只在 [修改记录](docs/CHANGES.md)维护。
+Press Ctrl+C to end the preview session. Browser selection and tab-close behavior depend on the version. See the [change record](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md) for released behavior and pending changes.
 
-## 仓库入口
+## Repository guide
 
-- `src/`、`viewer/`：本地执行、核验与页面。
-- `skills/`、`dsh/`：共享 Skill 和宿主接入。
-- `examples/`、`tests/`：可运行输入与回归用例。
-- `scripts/`：依赖准备、两种打包和覆盖记录工具。
-- [需求与设计](docs/ggb-plugins-design.md)：为什么采用这些边界与门禁。
-- [重要修改记录](docs/CHANGES.md)：版本演进及对应验收证据。
+- `src/`, `viewer/`: local execution, verification, and the viewer.
+- `skills/`, `dsh/`: shared Skill and host integration.
+- `examples/`, `tests/`: runnable inputs and regression tests.
+- `scripts/`: dependency setup, packaging, and coverage tools.
+- [Requirements and design](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md): responsibility boundaries and verification gates.
+- [Change record](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md): version history and validation evidence.
 
-项目采用 MIT 许可，GeoGebra 的独立许可和归属见 [第三方说明](THIRD_PARTY_NOTICES.md)。
+The project uses the MIT license. GeoGebra has separate licensing and attribution requirements; see [third-party notices](THIRD_PARTY_NOTICES.md).

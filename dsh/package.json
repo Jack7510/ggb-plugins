@@ -13,6 +13,8 @@
     "cordis.patch.yml",
     "locale",
     "README.md",
+    "README.zh-CN.md",
+    "INSTALL.md",
     "dist/src/*.js",
     "viewer/index.html",
     "scripts/setup-plugin.mjs",

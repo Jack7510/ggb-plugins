@@ -1,3 +1,6 @@
+/**
+ * @fileoverview Exercises real GeoGebra construction, reload and viewer behavior.
+ */
 import assert from 'node:assert/strict';
 import { execFile, spawn } from 'node:child_process';
 import { once } from 'node:events';
@@ -50,28 +53,56 @@ test('text defaults survive reload and incompatible explicit styles remain rejec
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
-test('default-browser viewer loads the exported bytes and acknowledges ready and finish', { timeout: 60_000 }, async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'ggb-default-viewer-'));
-  let session: Awaited<ReturnType<typeof openPreview>> | undefined;
+/** Checks localized UI and lifecycle against the same verified GGB bytes. */
+async function assertViewerLanguage(
+  session: Awaited<ReturnType<typeof openPreview>>, locale: string,
+): Promise<void> {
+  const expected = await snapshot(session.page);
+  const material = session.publishPreview({
+    base64: session.bytes.toString('base64'),
+    prompt: session.request.prompt, display: 'graphics', locale,
+  });
+  const page = await session.page.context().newPage();
+  await page.goto(material.url);
+  await Promise.race([
+    material.loaded,
+    new Promise<never>((_, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error('Viewer did not acknowledge loading'));
+      }, 30_000);
+      timer.unref();
+    }),
+  ]);
+  compareSnapshots(await snapshot(page), expected);
+  const chinese = locale === 'zh-CN';
+  assert.equal(await page.locator('html').getAttribute('lang'), locale);
+  assert.equal(await page.locator('h1').textContent(), session.request.prompt);
+  assert.equal(await page.locator('#finish').textContent(),
+    chinese ? '结束预览' : 'End preview');
+  assert.match(await page.locator('#status').textContent() ?? '',
+    chinese ? /拖动点/ : /Drag points/);
+  await page.locator('#finish').click();
+  await material.closed;
+  await page.waitForFunction(needle => {
+    return document.querySelector('#status')?.textContent?.includes(needle);
+  }, chinese ? '预览已结束' : 'Preview ended');
+}
+
+test('viewer follows Chinese or English locale and preserves GGB facts', {
+  timeout: 60_000,
+}, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ggb-viewer-language-'));
   try {
-    const request = await fixture('triangle'); request.outputDir = directory;
-    const result = await build(request);
-    session = await openPreview(result.delivery, false);
-    const material = session.publishPreview({ base64: session.bytes.toString('base64'), prompt: request.prompt, display: 'graphics' });
-    const page = await session.browser.contexts()[0]!.newPage();
-    await page.goto(material.url);
-    await Promise.race([material.loaded, new Promise<never>((_, reject) => {
-      const timer = setTimeout(() => reject(new Error('Viewer did not acknowledge loading')), 30_000); timer.unref();
-    })]);
-    compareSnapshots(await snapshot(page), JSON.parse(await readFile(result.report, 'utf8')).reload.objects);
-    assert.equal(await page.locator('h1').textContent(), request.prompt);
-    await page.locator('#finish').click();
-    await material.closed;
-    await page.waitForFunction(() => document.querySelector('#status')?.textContent?.includes('预览已结束'));
-  } finally {
-    await session?.close();
-    await rm(directory, { recursive: true, force: true });
-  }
+    for (const locale of ['zh-CN', 'en']) {
+      const request = await fixture('triangle');
+      request.outputDir = directory;
+      request.locale = locale;
+      const result = await build(request);
+      const session = await openPreview(result.delivery, false);
+      try { await assertViewerLanguage(session, locale); }
+      finally { await session.close(); }
+    }
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
 test('numeric and native visibility boundaries survive delivery and preview', { timeout: 120_000 }, async t => {

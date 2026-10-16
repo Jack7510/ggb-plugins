@@ -1,3 +1,6 @@
+/**
+ * @fileoverview Owns GeoGebra execution and browser resources via Playwright.
+ */
 import { chromium, type Browser, type Page } from 'playwright';
 import { readFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
@@ -57,7 +60,11 @@ export interface GgbAPI {
 }
 
 declare global {
-  interface Window { ggb: GgbAPI; appletReady: Promise<GgbAPI>; }
+  interface Window {
+    ggb: GgbAPI;
+    appletReady: Promise<GgbAPI>;
+    setViewerLocale(locale: string, display?: 'graphics' | 'algebra'): void;
+  }
 }
 
 export async function openBrowser(headed = false, signal?: AbortSignal) {
@@ -146,18 +153,39 @@ export const exportGgb = (page: Page) => page.evaluate(timeout =>
     window.ggb.getBase64(data => { clearTimeout(timer); done(data); });
   }), limits.operationMs);
 
-export async function loadGgb(page: Page, base64: string, prompt?: string, display?: 'graphics' | 'algebra') {
+/** Loads exported bytes, waits for data readiness and updates viewer text. */
+export async function loadGgb(
+  page: Page, base64: string, prompt?: string,
+  display?: 'graphics' | 'algebra',
+): Promise<void> {
   await page.evaluate(({ data, timeout }) => new Promise<void>((done, reject) => {
-    const timer = setTimeout(() => reject(new Error('GGB load timed out')), timeout);
-    window.ggb.setBase64(data, () => { clearTimeout(timer); done(); });
+    const timer = setTimeout(() => {
+      reject(new Error('GGB load timed out'));
+    }, timeout);
+    window.ggb.setBase64(data, () => {
+      clearTimeout(timer);
+      done();
+    });
   }), { data: base64, timeout: limits.operationMs });
-  if (prompt) await page.locator('h1').evaluate((element, text) => { element.textContent = text; }, prompt);
+  if (prompt) {
+    await page.locator('h1').evaluate((element, text) => {
+      element.textContent = text;
+    }, prompt);
+  }
   await page.bringToFront();
-  await page.waitForFunction(() => ['#applet canvas', '.algebraView'].some(selector =>
-    [...document.querySelectorAll(selector)].some(element => { const r = element.getBoundingClientRect(); return r.width > 0 && r.height > 0; })));
+  await page.waitForFunction(() => {
+    return ['#applet canvas', '.algebraView'].some(selector => {
+      return [...document.querySelectorAll(selector)].some(element => {
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+    });
+  });
   // setBase64 completion is the data gate. Mouse interactions wait for painting
   // at their own boundary; the one retained screenshot waits for its own frame.
-  await page.locator('#status').evaluate((element, display) => { element.textContent = display === 'algebra' ? '原生代数结果已显示。' : '拖动点或改变滑块观察联动；使用右下角按钮缩放。'; }, display);
+  await page.evaluate(display => {
+    window.setViewerLocale(document.documentElement.lang, display);
+  }, display);
 }
 
 export async function snapshot(page: Page) {

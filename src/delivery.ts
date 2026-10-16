@@ -1,3 +1,6 @@
+/**
+ * @fileoverview Orchestrates verified file delivery, diagnostics and previews.
+ */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rename, stat, writeFile } from 'node:fs/promises';
@@ -151,24 +154,42 @@ export async function openPreview(deliveryDir: string, headed = true, signal?: A
   catch (error) { throw toolError(error, 'preview_failed', signal); }
 }
 
-export async function openDefaultPreview(deliveryDir: string, signal?: AbortSignal) {
+/** Opens a verified file in the default browser using the request locale. */
+export async function openDefaultPreview(
+  deliveryDir: string, signal?: AbortSignal,
+): Promise<Awaited<ReturnType<typeof openPreview>> & {
+  closed: Promise<void>;
+}> {
   const session = await openPreview(deliveryDir, false, signal);
   try {
     // Publish only after the normal file, report and real reload gates passed.
-    const material = session.publishPreview({ base64: session.bytes.toString('base64'), prompt: session.request.prompt, display: session.request.plan.display ?? 'graphics' });
-    const waiting = AbortSignal.any([AbortSignal.timeout(limits.operationMs), ...(signal ? [signal] : [])]);
+    const material = session.publishPreview({
+      base64: session.bytes.toString('base64'),
+      prompt: session.request.prompt,
+      display: session.request.plan.display ?? 'graphics',
+      locale: session.request.locale,
+    });
+    const waiting = AbortSignal.any([
+      AbortSignal.timeout(limits.operationMs), ...(signal ? [signal] : []),
+    ]);
     await openDefaultBrowser(material.url, waiting);
     await new Promise<void>((done, reject) => {
       const abort = () => reject(waiting.reason);
       waiting.addEventListener('abort', abort, { once: true });
-      material.loaded.then(done).finally(() => waiting.removeEventListener('abort', abort));
+      material.loaded.then(done).finally(() => {
+        waiting.removeEventListener('abort', abort);
+      });
       if (waiting.aborted) abort();
     });
     return { ...session, url: material.url, closed: material.closed };
   } catch (error) {
     const failure = toolError(error, 'preview_failed', signal);
     try { await session.close(); }
-    catch (cleanup) { failure.details = { cause: failure.details, cleanup: String(cleanup) }; }
+    catch (cleanup) {
+      failure.details = {
+        cause: failure.details, cleanup: String(cleanup),
+      };
+    }
     throw failure;
   }
 }
