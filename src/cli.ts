@@ -1,6 +1,6 @@
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
-import { build, openPreview, readJson } from './delivery.js';
+import { build, openPreview, openDefaultPreview, readJson } from './delivery.js';
 import { ToolError } from './schema.js';
 import { root } from './server.js';
 import { doctor } from './doctor.js';
@@ -28,7 +28,7 @@ try {
     input.outputDir = values.output ?? 'output/ggb';
     emit(await build(input, cancellation.signal));
   } else if (command === 'preview' && values.delivery && !values.request && !values.output) {
-    const session = await openPreview(values.delivery, !values.headless, cancellation.signal);
+    const session = values.headless ? await openPreview(values.delivery, false, cancellation.signal) : await openDefaultPreview(values.delivery, cancellation.signal);
     try {
       const closed = new Promise<void>(done => {
         const finish = () => {
@@ -37,7 +37,8 @@ try {
         session.page.once('close', finish); session.browser.once('disconnected', finish);
         if (session.page.isClosed() || !session.browser.isConnected()) finish();
       });
-      emit({ url: session.url, delivery: session.delivery }); ready = true; await closed;
+      emit({ url: session.url, delivery: session.delivery }); ready = true;
+      await ('closed' in session ? Promise.race([closed, session.closed]) : closed);
       if (cancellation.signal.aborted) process.exitCode = 130;
     } finally { await session.close(); }
   } else throw new Error(usage);

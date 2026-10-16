@@ -43,6 +43,7 @@ mock.module('node:fs/promises', { namedExports: { ...exports,
 const { root } = await import('../src/server.js');
 const browser = await import('../src/browser.js');
 mock.module('../src/browser.js', { namedExports: { ...browser,
+  async openDefaultBrowser() { throw new Error('Injected system URL opener failure'); },
   async exportGgb(page: Parameters<typeof browser.exportGgb>[0]) {
     if (!fault.startsWith('export-equation:')) return browser.exportGgb(page);
     const [original, changed] = fault.slice('export-equation:'.length).split('|');
@@ -112,7 +113,7 @@ mock.module('../src/browser.js', { namedExports: { ...browser,
     }
   },
 } });
-const { build, openPreview } = await import('../src/delivery.js');
+const { build, openPreview, openDefaultPreview } = await import('../src/delivery.js');
 const { doctor } = await import('../src/doctor.js');
 const fixture = JSON.parse(await fs.readFile(join(root, 'examples/triangle.json'), 'utf8'));
 const defaults = { ...limits };
@@ -303,6 +304,8 @@ test('committed files survive journal and preview errors; repeated calls remain 
     fault = '';
     const preview = await openPreview(first.delivery, false); await preview.close(); await released();
     const before = await fs.readFile(first.file);
+    await assert.rejects(openDefaultPreview(first.delivery), (error: any) => error.code === 'preview_failed' && /URL opener/.test(error.message));
+    await released(); assert.deepEqual(await fs.readFile(first.file), before);
     fault = 'preview-load';
     await assert.rejects(openPreview(first.delivery, false), (error: any) => error.code === 'preview_failed');
     await released(); assert.deepEqual(await fs.readFile(first.file), before);

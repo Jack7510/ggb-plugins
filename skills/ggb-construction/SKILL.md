@@ -30,12 +30,12 @@ node <plugin>/dist/src/cli.js build --request <absolute-request.json>
 
 读取返回 JSON、verification.json 和 run.json。按证据修正程序，保留原始要求，不放宽容差、不提交自判 passed。最多三次，每次是新运行和空白 applet；仍失败就说明具体条件及能力缺口，不在残留画布续接。
 
-成功若带 warnings，说明诊断写入问题，完整交付仍有效。全部验证成功后才调用：
+成功若带 warnings，说明诊断写入问题，完整交付仍有效。全部验证成功后，必须把自动打开生成文件作为最后的工具动作，无需等待用户再次要求。调用：
 
 ```sh
 node <plugin>/dist/src/cli.js preview --delivery <absolute-delivery-dir>
 ```
 
-最终预览由本机 Google Chrome 加载同一 result.ggb。保留前台进程，等待就绪 JSON；关闭预览页或窗口后会退出专用浏览器并释放服务。自动化复核使用 --headless，完成后关闭测试会话。预览失败保留文件并单独报告。
+preview 使用系统默认浏览器，在本地 GeoGebra 页面加载同一 result.ggb；不直接打开可能被下载的 .ggb URL。保留前台进程，等待浏览器页面确认加载的就绪 JSON，再答复用户。页面“结束预览”按钮或进程取消会释放本地服务；仅关闭默认浏览器标签页不保证结束进程。自动化复核使用 --headless，不能代替最终可见预览。预览失败保留文件并单独报告，不能声称已经打开。
 
 交付 GGB、报告和截图，说明已验证条件及有限样本。覆盖记录见 [固定 runtime 覆盖边界](references/command-coverage.md)。不宣称全部原生命令已验收，不把数值采样或未决 CAS 结果当作一般证明。旧协议 1 的请求与交付须按新契约重新生成。

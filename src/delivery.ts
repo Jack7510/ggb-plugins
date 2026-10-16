@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { dragPoint, interact, execute, exportGgb, loadGgb, openBrowser, runtimeVersion, snapshot, observe, zoom, type Snapshot } from './browser.js';
+import { dragPoint, interact, execute, exportGgb, loadGgb, openBrowser, openDefaultBrowser, runtimeVersion, snapshot, observe, zoom, type Snapshot } from './browser.js';
 import { compile } from './compile.js';
 import { limits, parseRequest, ToolError, toolError, type Request } from './schema.js';
 import { compareSnapshots, equivalent, verify, type Verification } from './verify.js';
@@ -123,6 +123,28 @@ export async function openPreview(deliveryDir: string, headed = true, signal?: A
   catch (error) { throw toolError(error, 'preview_failed', signal); }
 }
 
+export async function openDefaultPreview(deliveryDir: string, signal?: AbortSignal) {
+  const session = await openPreview(deliveryDir, false, signal);
+  try {
+    // Publish only after the normal file, report and real reload gates passed.
+    const material = session.publishPreview({ base64: session.bytes.toString('base64'), prompt: session.request.prompt, display: session.request.plan.display ?? 'graphics' });
+    const waiting = AbortSignal.any([AbortSignal.timeout(limits.operationMs), ...(signal ? [signal] : [])]);
+    await openDefaultBrowser(material.url, waiting);
+    await new Promise<void>((done, reject) => {
+      const abort = () => reject(waiting.reason);
+      waiting.addEventListener('abort', abort, { once: true });
+      material.loaded.then(done).finally(() => waiting.removeEventListener('abort', abort));
+      if (waiting.aborted) abort();
+    });
+    return { ...session, url: material.url, closed: material.closed };
+  } catch (error) {
+    const failure = toolError(error, 'preview_failed', signal);
+    try { await session.close(); }
+    catch (cleanup) { failure.details = { cause: failure.details, cleanup: String(cleanup) }; }
+    throw failure;
+  }
+}
+
 async function preview(deliveryDir: string, headed: boolean, signal?: AbortSignal) {
   signal?.throwIfAborted();
   const delivery = resolve(deliveryDir);
@@ -166,7 +188,7 @@ async function preview(deliveryDir: string, headed: boolean, signal?: AbortSigna
     const actual = verify(request, actualFacts.objects, 'initial', actualFacts.observations); requirePassed(actual);
     compareSnapshots(actual.objects, manifest.objects);
     assert.equal(await runtimeVersion(page), manifest.runtimeVersion);
-    return { ...session, page, delivery, request };
+    return { ...session, page, delivery, request, bytes };
   } catch (error) {
     const failure = toolError(error, 'preview_failed', signal);
     try { await session.close(); }

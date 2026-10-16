@@ -29,6 +29,18 @@ test('resource server limits requests to the viewer and runtime root', async () 
     assert.equal((await fetch(service.url + '/runtime/%2e%2e%2f')).status, 403);
     assert.equal((await fetch(service.url + '/runtime/outside')).status, 403);
     assert.equal(await (await fetch(service.url, { method: 'HEAD' })).text(), '');
+    const preview = service.publishPreview({ base64: 'UEs=', prompt: '</script><script>bad()</script>', display: 'graphics' });
+    const html = await (await fetch(preview.url)).text();
+    assert(html.includes('window.previewMaterial='));
+    assert(!html.includes('</script><script>bad()'));
+    assert(!((await (await fetch(service.url)).text()).includes('window.previewMaterial=')));
+    assert.equal((await fetch(service.url + '/result.ggb')).status, 404);
+    assert.equal((await fetch(service.url + '/preview-close', { method: 'POST' })).status, 403);
+    assert.equal((await fetch(service.url + '/preview-ready', { method: 'POST', headers: { origin: service.url } })).status, 204);
+    await preview.loaded;
+    assert.equal((await fetch(service.url + '/preview-close', { method: 'POST', headers: { origin: service.url } })).status, 204);
+    await preview.closed;
+    assert.throws(() => service.publishPreview({ base64: '', prompt: '', display: 'graphics' }), /already published/);
   } finally {
     await service.close();
     await rm(directory, { recursive: true, force: true });

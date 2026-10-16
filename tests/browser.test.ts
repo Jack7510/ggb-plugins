@@ -16,6 +16,30 @@ import { compareSnapshots, verify } from '../src/verify.js';
 const fixture = async (name: string) => parseRequest(JSON.parse(await readFile(join(root, `examples/${name}.json`), 'utf8')));
 const cli = join(root, 'dist/src/cli.js');
 
+test('default-browser viewer loads the exported bytes and acknowledges ready and finish', { timeout: 60_000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ggb-default-viewer-'));
+  let session: Awaited<ReturnType<typeof openPreview>> | undefined;
+  try {
+    const request = await fixture('triangle'); request.outputDir = directory;
+    const result = await build(request);
+    session = await openPreview(result.delivery, false);
+    const material = session.publishPreview({ base64: session.bytes.toString('base64'), prompt: request.prompt, display: 'graphics' });
+    const page = await session.browser.contexts()[0]!.newPage();
+    await page.goto(material.url);
+    await Promise.race([material.loaded, new Promise<never>((_, reject) => {
+      const timer = setTimeout(() => reject(new Error('Viewer did not acknowledge loading')), 30_000); timer.unref();
+    })]);
+    compareSnapshots(await snapshot(page), JSON.parse(await readFile(result.report, 'utf8')).reload.objects);
+    assert.equal(await page.locator('h1').textContent(), request.prompt);
+    await page.locator('#finish').click();
+    await material.closed;
+    await page.waitForFunction(() => document.querySelector('#status')?.textContent?.includes('预览已结束'));
+  } finally {
+    await session?.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test('numeric and native visibility boundaries survive delivery and preview', { timeout: 120_000 }, async t => {
   const directory = await mkdtemp(join(tmpdir(), 'ggb-boundaries-'));
   const check = async (request: Request, inspect: (objects: Awaited<ReturnType<typeof snapshot>>) => void) => {

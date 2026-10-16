@@ -73,7 +73,7 @@ M1 回归的 freePoint/command 原语保留在协议 2，仍编译到同一执�
 
 ## 交付与失败
 
-构造、必需核验、GGB 重载及交互检查通过后，关闭资源，再原子提交 result.ggb、request.json、verification.json、preview.png 和 manifest.json。M6 清单协议为 2，milestone 为 M6；preview 复核报告、摘要和实际重载结果。构图与验证均 headless，成功后才用 Chrome 展示；关窗自动退出专用浏览器和本地服务，不回写文件。
+构造、必需核验、GGB 重载及交互检查通过后，关闭资源，再原子提交 result.ggb、request.json、verification.json、preview.png 和 manifest.json。M6 清单协议为 2，milestone 为 M6；preview 复核报告、摘要和实际重载结果。构图与验证均 headless。成功后必须以 preview 自动打开系统默认浏览器作为最后的工具动作，加载同一 GGB；页面确认加载后输出就绪。点击页面“结束预览”或取消进程释放服务，不回写文件；仅关闭默认浏览器标签页不保证结束进程。
 
 容量和时限由 doctor/schema 给出。失败保留运行路径和原因；CAS 不就绪、语法错误、对象未定义、探针污染原对象和数学条件不满足均不能交付。最多三次新运行，保留要求；未验证必须说明能力缺口。
 

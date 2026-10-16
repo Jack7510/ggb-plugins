@@ -18,10 +18,23 @@
 <body>
   <header><h1>GeoGebra 构图</h1><p id="status">正在加载…</p></header>
   <div id="applet"></div>
-  <footer><a href="https://www.geogebra.org/" target="_blank" rel="noreferrer">Made with GeoGebra®</a> · 关闭此浏览器窗口即可结束预览。</footer>
+  <footer><a href="https://www.geogebra.org/" target="_blank" rel="noreferrer">Made with GeoGebra®</a> · <span id="closing">关闭此浏览器窗口即可结束预览。</span><button id="finish" hidden>结束预览</button></footer>
   <script>
+    const material = window.previewMaterial;
+    if (material) {
+      document.querySelector('h1').textContent = material.prompt;
+      document.getElementById('closing').textContent = '点击结束预览以释放本地服务。';
+      const finish = document.getElementById('finish');
+      finish.hidden = false;
+      finish.onclick = async () => {
+        await fetch('/preview-close', { method: 'POST' });
+        finish.disabled = true;
+        document.getElementById('status').textContent = '预览已结束，本地服务已关闭。';
+      };
+    }
     window.appletReady = new Promise(resolve => {
       const applet = new GGBApplet({
+        ...(material ? { ggbBase64: material.base64 } : {}),
         appName: 'classic', id: 'ggb', width: 1000, height: 700,
         language: 'en', perspective: 'G', showToolBar: false, showMenuBar: false,
         showAlgebraInput: false, showZoomButtons: true,
@@ -30,8 +43,12 @@
         randomize: false, errorDialogsActive: false,
         appletOnLoad: api => {
           window.ggb = api;
-          document.getElementById('status').textContent = '拖动点或改变滑块观察联动；使用右下角按钮缩放。';
+          if (material?.display === 'algebra') api.setPerspective('A');
+          document.getElementById('status').textContent = material?.display === 'algebra' ? '原生代数结果已显示。' : '拖动点或改变滑块观察联动；使用右下角按钮缩放。';
           resolve(api);
+          if (material) fetch('/preview-ready', { method: 'POST' }).catch(() => {
+            document.getElementById('status').textContent = '无法连接本地预览服务。';
+          });
         }
       }, true);
       applet.setHTML5Codebase('/runtime/GeoGebra/HTML5/5.0/web3d/', true);

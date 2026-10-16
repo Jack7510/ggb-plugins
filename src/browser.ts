@@ -1,8 +1,16 @@
 import { chromium, type Browser, type Page } from 'playwright';
 import { readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { resolve } from 'node:path';
 import { root, serve } from './server.js';
 import { limits, toolError, type Request, type MathValue, type Interaction } from './schema.js';
+
+export async function openDefaultBrowser(url: string, signal?: AbortSignal) {
+  const command = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'rundll32.exe' : 'xdg-open';
+  const args = process.platform === 'win32' ? ['url.dll,FileProtocolHandler', url] : [url];
+  await promisify(execFile)(command, args, { signal, timeout: limits.operationMs });
+}
 
 export interface GgbAPI {
   evalCommand(command: string): boolean;
@@ -101,7 +109,7 @@ async function launchBrowser(headed: boolean, signal?: AbortSignal) {
     signal?.throwIfAborted();
     signal?.addEventListener('abort', stop, { once: true });
     return {
-      browser: opened, url: service.url, close,
+      browser: opened, url: service.url, close, publishPreview: service.publishPreview,
       async page() {
         const page = await context.newPage();
         page.setDefaultTimeout(limits.operationMs);
