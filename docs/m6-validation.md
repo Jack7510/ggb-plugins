@@ -56,3 +56,16 @@
 ## 发布边界
 
 M6 验收不代表全部二维命令已覆盖，不提供动态 CAS 单元、完整 GGB 作用域解析或全参数域证明。复杂列表中的非数值／布尔元素不能用嵌套 expected 直接核验，应声明原生表达式检查；无法建立所需证据时不得宣称通过。插件安装更新和真实客户端验收留给 M7。
+
+## 0.6.0 发布及本机更新
+
+同日按后续请求完成分发及安装更新，保留以上 M6 开发阶段记录。
+
+- 固定标签 `v0.6.0` 指向 `671f6c4`。本机 marketplace 改用该 GitHub 标签，安装缓存更新为 `~/.codex/plugins/cache/ggb-plugins-local/ggb-plugins/0.6.0`，旧版本缓存和已有 GGB 未删除。
+- GitHub [发布流程](https://github.com/Jack7510/ggb-plugins/actions/runs/38870386355) 从固定标签检出，类型检查、构建、28 项基础／打包测试和发布全部通过。首次标签推送未产生运行记录，本次通过手动入口运行同一流程；没有移动标签。
+- [Release](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.6.0) 提供编译 ZIP 和 `.sha256`。已匿名下载并校验，公开 ZIP 的 SHA-256 为 `5cb3da1cf123f0743bc19ef7ebdc8a6733a089bf155f536ba046c00f96fc66aa`。它与上面的本地构建 ZIP 是不同归档，八个编译模块与本机安装副本逐字节一致。
+- 源码安装副本重新构建，doctor 的 smoke、casSmoke 通过。新的 Codex app-server 在仓库外发现启用的 `ggb-plugins:ggb-construction`，路径属于 0.6.0 缓存；未启动独立模型回合验证自动选 Skill。
+- 在仓库外调用安装副本 CLI：functions 构造／重载各 33 项、statistics 各 24 项、M1 triangle 各 20 项通过；滑块和点样本通过。headless 预览关闭后，浏览器及服务退出，GGB 摘要不变。
+- 公开 ZIP 解压后没有源码和 TypeScript，安装器只准备生产依赖。其独立 doctor 通过；从另一个 cwd 直接调用 ZIP 中的 CLI 完成 statistics 的 24／24 项检查、正式交付和 headless 预览，无需调用 Codex。退出及文件摘要核对通过。
+
+安装日志、Skill 列表、GGB、报告和截图位于忽略目录 `output/release-060-4IfzIU/`，证据为 acceptance.json、portable-acceptance.json。此次验证了分发、Codex 安装及独立 CLI 入口，不代表其他客户端的插件格式或 Skill 自动发现已全部验收，也不完成 M7 的全命令覆盖记录。
