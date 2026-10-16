@@ -95,7 +95,7 @@ ggb-plugins/
   pnpm-lock.yaml
 ```
 
-只在文件职责过大时拆分模块。构建产物和启动脚本通过插件相对路径定位，不能依赖开发机器的绝对路径。M4 ZIP 采用显式文件清单，包含 dist/src 编译产物、Skill、页面、安装脚本、锁文件和许可；不包含源码、测试、runtime、依赖目录或用户产物。源码 Git 安装由同一安装器构建。
+只在文件职责过大时拆分模块。构建产物和启动脚本通过插件相对路径定位，不能依赖开发机器的绝对路径。M4 ZIP 采用显式文件清单，包含 dist/src 编译产物、Skill、页面、安装脚本、锁文件和许可；不包含源码、测试、runtime、依赖目录或用户产物。存在源码时，同一安装器始终安装构建依赖并重新编译；只有无源码的 ZIP 使用生产依赖分支。
 
 M2 已删除生产路径中的 `triangle.ts`，将 M1 样例移至 `examples/triangle.json`。生产执行和验证接收程序及要求；不按新题新增 `solveXxx()` 文件。当前完整 JSON 契约见 [能力说明](../skills/ggb-construction/references/capabilities.md)，实现见 `src/schema.ts`。
 

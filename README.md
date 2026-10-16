@@ -12,7 +12,7 @@ pnpm pack:plugin
 
 命令先编译，再输出插件目录、ZIP 和 SHA-256 路径。每次使用独立输出目录，不覆盖旧包。包内包含根 plugin.json、marketplace、Skill 及能力说明、八个编译模块、页面、两项安装脚本、锁文件和许可说明。不包含源码、测试、开发文档、node_modules、GeoGebra、Chromium 或用户产物；生产依赖和 runtime 在安装后准备。
 
-按 [安装说明](docs/installation.md) 注册 marketplace、安装插件，再在安装缓存内执行 setup-plugin。ZIP 已编译；GitHub 源码安装会由同一安装器构建。插件自动发现路径来自安装缓存，构图不依赖开发仓库。客户端验收见 [M4 验收记录](docs/m4-validation.md)。
+按 [安装说明](docs/installation.md) 注册 marketplace、安装插件，再在安装缓存内执行 setup-plugin。ZIP 已编译；存在源码时，同一安装器始终安装构建依赖并重新编译。插件自动发现路径来自安装缓存，构图不依赖开发仓库。客户端验收见 [M4 验收记录](docs/m4-validation.md)。
 
 ## 源码开发环境
 

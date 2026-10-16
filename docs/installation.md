@@ -32,7 +32,7 @@ codex plugin marketplace add Jack7510/ggb-plugins --ref main
 codex plugin add ggb-plugins@ggb-plugins-local --json
 ```
 
-Git 版本包含源码，首次在安装缓存运行同一 setup-plugin 安装器会构建 CLI。已配置同名本地 marketplace 时，先移除该 marketplace 再添加 GitHub 来源，避免来源冲突。运行位置不依赖原仓库。发布新版本时同步更新 plugin.json 和 package.json 的 version。更新后重新获取 marketplace、安装副本及依赖；不要覆盖正在使用的交付目录。
+Git 版本包含源码。只要存在 src/cli.ts，setup-plugin 就安装构建依赖并重新编译，即使 dist 已存在或不完整。只有无源码的 ZIP 发布包安装生产依赖并使用已有编译产物。已配置同名本地 marketplace 时，先移除该 marketplace 再添加 GitHub 来源，避免来源冲突。运行位置不依赖原仓库。发布新版本时同步更新 plugin.json 和 package.json 的 version。更新后重新获取 marketplace、安装副本及依赖；不要覆盖正在使用的交付目录。
 
 ## 使用和交付
 

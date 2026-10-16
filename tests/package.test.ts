@@ -1,14 +1,58 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import test from 'node:test';
 import { promisify } from 'node:util';
 import { root } from '../src/server.js';
 
 const run = promisify(execFile);
+
+for (const scenario of ['stale dist', 'partial dist', 'compiled release']) {
+  test(`installer prepares ${scenario} before doctor`, async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'ggb-install with spaces-'));
+    try {
+      for (const folder of ['scripts', 'bin', 'dist/src', '.runtime']) await mkdir(join(directory, folder), { recursive: true });
+      await copyFile(join(root, 'scripts/setup-plugin.mjs'), join(directory, 'scripts/setup-plugin.mjs'));
+      await writeFile(join(directory, 'package.json'), '{"type":"module"}');
+      await writeFile(join(directory, '.runtime/runtime.json'), '{}');
+      const cli = "import value from './implementation.js'; console.log('doctor:' + value);\n";
+      await writeFile(join(directory, 'dist/src/cli.js'), cli);
+      const source = scenario !== 'compiled release';
+      if (source) {
+        await mkdir(join(directory, 'src'));
+        await writeFile(join(directory, 'src/cli.ts'), 'updated');
+      }
+      if (scenario !== 'partial dist') await writeFile(join(directory, 'dist/src/implementation.js'), `export default '${source ? 'stale' : 'release'}';`);
+      // Run the real installer with a package-tool stub and a fixture CLI.
+      await writeFile(join(directory, 'bin/pnpm'), `#!${process.execPath}
+import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
+const args = process.argv.slice(2);
+appendFileSync('commands.jsonl', JSON.stringify(args) + '\\n');
+if (args[0] === 'build') {
+  const value = readFileSync('src/cli.ts', 'utf8');
+  writeFileSync('dist/src/cli.js', ${JSON.stringify(cli)});
+  writeFileSync('dist/src/implementation.js', 'export default ' + JSON.stringify(value) + ';');
+}
+`, { mode: 0o755 });
+      const { stdout } = await run(process.execPath, [join(directory, 'scripts/setup-plugin.mjs')], {
+        env: { ...process.env, PATH: join(directory, 'bin') + delimiter + process.env.PATH },
+      });
+      assert.match(stdout, new RegExp(`doctor:${source ? 'updated' : 'release'}`));
+      const commands = (await readFile(join(directory, 'commands.jsonl'), 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+      assert.deepEqual(commands, [
+        ['install', ...(source ? [] : ['--prod']), '--frozen-lockfile', '--ignore-scripts'],
+        ...(source ? [['build']] : []),
+        ['exec', 'playwright', 'install', 'chromium'],
+      ]);
+      assert.equal(await readFile(join(directory, 'dist/src/cli.js'), 'utf8'), cli);
+      if (!source) assert.equal(await readFile(join(directory, 'dist/src/implementation.js'), 'utf8'), "export default 'release';");
+    } finally { await rm(directory, { recursive: true, force: true }); }
+  });
+}
+
 test('plugin ZIP contains a standalone compiled tool and discoverable skill, not local state', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ggb-package-'));
   try {

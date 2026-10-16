@@ -6,13 +6,13 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const exists = path => access(join(root, path)).then(() => true, () => false);
 const run = (command, args) => execFileSync(command, args, { cwd: root, stdio: 'inherit' });
-// ZIPs contain compiled code. A Git marketplace install can build the source.
-if (await exists('dist/src/cli.js')) {
-  run('pnpm', ['install', '--prod', '--frozen-lockfile', '--ignore-scripts']);
-} else {
-  if (!await exists('src/cli.ts')) throw new Error('Missing compiled CLI and source; reinstall the plugin');
+// Source installs always rebuild; only sourceless ZIPs use compiled code.
+if (await exists('src/cli.ts')) {
   run('pnpm', ['install', '--frozen-lockfile', '--ignore-scripts']);
   run('pnpm', ['build']);
+} else {
+  if (!await exists('dist/src/cli.js')) throw new Error('Missing compiled CLI and source; reinstall the plugin');
+  run('pnpm', ['install', '--prod', '--frozen-lockfile', '--ignore-scripts']);
 }
 run('pnpm', ['exec', 'playwright', 'install', 'chromium']);
 if (!await exists('.runtime/runtime.json')) {
