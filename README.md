@@ -43,6 +43,8 @@ pnpm preview --delivery /absolute/path/to/delivery
 
 命令在文件加载和对象检查完成后输出就绪 JSON，并保持前台运行。关闭展示浏览器或按 Ctrl+C 会释放浏览器及本地服务；仅关闭一个标签页可能不会结束整个浏览器。强制杀进程时不能保证清理，需手动关闭残留 Chromium。
 
+预览要求清单、GGB、非空报告及截图齐全。报告中的构造、重载和交互检查必须通过，且包含对应证据。快照包含标签和线宽；较早的 M1 产物请重新运行 `pnpm demo` 生成。
+
 ## 验证与代码组织
 
 ```sh
@@ -54,6 +56,6 @@ pnpm test:browser      # 真实 applet 导出、重载、交互和反例
 GGB_HEADED=1 pnpm test:browser
 ```
 
-浏览器测试需要已安装 runtime 和 Chromium。测试检查构图进程已经退出后仍可加载文件、构造依赖真实存在、静态坐标不能冒充中点、篡改文件被拒绝以及预览不写回原文件。检查只覆盖固定样例和有限拖动样本，不证明一般数学命题。
+浏览器测试需要已安装 runtime 和 Chromium。测试检查独立文件加载、构造依赖、呈现反例、交付缺项及错误报告拒绝、文件摘要和预览不写回。还检查浏览器 API 不修改进程信号处理器或退出码，以及 CLI 收到 SIGTERM 后关闭预览并释放端口。检查只覆盖固定样例和有限拖动样本，不证明一般数学命题。
 
-`src/server.ts` 管理资源映射，`browser.ts` 管理 applet 生命周期与事实读取，`triangle.ts` 管理固定样例及核验，`delivery.ts` 管理文件交付，`cli.ts` 只解析参数和输出结果。构造与预览共用 `viewer/index.html`，无常驻服务和额外模型调用。
+`src/server.ts` 管理资源映射，`browser.ts` 管理 applet 生命周期与事实读取，`triangle.ts` 管理固定样例及核验，`delivery.ts` 管理文件交付。`cli.ts` 管理参数、输出、进程信号和退出码，通过 `AbortSignal` 请求资源清理。构造与预览共用 `viewer/index.html`，无常驻服务和额外模型调用。

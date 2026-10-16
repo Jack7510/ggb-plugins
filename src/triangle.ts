@@ -35,6 +35,12 @@ export async function verifyTriangle(page: Page, initial = true) {
   for (const object of objects) assert(object.defined, `${object.name} is undefined`);
   const [a, b, c, m] = ['A', 'B', 'C', 'M'].map(get);
   assert(a && b && c && m);
+  for (const name of ['A', 'B', 'C', 'M', 'triangle', 'a', 'b', 'c', 'median']) {
+    assert(get(name).visible, `${name} must be visible`);
+  }
+  for (const point of [a, b, c, m]) assert(point.labelVisible, `${point.name} label must be visible`);
+  for (const name of ['M', 'median']) assert.equal(get(name).color, '#D74830', `${name} color must be red`);
+  assert.equal(get('median').lineThickness, 5, 'median line thickness must be 5');
   for (const point of [a, b, c, m]) assert.equal(point.type, 'point');
   for (const point of [a, b, c]) assert(point.independent && point.moveable, `${point.name} must be draggable`);
   assert(!m.independent, 'M must depend on A and B');
@@ -52,7 +58,6 @@ export async function verifyTriangle(page: Page, initial = true) {
   assert(length !== null && Math.abs(length - Math.hypot(c.x - m.x, c.y - m.y)) < tolerance);
   if (initial) {
     assert.deepEqual([a.x, a.y, b.x, b.y, c.x, c.y, m.x, m.y], [0, 0, 6, 0, 2, 4, 3, 0]);
-    assert.equal(get('median').color, '#D74830');
   }
   return { status: 'passed' as const, scope: 'fixed triangle and median; not a general theorem', objects };
 }

@@ -4,7 +4,7 @@
 
 This repository currently implements the M1 GeoGebra prototype, not the complete plugin. Read `docs/ggb-plugins-design.md` for planned scope and `README.md` for implemented behavior.
 
-Keep this a single TypeScript package. `src/cli.ts` handles arguments and JSON output; `server.ts` serves local assets; `browser.ts` owns Playwright and applet lifecycle; `triangle.ts` constructs and checks the fixed example; `delivery.ts` exports, reloads, and previews files. Construction and preview share `viewer/index.html`. Tests live in `tests/`; the installer lives in `scripts/`.
+Keep this a single TypeScript package. `src/cli.ts` handles arguments, JSON output, signals, and exit codes; `server.ts` serves local assets; `browser.ts` owns Playwright and applet lifecycle; `triangle.ts` constructs and checks the fixed example; `delivery.ts` exports, reloads, and previews files. Construction and preview share `viewer/index.html`. Tests live in `tests/`; the installer lives in `scripts/`.
 
 Do not commit `.runtime/`, `node_modules/`, `dist/`, or generated `output/`. Do not introduce dependencies on another checkout.
 

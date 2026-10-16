@@ -16,12 +16,15 @@ export interface GgbAPI {
   getCommandString(name: string, localized: boolean): string;
   getColor(name: string): string;
   getVisible(name: string): boolean;
+  getLabelVisible(name: string): boolean;
+  getLineThickness(name: string): number;
   getXML(): string;
   setCoords(name: string, x: number, y: number): void;
   setCoordSystem(xmin: number, xmax: number, ymin: number, ymax: number): void;
   setAxesVisible(x: boolean, y: boolean): void;
   setGridVisible(visible: boolean): void;
   setColor(name: string, r: number, g: number, b: number): void;
+  setVisible(name: string, visible: boolean): void;
   setLineThickness(name: string, thickness: number): void;
   setLabelVisible(name: string, visible: boolean): void;
   setMode(mode: number): void;
@@ -33,30 +36,32 @@ declare global {
   interface Window { ggb: GgbAPI; appletReady: Promise<GgbAPI>; }
 }
 
-export async function openBrowser(headed = false) {
+export async function openBrowser(headed = false, signal?: AbortSignal) {
+  signal?.throwIfAborted();
   const lock = JSON.parse(await readFile(resolve(root, 'runtime.lock.json'), 'utf8')) as { version: string; sha256: string };
   const installed = JSON.parse(await readFile(resolve(root, '.runtime/runtime.json'), 'utf8')) as typeof lock;
   if (installed.version !== lock.version || installed.sha256 !== lock.sha256) throw new Error('Runtime mismatch; run pnpm setup:runtime');
   const service = await serve();
   let browser: Browser | undefined;
   try {
-    browser = await chromium.launch({ headless: !headed });
+    signal?.throwIfAborted();
+    browser = await chromium.launch({
+      headless: !headed, handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false,
+    });
+    signal?.throwIfAborted();
     const context = await browser.newContext({ viewport: { width: 1050, height: 840 } });
     // All browser traffic is local, including GeoGebra resources.
     await context.route('**/*', route => route.request().url().startsWith(service.url + '/') ? route.continue() : route.abort());
     const opened = browser;
     let closing: Promise<void> | undefined;
-    const stop = () => {
-      process.exitCode = 130;
-      void close().catch(error => console.error(error));
-    };
+    // The caller owns cancellation and diagnostics; finally blocks await this same close.
+    const stop = () => { void close().catch(() => {}); };
     const close = () => closing ??= (async () => {
-      process.removeListener('SIGINT', stop);
-      process.removeListener('SIGTERM', stop);
+      signal?.removeEventListener('abort', stop);
       try { await opened.close(); } finally { await service.close(); }
     })();
-    process.once('SIGINT', stop);
-    process.once('SIGTERM', stop);
+    signal?.throwIfAborted();
+    signal?.addEventListener('abort', stop, { once: true });
     return {
       browser, url: service.url, close,
       async page() {
@@ -108,6 +113,8 @@ export async function snapshot(page: Page) {
       y: api.getObjectType(name) === 'point' ? api.getYcoord(name) : null,
       value: Number.isFinite(api.getValue(name)) ? api.getValue(name) : null,
       color: api.getColor(name), visible: api.getVisible(name),
+      labelVisible: api.getLabelVisible(name),
+      lineThickness: api.getObjectType(name) === 'segment' ? api.getLineThickness(name) : null,
     }));
   });
 }
