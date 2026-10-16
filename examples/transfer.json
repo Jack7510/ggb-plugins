@@ -1,5 +1,5 @@
 {
-  "protocolVersion": 1,
+  "protocolVersion": 2,
   "prompt": "给定三个不共线的自由点D、E、F，过F作与直线DE平行的直线p和垂直的直线q；作q与DE的交点H，连接FH。以F为圆心作半径1.23456789的圆k。将H显示为“垂足”，将q设为虚线。",
   "locale": "zh-CN",
   "outputDir": "output/m2-transfer",

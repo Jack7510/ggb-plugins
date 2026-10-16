@@ -1,5 +1,5 @@
 {
-  "protocolVersion": 1,
+  "protocolVersion": 2,
   "prompt": "作三角形ABC，取AB的中点M，连接CM。将M和CM标红，显示点名，CM线宽为5。",
   "locale": "zh-CN",
   "outputDir": "output/ggb",

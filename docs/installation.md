@@ -1,6 +1,6 @@
 # GeoGebra Construction 安装与使用
 
-本插件处理文字二维数学题。Codex 生成可组合程序，本地工具执行、核验并交付可交互 GGB。需要支持插件的本地 Codex 客户端、Node.js 22+、pnpm 11、curl 和 unzip。安装依赖时需要网络；不需要额外模型 API Key。
+本插件处理文字或图片中的二维数学与代数题。Codex 生成 GeoGebra 原生程序，本地工具执行、核验并交付可交互 GGB。需要支持插件的本地 Codex 客户端、Node.js 22+、pnpm 11、curl 和 unzip。安装依赖时需要网络；不需要额外模型 API Key。
 
 ## 安装 ZIP
 
@@ -38,6 +38,8 @@ Git 版本包含源码。只要存在 src/cli.ts，setup-plugin 就安装构建�
 
 例如：“作三角形 ABC，取 AB 的中点 M，连接 CM，将中线标红，并打开可交互预览。”未给坐标时，由 Codex 选择并说明初始构型。能力受当前操作和谓词限制，不能删除无法核验的必需要求后宣称成功。
 
+M5 / 0.5.0 使用请求及交付协议 2；旧请求和交付目录须按新契约重新生成。doctor 的 smoke、casSmoke 均应通过。纯代数结果保存在原生对象中，使用 Algebra 视图；CAS 物化结果不自动保留动态 CAS 依赖。
+
 请求和产物写在用户工作区，使用绝对路径，不能写进安装缓存。正式目录包含 result.ggb、request.json、verification.json、preview.png 和 manifest.json。构图、doctor 和自动验证使用 headless，截图保存为 preview.png。验证完成后，预览使用本机 Google Chrome 加载原文件，支持自由点拖动和缩放；关闭预览标签页或窗口后自动退出本次专用浏览器并释放服务，Ctrl+C 也会清理，不回写文件。最终预览需要安装 Google Chrome；自动化预览检查可以添加 --headless。宿主必须保留前台进程：使用交互客户端或保持连接的 app-server；一次性 codex exec 退出会回收预览会话，不能据此承诺答复后预览继续存在。
 
 ```sh
@@ -56,4 +58,4 @@ codex plugin remove ggb-plugins@ggb-plugins-local
 codex plugin marketplace remove ggb-plugins-local
 ```
 
-GeoGebra 的独立许可和归属见插件根目录 `THIRD_PARTY_NOTICES.md`。有限交互样本不能证明一般数学命题；图片、外部 GGB 续题、三维和通用证明不在当前范围。
+GeoGebra 的独立许可和归属见插件根目录 `THIRD_PARTY_NOTICES.md`。有限交互样本不能证明一般数学命题；图片由宿主读取并提取题干；外部 GGB 续题、三维、完整命令覆盖及通用证明不在已验收范围。

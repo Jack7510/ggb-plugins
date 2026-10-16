@@ -1,5 +1,5 @@
 {
-  "protocolVersion": 1,
+  "protocolVersion": 2,
   "prompt": "给定两个自由点P、Q，作PQ的垂直平分线b，并显示中点N。",
   "locale": "zh-CN",
   "outputDir": "output/ggb",

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { dragPoint, execute, exportGgb, loadGgb, openBrowser, runtimeVersion, snapshot, zoom, type Snapshot } from './browser.js';
+import { dragPoint, execute, exportGgb, loadGgb, openBrowser, runtimeVersion, snapshot, observe, zoom, type Snapshot } from './browser.js';
 import { compile } from './compile.js';
 import { limits, parseRequest, ToolError, toolError, type Request } from './schema.js';
 import { compareSnapshots, equivalent, verify, type Verification } from './verify.js';
@@ -43,7 +43,8 @@ export async function build(input: unknown, signal?: AbortSignal) {
     session = await openBrowser(false, running);
     const original = await session.page();
     stage = 'execution_failed'; await execute(original, compiled, request.prompt);
-    const construction = verify(request, await snapshot(original), 'initial');
+    const initialFacts = await observe(original, request, 'initial');
+    const construction = verify(request, initialFacts.objects, 'initial', initialFacts.observations);
     await save(join(run, 'verification.json'), construction); requirePassed(construction);
     stage = 'export_failed';
     const bytes = Buffer.from(await exportGgb(original), 'base64');
@@ -53,8 +54,9 @@ export async function build(input: unknown, signal?: AbortSignal) {
     stage = 'reload_failed';
     const reloaded = await session.page();
     const data = (await readFile(join(temp, 'result.ggb'))).toString('base64');
-    await loadGgb(reloaded, data, request.prompt);
-    const reload = verify(request, await snapshot(reloaded), 'initial'); requirePassed(reload);
+    await loadGgb(reloaded, data, request.prompt, request.plan.display);
+    const reloadFacts = await observe(reloaded, request, 'initial');
+    const reload = verify(request, reloadFacts.objects, 'initial', reloadFacts.observations); requirePassed(reload);
     compareSnapshots(reload.objects, construction.objects);
     stage = 'export_failed'; await reloaded.screenshot({ path: join(temp, 'preview.png') });
     stage = 'verification_failed';
@@ -63,10 +65,11 @@ export async function build(input: unknown, signal?: AbortSignal) {
       const candidate = await session.page();
       let interactionFailed = false;
       try {
-        await loadGgb(candidate, data, request.prompt);
+        await loadGgb(candidate, data, request.prompt, request.plan.display);
         const before = await snapshot(candidate);
         await dragPoint(candidate, sample);
-        const after = verify(request, await snapshot(candidate), 'sampled');
+        const sampleFacts = await observe(candidate, request, 'sampled');
+        const after = verify(request, sampleFacts.objects, 'sampled', sampleFacts.observations);
         samples.push({ point: sample.point, before, after });
         await save(join(run, 'verification.json'), { construction, reload, samples });
         requirePassed(after);
@@ -79,15 +82,15 @@ export async function build(input: unknown, signal?: AbortSignal) {
         }
       }
     }
-    const zoomResult = await zoom(reloaded);
+    const zoomResult = request.plan.display === 'algebra' ? { method: 'not_applicable' as const, reason: 'algebra-only view' } : await zoom(reloaded);
     compareSnapshots(await snapshot(original), construction.objects);
-    const report = { milestone: 'M2', requestSha256, construction, reload, interaction: { status: 'passed', samples, zoom: zoomResult } };
+    const report = { milestone: 'M5', requestSha256, construction, reload, interaction: { status: 'passed', samples, zoom: zoomResult } };
     stage = 'export_failed';
     if (Buffer.byteLength(json(report)) > limits.reportBytes) throw new ToolError('limit_exceeded', 'Verification report exceeds the size limit');
     await save(join(temp, 'verification.json'), report);
     await writeFile(join(temp, 'request.json'), requestBytes);
     await save(join(temp, 'manifest.json'), {
-      protocolVersion: 1, milestone: 'M2', runtimeVersion: await runtimeVersion(original), file: 'result.ggb',
+      protocolVersion: 2, milestone: 'M5', runtimeVersion: await runtimeVersion(original), file: 'result.ggb',
       sha256: sha256(bytes), requestSha256, objects: construction.objects,
     });
     // Close resources before the commit point. No fallible cleanup follows rename.
@@ -111,7 +114,7 @@ export async function build(input: unknown, signal?: AbortSignal) {
 
 function validatePhase(request: Request, input: any, phase: 'initial' | 'sampled') {
   assert(input?.status === 'passed' && Array.isArray(input.objects) && input.objects.length > 0, 'Missing or failed verification evidence');
-  const actual = verify(request, input.objects as Snapshot, phase); requirePassed(actual);
+  const actual = verify(request, input.objects as Snapshot, phase, input.observations); requirePassed(actual);
   assert(equivalent(actual.results, input.results), 'Verification results do not match their observations');
 }
 
@@ -124,14 +127,14 @@ async function preview(deliveryDir: string, headed: boolean, signal?: AbortSigna
   signal?.throwIfAborted();
   const delivery = resolve(deliveryDir);
   const manifest = await readJson(join(delivery, 'manifest.json'), 2 * 1024 * 1024) as any;
-  assert(manifest?.protocolVersion === 1 && manifest.milestone === 'M2' && manifest.file === 'result.ggb', 'Unsupported delivery format; regenerate with build');
+  assert(manifest?.protocolVersion === 2 && manifest.milestone === 'M5' && manifest.file === 'result.ggb', 'Unsupported delivery format; regenerate with build');
   assert.match(manifest.sha256, /^[a-f0-9]{64}$/); assert.match(manifest.requestSha256, /^[a-f0-9]{64}$/);
   const request = parseRequest(await readJson(join(delivery, 'request.json'))); compile(request);
   assert.equal(sha256(await readFile(join(delivery, 'request.json'))), manifest.requestSha256, 'Request checksum mismatch');
   const picture = await stat(join(delivery, 'preview.png'));
   assert(picture.isFile() && picture.size > 0 && picture.size <= limits.ggbBytes, 'preview.png must be a bounded nonempty file');
   const report = await readJson(join(delivery, 'verification.json'), limits.reportBytes) as any;
-  assert.equal(report?.milestone, 'M2'); assert.equal(report.requestSha256, manifest.requestSha256);
+  assert.equal(report?.milestone, 'M5'); assert.equal(report.requestSha256, manifest.requestSha256);
   validatePhase(request, report.construction, 'initial'); validatePhase(request, report.reload, 'initial');
   compareSnapshots(report.construction.objects, manifest.objects); compareSnapshots(report.reload.objects, manifest.objects);
   assert(report.interaction?.status === 'passed' && Array.isArray(report.interaction.samples), 'Missing or failed interaction evidence');
@@ -145,14 +148,16 @@ async function preview(deliveryDir: string, headed: boolean, signal?: AbortSigna
     assert(before && after && Math.hypot(after.x - before.x, after.y - before.y) > 1e-8, 'No observed drag movement');
   }
   const z = report.interaction.zoom;
-  assert(z?.method === 'button' && Number.isFinite(z.before) && Number.isFinite(z.after) && z.before > 0 && z.after > 0 && z.before !== z.after, 'Missing zoom evidence');
+  if (request.plan.display === 'algebra') assert(z?.method === 'not_applicable' && z.reason === 'algebra-only view', 'Invalid algebra view evidence');
+  else assert(z?.method === 'button' && Number.isFinite(z.before) && Number.isFinite(z.after) && z.before > 0 && z.after > 0 && z.before !== z.after, 'Missing zoom evidence');
   const info = await stat(join(delivery, 'result.ggb'));
   assert(info.isFile() && info.size > 0 && info.size <= limits.ggbBytes, 'Invalid GGB file size');
   const bytes = await readFile(join(delivery, 'result.ggb')); assert.equal(sha256(bytes), manifest.sha256, 'GGB checksum mismatch');
   const session = await openBrowser(headed, signal);
   try {
-    const page = await session.page(); await loadGgb(page, bytes.toString('base64'), request.prompt);
-    const actual = verify(request, await snapshot(page), 'initial'); requirePassed(actual);
+    const page = await session.page(); await loadGgb(page, bytes.toString('base64'), request.prompt, request.plan.display);
+    const actualFacts = await observe(page, request, 'initial');
+    const actual = verify(request, actualFacts.objects, 'initial', actualFacts.observations); requirePassed(actual);
     compareSnapshots(actual.objects, manifest.objects);
     assert.equal(await runtimeVersion(page), manifest.runtimeVersion);
     return { ...session, page, delivery, request };

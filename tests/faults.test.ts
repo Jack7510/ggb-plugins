@@ -47,6 +47,20 @@ mock.module('../src/browser.js', { namedExports: { ...browser,
       },
       async page() {
         const page = await session.page(); count++;
+        if (count === 1 && ['cas-ready', 'cas-cancel'].includes(fault)) {
+          await page.evaluate(() => { window.ggb.evalCommandCAS = () => '?'; });
+          limits.operationMs = 150;
+          if (fault === 'cas-cancel') setTimeout(() => cancellation!.abort(new Error('Cancelled during CAS startup')), 40);
+        }
+        if (count === 1 && fault === 'probe-mutation') {
+          await page.evaluate(() => {
+            const evaluate = window.ggb.evalCommand.bind(window.ggb);
+            window.ggb.evalCommand = command => {
+              if (command.startsWith('GgbProbe')) window.ggb.setCoords('A', -1, 1);
+              return evaluate(command);
+            };
+          });
+        }
         if (count === 1 && ['export', 'export-cleanup', 'export-timeout', 'cancel', 'deadline', 'failure-journal'].includes(fault)) {
           await page.evaluate(invalid => { window.ggb.getBase64 = callback => { if (invalid) callback('invalid'); }; }, ['export', 'export-cleanup', 'failure-journal'].includes(fault));
           limits.operationMs = fault === 'deadline' ? 30_000 : 150;
@@ -89,6 +103,21 @@ async function released() {
     await assert.rejects(fetch(session.url));
   }
 }
+
+test('native CAS waits and verification mutation obey the same cleanup gates', { timeout: 30_000 }, async t => {
+  const directory = await fs.mkdtemp(join(tmpdir(), 'ggb-native-fault-'));
+  try {
+    for (const [name, code] of [['cas-ready', 'execution_failed'], ['cas-cancel', 'cancelled'], ['probe-mutation', 'execution_failed']]) await t.test(name!, async () => {
+      fault = name!; cancellation = new AbortController();
+      const input = JSON.parse(await fs.readFile(join(root, `examples/${fault === 'probe-mutation' ? 'parabola' : 'algebra'}.json`), 'utf8'));
+      input.outputDir = join(directory, fault);
+      await assert.rejects(build(input, cancellation.signal), (e: any) => e.code === code);
+      await released();
+      for (const run of await fs.readdir(input.outputDir)) assert(!(await fs.readdir(join(input.outputDir, run))).includes('delivery'));
+      Object.assign(limits, defaults);
+    });
+  } finally { fault = ''; cancellation = undefined; Object.assign(limits, defaults); await fs.rm(directory, { recursive: true, force: true }); }
+});
 
 test('doctor reports real readiness and cleans up without producing deliveries', { timeout: 30_000 }, async t => {
   const result = await doctor();

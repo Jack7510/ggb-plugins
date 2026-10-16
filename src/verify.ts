@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import type { Snapshot } from './browser.js';
+import type { Snapshot, Observation } from './browser.js';
 import { commands, type Check, type Request, type Style } from './schema.js';
 
 export const tolerance = 1e-8;
@@ -18,13 +18,15 @@ export function definition(fact: Fact) {
   if (fact.independent) return null;
   const match = /^([A-Za-z]+)\[(.*)\]$/.exec(fact.command);
   const native = fact.nativeDefinition ?? (match ? { name: match[1]!, args: match[2]!.split(',').map(s => s.trim()) } : null);
-  if (!native) throw new Error(`Unrecognized definition: ${fact.name}`);
-  const name = Object.entries(commands).find(([key, spec]) => (spec.native ?? key) === native.name)?.[0];
-  if (!name) throw new Error(`Unsupported definition: ${native.name}`);
+  if (!native) {
+    if (fact.expression) return { expression: fact.expression };
+    throw new Error(`Unrecognized definition: ${fact.name}`);
+  }
+  const name = Object.entries(commands).find(([key, spec]) => (spec.native ?? key) === native.name)?.[0] ?? native.name;
   const args = native.args.map(s => {
     if (/^[A-Za-z][A-Za-z0-9_]*$/.test(s)) return { ref: s };
     const n = Number(s); if (s && Number.isFinite(n)) return n;
-    throw new Error(`Unrecognized argument: ${s}`);
+    return { expression: s };
   });
   return { name, args };
 }
@@ -38,7 +40,12 @@ export function equivalent(a: unknown, b: unknown): boolean {
   return equivalent(Object.keys(x).sort(), Object.keys(y).sort()) && Object.keys(x).every(key => equivalent(x[key], y[key]));
 }
 export function compareSnapshots(a: Snapshot, b: Snapshot) {
-  const normalize = (facts: Snapshot) => facts.map(({ command, nativeDefinition, ...fact }) => ({ ...fact, definition: definition({ ...fact, command, nativeDefinition }) })).sort((x, y) => x.name.localeCompare(y.name));
+  // GeoGebra normalizes graphics-label flags on non-graphical algebra objects.
+  // Explicit presentation requirements are still checked by verify.
+  const normalize = (facts: Snapshot) => facts.map(({ command, nativeDefinition, expression, valueString, labelStyle, labelVisible, ...fact }) => ({ ...fact,
+    ...(['numeric', 'list', 'boolean'].includes(fact.type) ? {} : { labelStyle, labelVisible }),
+    ...( ['function', 'functionnvar', 'list', 'text'].includes(fact.type) ? { valueString } : {}),
+    definition: definition({ ...fact, command, nativeDefinition, expression, valueString, labelStyle, labelVisible }) })).sort((x, y) => x.name.localeCompare(y.name));
   assert(equivalent(normalize(a), normalize(b)), 'Construction facts changed');
 }
 
@@ -47,7 +54,7 @@ function styleStatus(fact: Fact, properties: Style): Status {
 }
 
 /** Pure verification: only actual observations and frozen requirements enter this function. */
-export function verify(request: Request, objects: Snapshot, phase: 'initial' | 'sampled') {
+export function verify(request: Request, objects: Snapshot, phase: 'initial' | 'sampled', observations: Observation[] = []) {
   const facts = new Map(objects.map(fact => [fact.name, fact]));
   const get = (id: string) => {
     const fact = facts.get(id);
@@ -67,7 +74,10 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
   const depends = (id: string, target: string, visited = new Set<string>()): boolean => {
     if (visited.has(id)) return false;
     visited.add(id);
-    return (definition(get(id))?.args ?? []).some(arg => typeof arg !== 'number' && (arg.ref === target || depends(arg.ref, target, visited)));
+    const fact = get(id);
+    if (fact.independent) return false;
+    if (fact.referenceState === 'ambiguous') throw new Error(`Dependency references require semantic resolution: ${id}`);
+    return (fact.inputs ?? []).some(ref => ref === target || depends(ref, target, visited));
   };
   const methods: Record<string, (check: Check) => Status> = {
     exists: c => truth(Boolean(facts.get(c.subjects[0]!)?.defined)),
@@ -115,7 +125,9 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
   };
   add('$canvas', 0, objects.map(o => o.name), 'objects_defined', () => truth(objects.length > 0 && objects.every(o => o.defined)));
   for (const step of request.plan.program) {
-    add('$program:' + step.id, 0, [step.id], 'construction', () => {
+    const outputs = step.op === 'native' ? step.outputs ?? [step.id] : [step.id];
+    add('$program:' + step.id, 0, outputs, 'construction', () => {
+      if (step.op === 'native') return truth(outputs.every(id => Boolean(get(id))));
       const fact = get(step.id);
       if (step.op === 'freePoint') {
         const state = truth(fact.type === 'point' && fact.independent && fact.moveable);
@@ -123,13 +135,25 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
       }
       return truth(fact.type === commands[step.name]!.output && equivalent(definition(fact), { name: step.name, args: step.args }));
     });
-    const properties: Style = { visible: true, ...(step.op === 'freePoint' || (step.op === 'command' && commands[step.name]!.output === 'point') ? { labelVisible: true } : {}), ...request.plan.styles?.find(s => s.object === step.id)?.properties };
-    add('$style:' + step.id, 0, [step.id], 'presentation', () => all([styleStatus(get(step.id), properties),
-      get(step.id).type === 'point' ? truth(get(step.id).labelStyle === (properties.caption === undefined ? 0 : 3)) : 'passed']));
+    for (const id of outputs) {
+      const properties: Style = { ...(step.op === 'native' ? {} : { visible: true }), ...(facts.get(id)?.type === 'point' ? { labelVisible: true } : {}), ...request.plan.styles?.find(s => s.object === id)?.properties };
+      add('$style:' + id, 0, [id], 'presentation', () => all([styleStatus(get(id), properties),
+        get(id).type === 'point' ? truth(get(id).labelStyle === (properties.caption === undefined ? 0 : 3)) : 'passed']));
+    }
   }
   for (const requirement of request.plan.requirements) requirement.checks.forEach((check, index) => {
-    if (phase === 'initial' || check.scope === 'sampled') add(requirement.id, index, check.subjects, check.kind, () => methods[check.kind]!(check), check.scope);
+    if (phase === 'initial' || check.scope === 'sampled') {
+      const observation = observations.find(o => o.id === `${requirement.id}:${index}`);
+      add(requirement.id, index, check.subjects, check.kind, () => {
+        if (check.kind !== 'expression') return methods[check.kind]!(check);
+        check.subjects.forEach(get);
+        if (!observation?.defined || observation.error || observation.expression !== check.expression || observation.mode !== check.mode || observation.value === null) return 'unverified';
+        if (typeof check.expected === 'boolean') return observation.type === 'boolean' ? truth(observation.value === (check.expected ? 1 : 0)) : 'unverified';
+        return observation.type === 'numeric' ? numeric(observation.value - check.expected!, check.expected!) : 'unverified';
+      }, check.scope);
+      if (check.kind === 'expression') results.at(-1)!.evidence = { observation: observation ?? null, objects: check.subjects.map(id => facts.get(id) ?? null) };
+    }
   });
-  return { status: all(results.map(r => r.status)), objects, results };
+  return { status: all(results.map(r => r.status)), objects, results, observations };
 }
 export type Verification = ReturnType<typeof verify>;

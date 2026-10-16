@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
-import { exportGgb, loadGgb, openBrowser, runtimeVersion, snapshot } from './browser.js';
+import { exportGgb, loadGgb, openBrowser, runtimeVersion, snapshot, waitForCAS } from './browser.js';
 import { commands, limits, predicates, toolError } from './schema.js';
 import { root } from './server.js';
 import { tolerance } from './verify.js';
@@ -20,15 +20,20 @@ export async function doctor(signal?: AbortSignal) {
     session = await openBrowser(false, running);
     const page = await session.page();
     assert(await page.evaluate(() => window.ggb.evalCommand('DoctorPoint=(0,0)')), 'Applet command failed');
+    await waitForCAS(page);
+    assert(await page.evaluate(() => window.ggb.evalCommand('DoctorCAS=Factor(x^2-1)') && window.ggb.isDefined('DoctorCAS')), 'CAS object failed');
     const bytes = await exportGgb(page);
     assert(Buffer.from(bytes, 'base64').subarray(0, 2).toString() === 'PK', 'GGB export failed');
     const reloaded = await session.page(); await loadGgb(reloaded, bytes);
     const objects = await snapshot(reloaded);
-    assert(objects.length === 1 && objects[0]!.name === 'DoctorPoint' && objects[0]!.defined && objects[0]!.x === 0 && objects[0]!.y === 0, 'GGB reload failed');
+    const point = objects.find(o => o.name === 'DoctorPoint');
+    assert(objects.length === 2 && point?.defined && point.x === 0 && point.y === 0, 'GGB reload failed');
+    await waitForCAS(reloaded);
+    assert(await reloaded.evaluate(() => window.ggb.isDefined('DoctorCAS') && window.ggb.evalCommandCAS('Simplify(DoctorCAS(x)-(x^2-1))') === '0'), 'CAS reload failed');
     const result = { toolVersion: pkg.version, nodeVersion: process.version,
       browser: { version: session.browser.version(), executablePath: chromium.executablePath() },
       runtime: { version: await runtimeVersion(reloaded), url: lock.url, sha256: lock.sha256 },
-      smoke: 'passed', limits, tolerance, commands, predicates };
+      smoke: 'passed', casSmoke: 'passed', native: { channels: ['algebra', 'cas'], mathematicalCommandWhitelist: false, casMaterialization: 'named native result' }, limits, tolerance, commands, predicates };
     await session.close(); session = undefined;
     running.throwIfAborted();
     return result;

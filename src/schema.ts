@@ -20,6 +20,7 @@ export const commands: Record<string, { signatures: string[][]; output: string; 
   Polygon: { signatures: [['point', 'point', 'point']], output: 'polygon', variadic: true },
 };
 export const predicates: Record<string, { types: string[]; extra?: string; variadic?: boolean }> = {
+  expression: { types: ['any'], variadic: true },
   exists: { types: ['any'] },
   type: { types: ['any'], extra: 'objectType' },
   coordinate: { types: ['point'], extra: 'coordinates' },
@@ -35,12 +36,13 @@ export const predicates: Record<string, { types: string[]; extra?: string; varia
   dependsOn: { types: ['any', 'any'], variadic: true },
   style: { types: ['any'], extra: 'properties' },
 };
-export interface Style { visible?: boolean; labelVisible?: boolean; color?: string; lineThickness?: number; lineStyle?: number; caption?: string; }
+export interface Style { visible?: boolean; labelVisible?: boolean; color?: string; lineThickness?: number; lineStyle?: number; caption?: string; fixed?: boolean; }
 export type Argument = number | { ref: string };
-export type Step = { id: string; op: 'freePoint'; x: number; y: number } | { id: string; op: 'command'; name: string; args: Argument[] };
-export interface Check { kind: string; subjects: string[]; scope: 'initial' | 'sampled'; coordinates?: [number, number]; value?: number; properties?: Style; objectType?: string; }
+export type Step = { id: string; op: 'freePoint'; x: number; y: number } | { id: string; op: 'command'; name: string; args: Argument[] }
+  | { id: string; op: 'native'; source: string; mode: 'algebra' | 'cas'; outputs?: string[]; initial?: [number, number] };
+export interface Check { kind: string; subjects: string[]; scope: 'initial' | 'sampled'; coordinates?: [number, number]; value?: number; properties?: Style; objectType?: string; expression?: string; mode?: 'algebra' | 'cas'; expected?: number | boolean; }
 export interface Request {
-  protocolVersion: 1; prompt: string; locale: string; outputDir: string;
+  protocolVersion: 2; prompt: string; locale: string; outputDir: string;
   clarifications?: { question: string; answer: string }[];
   plan: {
     program: Step[];
@@ -48,6 +50,7 @@ export interface Request {
     styles?: { object: string; properties: Style }[];
     interactions: { point: string; dx: number; dy: number }[];
     view?: { xMin: number; xMax: number; yMin: number; yMax: number };
+    display?: 'graphics' | 'algebra';
   };
 }
 
@@ -61,7 +64,7 @@ function text(value: unknown, max = 2048): asserts value is string {
 }
 function identifier(value: unknown): asserts value is string {
   assert(typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,31}$/.test(value)
-    && !['e', 'i', 'x', 'y', 'z', 'pi'].includes(value), 'Invalid or reserved object identifier');
+    && !['e', 'i', 'x', 'y', 'z', 'pi'].includes(value) && !value.startsWith('GgbProbe'), 'Invalid or reserved object identifier');
 }
 function finite(value: unknown, max = limits.coordinate): asserts value is number {
   assert(typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= max, 'Invalid finite number');
@@ -70,9 +73,9 @@ function array(value: unknown, min: number, max: number): asserts value is any[]
   assert(Array.isArray(value) && value.length >= min && value.length <= max, 'Invalid array length');
 }
 function style(value: unknown) {
-  const p = record(value, ['visible', 'labelVisible', 'color', 'lineThickness', 'lineStyle', 'caption']);
+  const p = record(value, ['visible', 'labelVisible', 'color', 'lineThickness', 'lineStyle', 'caption', 'fixed']);
   assert(Object.keys(p).length > 0, 'Empty style');
-  for (const key of ['visible', 'labelVisible']) if (key in p) assert(typeof p[key] === 'boolean', 'Invalid visibility');
+  for (const key of ['visible', 'labelVisible', 'fixed']) if (key in p) assert(typeof p[key] === 'boolean', 'Invalid visibility/fixed flag');
   if ('color' in p) assert(typeof p.color === 'string' && /^#[0-9a-f]{6}$/i.test(p.color), 'Invalid color');
   if ('caption' in p) text(p.caption, 100);
   for (const [key, min, max] of [['lineThickness', 1, 13], ['lineStyle', 0, 4]] as const) {
@@ -83,7 +86,7 @@ function style(value: unknown) {
 /** Validate the complete envelope before starting any browser or writing output. */
 export function parseRequest(value: unknown): Request {
   const r = record(value, ['protocolVersion', 'prompt', 'locale', 'outputDir', 'clarifications', 'plan']);
-  assert.equal(r.protocolVersion, 1, 'Unsupported request protocol');
+  assert.equal(r.protocolVersion, 2, 'Unsupported request protocol; regenerate with protocolVersion 2');
   text(r.prompt, limits.promptChars); text(r.locale, 32); text(r.outputDir);
   const sources = [r.prompt];
   if ('clarifications' in r) {
@@ -93,12 +96,18 @@ export function parseRequest(value: unknown): Request {
       sources.push(c.question, c.answer);
     }
   }
-  const p = record(r.plan, ['program', 'requirements', 'styles', 'interactions', 'view']);
+  const p = record(r.plan, ['program', 'requirements', 'styles', 'interactions', 'view', 'display']);
+  if ('display' in p) assert(['graphics', 'algebra'].includes(p.display), 'Invalid display');
   array(p.program, 1, limits.steps);
   for (const input of p.program) {
-    const s = record(input, input?.op === 'freePoint' ? ['id', 'op', 'x', 'y'] : ['id', 'op', 'name', 'args']);
+    const s = record(input, input?.op === 'native' ? ['id', 'op', 'source', 'mode', 'outputs', 'initial'] : input?.op === 'freePoint' ? ['id', 'op', 'x', 'y'] : ['id', 'op', 'name', 'args']);
     identifier(s.id);
-    if (s.op === 'freePoint') { finite(s.x); finite(s.y); }
+    if (s.op === 'native') {
+      mathSource(s.source); assert(['algebra', 'cas'].includes(s.mode), 'Invalid native mode');
+      if ('outputs' in s) { array(s.outputs, 1, 16); s.outputs.forEach(identifier); assert(s.outputs.includes(s.id), 'Outputs must include step ID'); }
+      if ('initial' in s) { array(s.initial, 2, 2); s.initial.forEach((n: unknown) => finite(n)); }
+      if (s.mode === 'cas') assert(!s.outputs || s.outputs.length === 1, 'CAS materializes one named result');
+    } else if (s.op === 'freePoint') { finite(s.x); finite(s.y); }
     else {
       assert.equal(s.op, 'command', 'Unsupported operation');
       if (typeof s.name !== 'string' || !Object.hasOwn(commands, s.name)) throw new ToolError('unsupported_operation', 'Unsupported command');
@@ -119,17 +128,24 @@ export function parseRequest(value: unknown): Request {
     assert(sources.some(source => source.includes(r.source)), 'Requirement source is not in the input');
     array(r.checks, 1, limits.checks);
     for (const input of r.checks) {
-      const c = record(input, ['kind', 'subjects', 'scope', 'value', 'coordinates', 'properties', 'objectType']);
+      const c = record(input, ['kind', 'subjects', 'scope', 'value', 'coordinates', 'properties', 'objectType', 'expression', 'expected', 'mode']);
       if (typeof c.kind !== 'string' || !Object.hasOwn(predicates, c.kind)) throw new ToolError('unsupported_operation', 'Unsupported verification method');
       const spec = predicates[c.kind]!;
       array(c.subjects, spec.types.length, spec.variadic ? 16 : spec.types.length);
       c.subjects.forEach(identifier);
       assert(['initial', 'sampled'].includes(c.scope), 'Check scope must be initial or sampled');
+      if (c.kind === 'expression') {
+        mathSource(c.expression); assert(['algebra', 'cas'].includes(c.mode), 'Invalid check mode');
+        assert(typeof c.expected === 'boolean' || typeof c.expected === 'number', 'Expected boolean or number');
+        if (typeof c.expected === 'number') finite(c.expected, Number.MAX_VALUE);
+        const tokens = mathTokens(c.expression);
+        assert(c.subjects.every((id: string) => tokens.includes(id)), 'Expression must reference every declared subject');
+      } else for (const key of ['expression', 'expected', 'mode']) assert(!(key in c), 'Unexpected expression field');
       for (const key of ['value', 'coordinates', 'properties', 'objectType']) assert((key in c) === (spec.extra === key), `Unexpected or missing ${key}`);
       if (spec.extra === 'value') { finite(c.value); assert(c.value >= 0); }
       if (spec.extra === 'coordinates') { array(c.coordinates, 2, 2); c.coordinates.forEach((n: unknown) => finite(n)); }
       if (spec.extra === 'properties') style(c.properties);
-      if (spec.extra === 'objectType') assert(['point', 'line', 'segment', 'circle', 'polygon'].includes(c.objectType), 'Invalid object type');
+      if (spec.extra === 'objectType') text(c.objectType, 64);
       count++;
     }
   }
@@ -142,7 +158,7 @@ export function parseRequest(value: unknown): Request {
       assert(!targets.has(s.object), 'Duplicate style target'); targets.add(s.object);
     }
   }
-  array(p.interactions, 1, limits.samples);
+  array(p.interactions, 0, limits.samples);
   const points = new Set<string>();
   for (const input of p.interactions) {
     const sample = record(input, ['point', 'dx', 'dy']); identifier(sample.point);
@@ -157,4 +173,20 @@ export function parseRequest(value: unknown): Request {
     assert(v.xMax > v.xMin && v.yMax > v.yMin, 'Invalid view bounds');
   }
   return structuredClone(value) as Request;
+}
+
+// Mathematical syntax belongs to GeoGebra. This scan only restricts host/script
+// effects; browser isolation and post-execution object/material audits also apply.
+const effects = new Set(('Execute Repeat Delete Rename SetValue SetCoords SetFixed SetColor SetCaption SetVisibleInView SetConditionToShowObject SetDynamicColor SetFilling SetLayer SetLineStyle SetLineThickness SetPointSize SetPointStyle SetTrace SetLabelMode ShowLabel ShowAxes ShowGrid SetAxesRatio SetBackgroundColor SetPerspective SetActiveView SetConstructionStep SetSeed SetSpinSpeed StartAnimation StartRecord RunClickScript RunUpdateScript ExportImage Download InsertImage Image Turtle Button Checkbox InputBox PlaySound ReadText Pan ZoomIn ZoomOut CenterView SelectObjects CopyFreeObject AttachCopyToView ParseToFunction ParseToNumber UpdateConstruction JavaScript RunJavaScript').toLowerCase().split(' '));
+export function mathTokens(source: string): string[] {
+  return (source.replace(/"(?:\\.|[^"\\])*"/g, ' ').match(/[A-Za-z][A-Za-z0-9_]*/g) ?? []);
+}
+export function mathSource(source: unknown): asserts source is string {
+  text(source, 8192);
+  assert(!/[\r\n;\x00-\x1f`]/.test(source), 'One mathematical statement per step');
+  const unquoted = source.replace(/"(?:\\.|[^"\\])*"/g, ' ');
+  assert(!/https?:|javascript:|:=/i.test(unquoted), 'Unsupported external/script input');
+  const calls = [...unquoted.matchAll(/([A-Za-z][A-Za-z0-9_]*)\s*[\[(]/g)].map(m => m[1]!.toLowerCase());
+  if (calls.some(name => effects.has(name))) throw new ToolError('unsupported_operation', 'Only native mathematical commands are accepted; use structured presentation controls');
+  assert(!mathTokens(source).some(token => token.startsWith('GgbProbe')), 'Reserved probe namespace');
 }

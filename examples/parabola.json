@@ -1,0 +1,324 @@
+{
+  "protocolVersion": 2,
+  "prompt": "抛物线 y²=4x 的焦点为 F，A 为准线上一点，作 FA 的中垂线 b，标出切点 T 并核验相切关系。中垂线标红，A 可沿准线拖动。",
+  "locale": "zh-CN",
+  "outputDir": "output/parabola",
+  "plan": {
+    "program": [
+      {
+        "id": "F",
+        "op": "native",
+        "source": "F=(1,0)",
+        "mode": "algebra"
+      },
+      {
+        "id": "d",
+        "op": "native",
+        "source": "d: x=-1",
+        "mode": "algebra"
+      },
+      {
+        "id": "p",
+        "op": "native",
+        "source": "p=Parabola(F,d)",
+        "mode": "algebra"
+      },
+      {
+        "id": "A",
+        "op": "native",
+        "source": "A=Point(d)",
+        "mode": "algebra",
+        "initial": [
+          -1,
+          2
+        ]
+      },
+      {
+        "id": "M",
+        "op": "native",
+        "source": "M=Midpoint(F,A)",
+        "mode": "algebra"
+      },
+      {
+        "id": "s",
+        "op": "native",
+        "source": "s=Line(F,A)",
+        "mode": "algebra"
+      },
+      {
+        "id": "b",
+        "op": "native",
+        "source": "b=OrthogonalLine(M,s)",
+        "mode": "algebra"
+      },
+      {
+        "id": "FA",
+        "op": "native",
+        "source": "FA=Segment(F,A)",
+        "mode": "algebra"
+      },
+      {
+        "id": "T",
+        "op": "native",
+        "source": "T=((y(A))^2/4,y(A))",
+        "mode": "algebra"
+      },
+      {
+        "id": "FT",
+        "op": "native",
+        "source": "FT=Segment(F,T)",
+        "mode": "algebra"
+      },
+      {
+        "id": "AT",
+        "op": "native",
+        "source": "AT=Segment(A,T)",
+        "mode": "algebra"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "focus",
+        "source": "抛物线 y²=4x 的焦点为 F",
+        "checks": [
+          {
+            "kind": "coordinate",
+            "subjects": [
+              "F"
+            ],
+            "scope": "initial",
+            "coordinates": [
+              1,
+              0
+            ]
+          },
+          {
+            "kind": "type",
+            "subjects": [
+              "p"
+            ],
+            "scope": "sampled",
+            "objectType": "parabola"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "p",
+              "F",
+              "d"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "path",
+        "source": "A 为准线上一点",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "A"
+            ],
+            "expression": "x(A)==-1",
+            "expected": true,
+            "mode": "algebra",
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "A",
+              "d"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "bisector",
+        "source": "作 FA 的中垂线 b",
+        "checks": [
+          {
+            "kind": "midpoint",
+            "subjects": [
+              "M",
+              "F",
+              "A"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "perpendicular",
+            "subjects": [
+              "b",
+              "s"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "M",
+              "b"
+            ],
+            "expression": "Distance(M,b)",
+            "expected": 0,
+            "mode": "algebra",
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "b",
+              "F",
+              "A"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "tangent",
+        "source": "标出切点 T 并核验相切关系",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "T",
+              "p"
+            ],
+            "expression": "Distance(T,p)",
+            "expected": 0,
+            "mode": "algebra",
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "T",
+              "b"
+            ],
+            "expression": "Distance(T,b)",
+            "expected": 0,
+            "mode": "algebra",
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "T",
+              "A"
+            ],
+            "expression": "y(T)==y(A)",
+            "expected": true,
+            "mode": "algebra",
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "T",
+              "b"
+            ],
+            "expression": "AreEqual(Tangent(T,p),b)",
+            "expected": true,
+            "mode": "algebra",
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "T",
+              "A"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "style",
+        "source": "中垂线标红",
+        "checks": [
+          {
+            "kind": "style",
+            "subjects": [
+              "b"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "color": "#D74830",
+              "lineThickness": 5
+            }
+          }
+        ]
+      }
+    ],
+    "styles": [
+      {
+        "object": "F",
+        "properties": {
+          "fixed": true,
+          "color": "#1E5ABE"
+        }
+      },
+      {
+        "object": "d",
+        "properties": {
+          "fixed": true,
+          "color": "#828C96",
+          "lineStyle": 1,
+          "caption": "准线 x = −1",
+          "labelVisible": true
+        }
+      },
+      {
+        "object": "A",
+        "properties": {
+          "color": "#9B3CBE"
+        }
+      },
+      {
+        "object": "p",
+        "properties": {
+          "color": "#2364CD",
+          "lineThickness": 5
+        }
+      },
+      {
+        "object": "b",
+        "properties": {
+          "color": "#D74830",
+          "lineThickness": 5,
+          "caption": "FA 的中垂线（切线）",
+          "labelVisible": true
+        }
+      },
+      {
+        "object": "s",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "T",
+        "properties": {
+          "color": "#149155"
+        }
+      }
+    ],
+    "interactions": [
+      {
+        "point": "A",
+        "dx": 20,
+        "dy": -65
+      }
+    ],
+    "view": {
+      "xMin": -2.5,
+      "xMax": 7.5,
+      "yMin": -3.5,
+      "yMax": 3.5
+    }
+  }
+}

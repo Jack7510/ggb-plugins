@@ -1,88 +1,77 @@
-# 构图能力和请求契约
+# 原生二维程序与核验契约（M5 / 0.5.0）
 
-构图和核验使用统一入口。源码 `src/schema.ts` 是字段及限制的权威定义；`examples/` 仅用于理解格式和回归，不是题型模板。当前是仓库内 Skill，正式插件打包和安装验收留在 M4。
+统一入口为 `build --request <file>`。请求协议是 2，CLI 结果信封仍是 1。旧协议请求与交付须重新生成。GeoGebra 负责解析数学语法，不按题型或数学命令白名单选择实现。
 
 ## 请求
 
 ```json
 {
-  "protocolVersion": 1,
-  "prompt": "作线段PQ的中点N。",
+  "protocolVersion": 2,
+  "prompt": "求 x²-5x+6=0 的实数解。",
   "locale": "zh-CN",
   "outputDir": "/absolute/output",
   "plan": {
     "program": [
-      { "id": "P", "op": "freePoint", "x": -2, "y": 0 },
-      { "id": "Q", "op": "freePoint", "x": 2, "y": 1 },
-      { "id": "N", "op": "command", "name": "Midpoint", "args": [{ "ref": "P" }, { "ref": "Q" }] }
+      {"id":"roots","op":"native","mode":"cas","source":"Solutions(x^2-5x+6=0,x)"}
     ],
-    "requirements": [
-      { "id": "mid", "source": "作线段PQ的中点N", "checks": [
-        { "kind": "midpoint", "subjects": ["N", "P", "Q"], "scope": "sampled" }
-      ] }
-    ],
-    "interactions": [{ "point": "P", "dx": 60, "dy": -40 }]
+    "requirements": [{
+      "id":"solutions", "source":"求 x²-5x+6=0 的实数解",
+      "checks":[
+        {"kind":"expression","subjects":["roots"],"expression":"Length(roots)","mode":"algebra","expected":2,"scope":"initial"},
+        {"kind":"expression","subjects":["roots"],"expression":"Sum(roots)","mode":"algebra","expected":5,"scope":"initial"},
+        {"kind":"expression","subjects":["roots"],"expression":"Product(roots)","mode":"algebra","expected":6,"scope":"initial"}
+      ]
+    }],
+    "interactions": [],
+    "display": "algebra"
   }
 }
 ```
 
-可选顶层 `clarifications` 为 `{question, answer}[]`；source 必须是 prompt 或澄清原文中的片段。所有 requirement 都必须有非空 checks；不接受未知字段、脚本、外部文件输入或模型写入的结果。
+保留用户原文、可选 `clarifications: [{question,answer}]`。每个 requirement 有唯一 ID、输入中的原文 source 和非空 checks。不得写入检查结果、容差或未知字段。图片由宿主读取并转述题意；把来源和歧义澄清保存在 prompt/clarifications，不把图片当脚本输入。
 
-对象 ID 为 1–32 位 ASCII 字母、数字或下划线，首位为字母；保留名 `e/i/x/y/z/pi` 不可用。依赖可以前向引用，工具会拓扑排序；重复名、未知引用、循环和类型不符在执行前拒绝。数值须有限且绝对值不超过 10000。坐标未来自题目时是构图选择。
+## 原生构图程序
 
-## 构造原语
+每步包含 `id`、`op:"native"`、`mode`、`source`。同一原生程序均使用 native 步骤，按顺序执行。
 
-`freePoint` 使用 `id, op, x, y`。原生命令使用 `id, op:"command", name, args`，参数只能是 `{ref: ID}` 或数值，不接受原始命令字符串和嵌套表达式。
+- `mode:"algebra"`：source 是一条完整英文 GeoGebra 数学语句，包括命名、方程、函数、嵌套命令、列表、矩阵等。例如 `p: y^2=4x`、`A=Point(d)`、`g=Derivative(f)`。
+- `mode:"cas"`：source 是 CAS 数学表达式，例如 `Factor(x^4-1)`、`Expand((x+2)^3)`、`Solutions(x^2-1,x)`。工具等待 CAS 就绪，执行计算，并把结果赋给 id，成为可重载的原生对象。
+- 可选 `outputs:[ID,...]` 声明需要引用的多个输出，包含 id；缺省为 `[id]`。CAS 只物化一个命名结果。GeoGebra 附属对象也会采集，但要引用或设置样式时必须声明其名称。输出已存在、缺失或未定义均失败。
+- 可选 `initial:[x,y]` 只初始化该步可移动点，适用于准线等路径上的点。原生约束仍生效，不把初始化坐标当作题目给定条件。
 
-| name | 参数类型 | 输出 |
-| --- | --- | --- |
-| Segment | 点、点 | 线段 |
-| Line | 点、点；或点、直线（过点的平行线） | 直线 |
-| Midpoint | 点、点 | 点 |
-| PerpendicularLine | 点、直线 | 直线 |
-| Intersect | 直线、直线 | 点 |
-| Circle | 圆心点、经过点；或圆心点、正数半径 | 圆 |
-| Polygon | 3–16 个点 | 多边形 |
+ID 为 1–32 位 ASCII 字母、数字或下划线，首位为字母。e/i/x/y/z/pi 和 GgbProbe 前缀保留。中文显示名用 caption。源文本不会拼接到 shell，也不会作为 JavaScript 执行。小数写普通十进制或 `10^(-7)`；不要写会被解释为欧拉常数表达式的 `1e-7`。
 
-目前不支持两圆交点、滑块、函数表达式、三维和任意 GGBScript。实际不定义的对象会阻止交付。原生命令可能创建额外边对象；若与显式 ID 冲突，工具拒绝覆盖，重新选择内部 ID。
+新数学命令直接由固定 runtime 解析，不需新增 TypeScript 包装。任意 JavaScript、脚本触发器、外部资源、文件操作和三维材料不在开放范围；呈现通过结构化 styles 设置。未知命令、计算未决及超时返回真实错误，不允许降级为已通过。
 
-`plan.styles` 可选，格式为 `{object: ID, properties: {...}}[]`；每个目标只能出现一次。属性包括 `visible`、`labelVisible`、`color`（六位十六进制）、`lineThickness`（1–13）、`lineStyle`（0–4）和 `caption`（1–100 字）。只对路径对象设置线宽或线型。程序声明对象默认可见，点默认显示名称；关键样式另外写入 requirement 的 style 检查。原生附属对象遵循 GeoGebra 语义；隐藏多边形会同时隐藏其自动边，不要求调用方声明边的样式。中文或希腊显示名可使用 caption，内部 ID 仍用 ASCII。
+M5 CAS 物化的是当次计算结果，不是持久 CAS 会话或动态 CAS 单元；它不会自动保留原 CAS 输入到参数的依赖。需要参数联动时，使用 Algebra 中的原生命令依赖并加检查；不得把静态 CAS 结果描述为动态构造。条件解、任意 CAS 单元及全命令覆盖仍需后续验收。
 
-`plan.view` 可选，包含 `xMin,xMax,yMin,yMax`。省略时按实际点和圆的边界取景并保持单位比例。交互点及目标位置必须在视野内。视野参数用于控制画面，当前没有布局或视野边界的验收谓词；不能据此声称已核验这类必需要求。
+## 通用核验
 
-## 核验谓词
+`expression` 检查有 subjects、expression、mode、expected 和 scope。subjects 必须指向程序声明的对象且实际出现在表达式中。expected 为布尔或有限数值；不是模型提交的 passed。
 
-每个 check 必填 `kind, subjects, scope`。`initial` 在构造与重载时检查；`sampled` 还在每次声明的鼠标拖动后检查。这里的 sampled 只说明这些有限样本通过。
+- Algebra 例：`Distance(T,p)` 期望 0；`AreEqual(Tangent(T,p),b)` 期望 true。
+- CAS 例：`Simplify(g(x)-(3x^2+2))` 期望 0。使用原生引擎比较符号关系，不比较格式化字符串来断言数学等价；保留定义域及必要假设。
+- 工具创建临时原生探针，检查类型和定义有效性，读取结果后删除，并审计原对象未改变。缺失、未定义、非标量和未决结果为 unverified，不能用 API 返回的默认 0 冒充答案。
+- `initial` 只检查原构型和文件重载。`sampled` 还在真实拖动副本中检查；至少声明一个交互样本。采样不是全域证明。
 
-| kind | subjects 顺序 | 额外字段 |
-| --- | --- | --- |
-| exists | 对象 | 无 |
-| type | 对象 | `objectType`: point/segment/line/circle/polygon |
-| coordinate | 点 | `coordinates`: [x,y] |
-| midpoint | 中点、端点、端点 | 无；sampled 同时要求真实依赖两端点 |
-| pointOn | 点、直线或圆 | 无 |
-| center | 圆、圆心点 | 无 |
-| radius | 圆 | 非负 `value` |
-| parallel / perpendicular | 直线、直线 | 无 |
-| equalLength | 线段、线段 | 无 |
-| distance | 点、点 | 非负 `value` |
-| nonCollinear | 三个点 | 无 |
-| dependsOn | 派生对象、至少一个输入对象 | 无；检查真实传递依赖 |
-| style | 对象 | `properties`: 非空样式对象 |
+可复用的结构检查仍可使用 exists、type、coordinate、dependsOn、style，以及中点、线/圆上的点、圆心半径、平行垂直、等长、距离和非共线。新数学关系优先写表达式，不逐命令增加谓词。type 使用实际事实类型，简单多边形归一为 polygon。
 
-工具还自动核对程序与真实构造定义、类型、初始坐标、可见性及指定样式。数值容差固定为 `1e-8 * max(1, scale)`；超出容差但未超过十倍的灰区返回 unverified。未知观察、缺项或不通过结果阻止正式交付。调用方不能指定容差。
+依赖证据取自原生 XML 和定义。独立对象不能冒充依赖对象；带局部绑定或复杂命令参数、无法明确解析的依赖返回 unverified。M5 不提供完整 GGB 作用域解析器。不能删除依赖要求来绕过这一边界。
 
-`plan.interactions` 必填 1–12 个 `{point,dx,dy}`，只能拖动声明的自由点，每点一个样本；dx/dy 是屏幕像素，绝对值不超过 120，位移长度至少 20。每个 sampled 几何关系检查必须有相关根自由点参与；类型、样式和依赖检查也会在每个样本后复核。拖动样本在独立的文件副本中执行，原交付构型不变；显式要求任意拖动或全域证明时说明当前保证不足。
+## 呈现与交互
 
-限制：请求文件 128 KiB、题干 12000 字符、64 个对象声明、64 项要求、总计 256 个检查、GGB 10 MiB、验证报告 16 MiB。构图总时限 120 秒，doctor 总时限 45 秒，单次浏览器等待及导出/加载回调上限 30 秒。doctor 输出当前限制、能力、容差和实际版本。超过限制或失败时保留运行目录，不自动恢复。
+`styles:[{object,properties}]` 支持 visible、labelVisible、color（#RRGGBB）、lineThickness（1–13）、lineStyle（0–4）、caption（1–100 字）、fixed。点默认显示名称。原生列表和数值不强制在图形画布可见；关键几何对象需明确 `visible:true` 及对应 style 检查。
 
-## 官方依据
+`view:{xMin,xMax,yMin,yMax}` 设置图形范围。`display:"graphics"`（默认）显示二维画布；`display:"algebra"` 显示完整原生 Algebra 视图，允许无自由点、无拖动样本，不强行执行图形缩放检查。
 
-- [GeoGebra Apps API](https://geogebra.github.io/docs/reference/en/GeoGebra_Apps_API/)
-- [命令手册](https://geogebra.github.io/docs/manual/en/Commands/)
+`interactions:[{point,dx,dy}]` 是真实鼠标拖动样本，支持实际可移动自由点和路径点。像素位移各不超过 120，长度至少 20，同一点不重复。代数视图不能声明画布拖动。滑块及其他交互扩展留给 M6。
 
-实际执行以固定本地 runtime 为准。当前插件不额外调用模型 API；本地工具不承担自然语言求解。
+M1 回归的 freePoint/command 结构化原语保留在协议 2，仍编译到同一执行器；其旧命令表仅限制这种旧编写形式，不限制 native 程序。不要在同一程序混合两种形式。示例见 examples/triangle.json、parabola.json 和 algebra.json（源码仓库）。
 
-## 交付与诊断边界
+## 交付与失败
 
-交付格式继续使用 M2 契约。浏览器和本地服务关闭后，工具将完整临时目录原子重命名为 delivery；此前失败不产生正式交付。此后外层 run.json 写入失败只返回 warnings，不撤销交付。预览独立复核清单、报告及实际文件。失败诊断包含运行路径、阶段和附加清理错误；无法写入诊断时仍保留原始错误。强制退出不保证清理，工具不自动恢复或重试。
+构造、必需核验、GGB 重载及交互检查通过后，关闭资源，再原子提交 result.ggb、request.json、verification.json、preview.png 和 manifest.json。M5 清单协议为 2；preview 复核报告、摘要和实际重载结果。构图与验证均 headless，成功后才用 Chrome 展示；关窗自动退出专用浏览器和本地服务，不回写文件。
+
+容量和时限由 doctor/schema 给出。失败保留运行路径和原因；CAS 不就绪、语法错误、对象未定义、探针污染原对象和数学条件不满足均不能交付。最多三次新运行，保留要求；未验证必须说明能力缺口。
+
+官方依据：[Apps API](https://geogebra.github.io/docs/reference/en/GeoGebra_Apps_API/)、[命令目录](https://geogebra.github.io/docs/manual/en/commands/All_Commands/)、[CAS 命令](https://geogebra.github.io/docs/manual/en/commands/CAS_Specific_Commands/)。命令可接入不等于全部命令已验收，也不等于任意数学问题可求解。

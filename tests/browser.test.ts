@@ -46,7 +46,7 @@ test('numeric and native visibility boundaries survive delivery and preview', { 
     });
     await t.test('native radii at a distant center do not lose precision', async () => {
       const request: Request = {
-        protocolVersion: 1, prompt: '以P(9000,9000)为圆心，作半径为0.1和0.0001的圆。', locale: 'zh-CN', outputDir: join(directory, 'distant'),
+        protocolVersion: 2, prompt: '以P(9000,9000)为圆心，作半径为0.1和0.0001的圆。', locale: 'zh-CN', outputDir: join(directory, 'distant'),
         plan: {
           program: [{ id: 'P', op: 'freePoint', x: 9000, y: 9000 },
             ...[0.1, 0.0001].map((radius, i) => ({ id: `k${i}`, op: 'command' as const, name: 'Circle', args: [{ ref: 'P' }, radius] }))],
@@ -170,7 +170,7 @@ test('different constructions use one execution, verification and delivery pipel
       for (const step of request.plan.program) {
         step.id = rename(step.id);
         if (step.op === 'freePoint') [step.x, step.y] = [-step.y + 10, step.x - 4];
-        else step.args = step.args.map(arg => typeof arg === 'number' ? arg : { ref: rename(arg.ref) });
+        else if (step.op === 'command') step.args = step.args.map(arg => typeof arg === 'number' ? arg : { ref: rename(arg.ref) });
       }
       for (const requirement of request.plan.requirements) {
         requirement.source = renameText(requirement.source);

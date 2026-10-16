@@ -1,10 +1,10 @@
 # ggb-plugins
 
-面向本地 Codex 的 GeoGebra 构图工具。**M4 已打包**：Codex 根据文字题生成结构化程序，经统一 CLI 构造、逐条件核验、导出、重载和交互检查，再打开独立预览。题意分析由宿主 Codex 完成，本地工具不额外调用模型 API。
+面向本地 Codex 的 GeoGebra 构图工具。**M5 / 0.5.0**：Codex 根据文字或图片题生成原生二维数学程序，经统一 CLI 构造、逐条件核验、导出、重载和交互检查，再打开独立预览。题意分析由宿主 Codex 完成，本地工具不额外调用模型 API。
 
-新题通过组合原语解决。生产执行器和验证器不按题型分支；M1 三角形现在是 `examples/triangle.json` 回归输入。支持范围及完整请求格式见 [Skill 能力契约](skills/ggb-construction/references/capabilities.md)，阶段划分见 [设计文档](docs/ggb-plugins-design.md)。M4 提供可安装插件 ZIP、本地 marketplace 和安装器。目标客户端验收使用 Codex CLI 0.162.1 的运行时；桌面 UI 自动化不在本轮已验证范围。
+新题通过 GeoGebra 原生命令与表达式解决。生产执行器和验证器不按题型分支；M1 三角形现在是 `examples/triangle.json` 回归输入。支持范围及完整请求格式见 [Skill 能力契约](skills/ggb-construction/references/capabilities.md)，阶段划分见 [设计文档](docs/ggb-plugins-design.md)。M4 提供可安装插件 ZIP、本地 marketplace 和安装器。目标客户端验收使用 Codex CLI 0.162.1 的运行时；桌面 UI 自动化不在本轮已验证范围。
 
-下一阶段目标是覆盖 GeoGebra 原生二维数学与代数能力：Codex 生成原生程序和核验表达式，GeoGebra 负责解析与计算，插件统一执行、核验和交付；不逐题或逐数学命令增加包装。新设计及 M5–M7 验收见[通用二维目标](docs/ggb-plugins-design.md#13-通用二维数学与代数目标拟议)。这是后续目标，当前 0.4.2 仍使用有限能力契约，尚不支持全部二维命令。
+M5 已接通 Algebra/CAS、原生核验表达式及完整交付链路，不按题型或逐数学命令增加包装。CAS 等待就绪后把当次结果保存为原生对象；纯代数使用独立 Algebra 视图，无需自由点或拖动。旧结构化原语仅保留为回归编写形式，同样进入统一管线。实现与边界见[通用二维目标](docs/ggb-plugins-design.md#13-通用二维数学与代数目标)和 [M5 验收记录](docs/m5-validation.md)。支持原生输入不代表全部命令已验收，复杂依赖、条件解、CAS 单元与滑块交互仍需后续覆盖。
 
 ## 插件打包与安装
 
@@ -34,7 +34,7 @@ pnpm ggb doctor
 
 ## 环境检查与失败处理
 
-`pnpm ggb doctor` 使用与 build 相同的本地服务和浏览器，检查 runtime 元数据及真实版本，执行临时构造、GGB 导出和重载。成功输出 JSON，包含工具、Node.js、Chromium、runtime 版本、限制和能力表。结束后关闭浏览器和服务，不创建交付目录。失败返回非零退出码，不要继续作图；按错误信息安装依赖或修正版本。
+`pnpm ggb doctor` 使用与 build 相同的本地服务和浏览器，检查 runtime 元数据及真实版本，执行临时构造、CAS 计算、GGB 导出和重载。成功输出 JSON，包含工具、Node.js、Chromium、runtime 版本、限制和能力表。结束后关闭浏览器和服务，不创建交付目录。失败返回非零退出码，不要继续作图；按错误信息安装依赖或修正版本。
 
 构图总时限 120 秒，doctor 总时限 45 秒，启动及上下文准备、单次浏览器等待和导出/加载回调上限 30 秒。取消停止启动等待并关闭已取得资源；迟到的原生启动结果返回后也会被关闭。CLI 取消返回 130。doctor 在清理后再次检查取消和时限。失败保留原始错误，清理错误附加为诊断；不自动重试或恢复。
 
@@ -44,9 +44,9 @@ pnpm ggb doctor
 
 ## 在 Codex 中作图
 
-让 Codex 读取 [ggb-construction Skill](skills/ggb-construction/SKILL.md)，提交文字题。Skill 指导 Codex 保留条件来源、生成可组合程序和检查条件、处理执行反馈并交付结果。插件安装并启用后，在新会话自动发现 `ggb-plugins:ggb-construction`。源码开发时也可手动读取仓库中的 Skill；这不代替安装验收。
+让 Codex 读取 [ggb-construction Skill](skills/ggb-construction/SKILL.md)，提交文字或图片题。Skill 指导 Codex 保留条件来源、生成可组合程序和检查条件、处理执行反馈并交付结果。插件安装并启用后，在新会话自动发现 `ggb-plugins:ggb-construction`。源码开发时也可手动读取仓库中的 Skill；这不代替安装验收。
 
-CLI 消费 Codex 生成的 JSON 请求。请求包含用户原文、locale、outputDir，以及 program、requirements、styles 和交互样本；使用绝对产物路径可避免工作目录歧义。
+CLI 消费 Codex 生成的协议 2 JSON 请求，结果信封仍为协议 1。请求包含用户原文、locale、outputDir，以及 program、requirements、styles 和交互样本；使用绝对产物路径可避免工作目录歧义。
 
 ```sh
 pnpm ggb build --request /absolute/path/to/request.json
@@ -56,6 +56,8 @@ pnpm ggb build --request /absolute/path/to/request.json
 
 ```sh
 pnpm ggb build --request examples/triangle.json
+pnpm ggb build --request examples/parabola.json
+pnpm ggb build --request examples/algebra.json
 pnpm ggb build --request examples/bisector.json
 pnpm ggb build --request examples/circle.json
 pnpm ggb build --request examples/transfer.json
@@ -73,9 +75,9 @@ pnpm demo
 pnpm preview --delivery /absolute/path/to/delivery
 ```
 
-预览核对文件完整性、摘要、报告覆盖和实际重载事实，再输出就绪 JSON 并保持前台运行。拖动自由点观察联动，使用右下角按钮缩放。预览修改不覆盖交付文件。预览依赖宿主保留前台进程：交互客户端或保持连接的 app-server 可保留；一次性 codex exec 退出会回收其进程会话。不要把刚输出就绪后即退出的 exec 当作持久预览。关闭 GGB 预览标签页或窗口，程序会退出本次专用浏览器并释放本地服务；按 Ctrl+C 也会清理。
+预览核对文件完整性、摘要、报告覆盖和实际重载事实，再输出就绪 JSON 并保持前台运行。图形视图可拖动自由点及路径点并缩放；代数视图展示原生计算结果。预览修改不覆盖交付文件。预览依赖宿主保留前台进程：交互客户端或保持连接的 app-server 可保留；一次性 codex exec 退出会回收其进程会话。不要把刚输出就绪后即退出的 exec 当作持久预览。关闭 GGB 预览标签页或窗口，程序会退出本次专用浏览器并释放本地服务；按 Ctrl+C 也会清理。
 
-M2 使用新的交付契约，旧 M1 产物需重新生成。M2 Review 修复更新了呈现检查的结果集合；修复前的 M2 报告也需用原请求重新 build。当前不接受图片、外部 GGB 续题、三维、任意脚本或通用证明。复杂布局和视野边界暂无验收谓词；无法核验的必需要求不得作为成功结果交付。
+M5 请求与交付升级为协议 2，旧文件需重新生成。图片由宿主提取条件后进入同一接口；当前不接受外部 GGB 续题、三维、宿主脚本或通用证明。无法核验的必需要求不得作为成功结果交付。
 
 构图、doctor 和自动回归均使用 headless，过程中不弹出浏览器，交付截图保存在 preview.png。全部验证完成后，preview 使用本机已安装的 Google Chrome 加载 result.ggb。自动化预览检查使用 `preview --delivery <dir> --headless`。
 
@@ -90,4 +92,4 @@ pnpm test:browser
 
 离线测试覆盖严格输入、依赖图、拒绝路径、容差、资源边界和插件归档。真实浏览器测试覆盖四种构造、对象改名和坐标旋转、M1 呈现反例、伪造依赖、错误关系、数值灰区、文件缺项和 CLI 取消。M3 故障测试另覆盖依赖缺失、回调超时、写盘及提交失败、清理异常、资源释放和提交前后真实 SIGKILL。故障注入仅使用 Node 测试模块 mock，需支持 `--experimental-test-module-mocks` 的 Node.js；未增加运行依赖。记录见 [M3 验收记录](docs/m3-validation.md) 及 [M2 验收记录](docs/m2-validation.md)。
 
-`schema.ts` 定义能力和契约，`compile.ts` 检查类型及依赖并编译，`browser.ts` 执行并采集事实，`verify.ts` 只消费数据判定，`delivery.ts` 编排文件交付，`cli.ts` 拥有进程信号和退出码，`doctor.ts` 编排依赖冒烟检查。所有构图共用一个页面、一个 TypeScript 包，不引入常驻构图服务或第二套几何引擎。
+`schema.ts` 定义能力和契约，`compile.ts` 检查原生程序封装及引用，保留回归原语编译，`browser.ts` 执行并采集事实，`verify.ts` 只消费数据判定，`delivery.ts` 编排文件交付，`cli.ts` 拥有进程信号和退出码，`doctor.ts` 编排依赖冒烟检查。所有构图共用一个页面、一个 TypeScript 包，不引入常驻构图服务或第二套几何引擎。

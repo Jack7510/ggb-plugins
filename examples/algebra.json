@@ -1,0 +1,136 @@
+{
+  "protocolVersion": 2,
+  "prompt": "将 x^4-1 因式分解，展开 (x+2)^3，求方程 x²-5x+6=0 的实数解，计算矩阵 {{1,2},{3,4}} 的行列式。展示原生代数结果。",
+  "locale": "zh-CN",
+  "outputDir": "output/algebra",
+  "plan": {
+    "program": [
+      {
+        "id": "factored",
+        "op": "native",
+        "source": "Factor(x^4-1)",
+        "mode": "cas"
+      },
+      {
+        "id": "expanded",
+        "op": "native",
+        "source": "Expand((x+2)^3)",
+        "mode": "cas"
+      },
+      {
+        "id": "solutions",
+        "op": "native",
+        "source": "Solutions(x^2-5x+6=0,x)",
+        "mode": "cas"
+      },
+      {
+        "id": "matrixA",
+        "op": "native",
+        "source": "matrixA={{1,2},{3,4}}",
+        "mode": "algebra"
+      },
+      {
+        "id": "detA",
+        "op": "native",
+        "source": "detA=Determinant(matrixA)",
+        "mode": "algebra"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "factor",
+        "source": "将 x^4-1 因式分解",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "factored"
+            ],
+            "expression": "Simplify(factored(x)-(x^4-1))",
+            "expected": 0,
+            "mode": "cas",
+            "scope": "initial"
+          }
+        ]
+      },
+      {
+        "id": "expand",
+        "source": "展开 (x+2)^3",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "expanded"
+            ],
+            "expression": "Simplify(expanded(x)-(x^3+6x^2+12x+8))",
+            "expected": 0,
+            "mode": "cas",
+            "scope": "initial"
+          }
+        ]
+      },
+      {
+        "id": "solve",
+        "source": "求方程 x²-5x+6=0 的实数解",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "solutions"
+            ],
+            "expression": "Length(solutions)",
+            "expected": 2,
+            "mode": "algebra",
+            "scope": "initial"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "solutions"
+            ],
+            "expression": "Sum(solutions)",
+            "expected": 5,
+            "mode": "algebra",
+            "scope": "initial"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "solutions"
+            ],
+            "expression": "Product(solutions)",
+            "expected": 6,
+            "mode": "algebra",
+            "scope": "initial"
+          }
+        ]
+      },
+      {
+        "id": "determinant",
+        "source": "计算矩阵 {{1,2},{3,4}} 的行列式",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "detA"
+            ],
+            "expression": "detA",
+            "expected": -2,
+            "mode": "algebra",
+            "scope": "initial"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "detA",
+              "matrixA"
+            ],
+            "scope": "initial"
+          }
+        ]
+      }
+    ],
+    "interactions": [],
+    "display": "algebra"
+  }
+}

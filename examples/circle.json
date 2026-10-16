@@ -1,5 +1,5 @@
 {
-  "protocolVersion": 1,
+  "protocolVersion": 2,
   "prompt": "以自由点U、V的中点O为圆心，作经过U的圆k，并连接OU和OV，要求OU等于OV。",
   "locale": "zh-CN",
   "outputDir": "output/ggb",
