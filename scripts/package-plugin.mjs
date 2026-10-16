@@ -17,7 +17,7 @@ try {
   const modules = (await readdir(join(root, 'src'))).filter(name => name.endsWith('.ts')).map(name => 'dist/src/' + name.replace(/\.ts$/, '.js'));
   const files = [...modules, 'plugin.json', '.agents/plugins/marketplace.json', 'pnpm-lock.yaml', 'runtime.lock.json',
     'LICENSE', 'THIRD_PARTY_NOTICES.md', 'viewer/index.html', 'scripts/setup-plugin.mjs', 'scripts/setup-runtime.mjs',
-    'skills/ggb-construction/SKILL.md', 'skills/ggb-construction/references/capabilities.md', 'skills/ggb-construction/agents/openai.yaml'];
+    'skills/ggb-construction/SKILL.md', 'skills/ggb-construction/references/capabilities.md', 'skills/ggb-construction/references/command-coverage.md', 'skills/ggb-construction/agents/openai.yaml'];
   for (const file of files) {
     const target = join(plugin, file); await mkdir(dirname(target), { recursive: true });
     await cp(join(root, file), target, { dereference: true });

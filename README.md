@@ -1,14 +1,16 @@
 # ggb-plugins
 
-面向本地 Codex 的 GeoGebra 构图工具。**M6 / 0.6.0**：Codex 根据文字或图片题生成原生二维数学程序，经统一 CLI 构造、逐条件核验、导出、重载和交互检查，再打开独立预览。题意分析由宿主 Codex 完成，本地工具不额外调用模型 API。
+面向本地 Codex 的 GeoGebra 构图工具。**M7 / 0.7.0**：Codex 根据文字或图片题生成原生二维数学程序，经统一 CLI 构造、逐条件核验、导出、重载和交互检查，再打开独立预览。题意分析由宿主 Codex 完成，本地工具不额外调用模型 API。
 
 新题通过 GeoGebra 原生命令与表达式解决。生产执行器和验证器不按题型分支；M1 三角形现在是 `examples/triangle.json` 回归输入。支持范围及完整请求格式见 [Skill 能力契约](skills/ggb-construction/references/capabilities.md)，阶段划分见 [设计文档](docs/ggb-plugins-design.md)。M4 提供可安装插件 ZIP、本地 marketplace 和安装器。目标客户端验收使用 Codex CLI 0.162.1 的运行时；桌面 UI 自动化不在本轮已验证范围。
 
-M5 已接通 Algebra/CAS、原生核验表达式及完整交付链路，不按题型或逐数学命令增加包装。CAS 等待就绪后把当次结果保存为原生对象；纯代数使用独立 Algebra 视图，无需自由点或拖动。旧结构化原语仅保留为回归编写形式，同样进入统一管线。实现与边界见[通用二维目标](docs/ggb-plugins-design.md#13-通用二维数学与代数目标)和 [M5 验收记录](docs/m5-validation.md)。支持原生输入不代表全部命令已验收，M6 增加嵌套列表／矩阵核验、显式符号假设、原生多输出和滑块参数采样；见 [M6 验收记录](docs/m6-validation.md)。复杂局部绑定、动态 CAS 单元和全部命令覆盖仍未验收。
+M5 已接通 Algebra/CAS、原生核验表达式及完整交付链路，不按题型或逐数学命令增加包装。CAS 等待就绪后把当次结果保存为原生对象；纯代数使用独立 Algebra 视图，无需自由点或拖动。旧结构化原语仅保留为回归编写形式，同样进入统一管线。实现与边界见[通用二维目标](docs/ggb-plugins-design.md#13-通用二维数学与代数目标)和 [M5 验收记录](docs/m5-validation.md)。支持原生输入不代表全部命令已验收，M6 增加嵌套列表／矩阵核验、显式符号假设、原生多输出和滑块参数采样；见 [M6 验收记录](docs/m6-validation.md)。复杂局部绑定、动态 CAS 单元和全部命令及重载仍未验收。
 
 ## 插件打包与安装
 
-最新稳定版：[0.6.0 Release](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.6.0)，提供编译插件 ZIP 和 SHA-256 校验文件。Codex 可通过 `codex plugin marketplace add Jack7510/ggb-plugins --ref v0.6.0` 注册固定版本；其他本地工具可以使用包内 Skill 和统一 CLI。完整步骤见 [安装说明](docs/installation.md)。
+最新稳定版：[0.7.0 Release](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.7.0)，提供编译插件 ZIP 和 SHA-256 校验文件。Codex 可通过 `codex plugin marketplace add Jack7510/ggb-plugins --ref v0.7.0` 注册固定版本；其他本地工具可以使用包内 Skill 和统一 CLI。完整步骤见 [安装说明](docs/installation.md)。
+
+M7 增加[固定 runtime 覆盖记录](docs/command-coverage.json)和 [Skill 覆盖边界](skills/ggb-construction/references/command-coverage.md)。运行 `pnpm coverage:commands` 可重建记录及 headless 截图。502 个官方目录名称中，28 个有六个跨域交付中的调用证据；其余未实测。记录区分构造与检查调用，不宣称全部重载已通过。安装后真实客户端证据见 [M7 验收](docs/m7-validation.md)。
 
 ```sh
 pnpm pack:plugin

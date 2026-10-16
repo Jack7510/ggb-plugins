@@ -38,4 +38,4 @@ node <plugin>/dist/src/cli.js preview --delivery <absolute-delivery-dir>
 
 最终预览由本机 Google Chrome 加载同一 result.ggb。保留前台进程，等待就绪 JSON；关闭预览页或窗口后会退出专用浏览器并释放服务。自动化复核使用 --headless，完成后关闭测试会话。预览失败保留文件并单独报告。
 
-交付 GGB、报告和截图，说明已验证条件及有限样本。M5 不宣称全部原生命令已验收，不把数值采样或未决 CAS 结果当作一般证明。旧协议 1 的请求与交付须按新契约重新生成。
+交付 GGB、报告和截图，说明已验证条件及有限样本。覆盖记录见 [固定 runtime 覆盖边界](references/command-coverage.md)。不宣称全部原生命令已验收，不把数值采样或未决 CAS 结果当作一般证明。旧协议 1 的请求与交付须按新契约重新生成。

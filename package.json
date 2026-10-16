@@ -1,6 +1,6 @@
 {
   "name": "ggb-plugins",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "description": "Composable local GeoGebra construction for Codex",
@@ -17,9 +17,10 @@
     "check": "tsc --noEmit",
     "demo": "node dist/src/cli.js demo",
     "preview": "node dist/src/cli.js preview",
-    "test": "node --test dist/tests/schema.test.js dist/tests/server.test.js dist/tests/package.test.js",
+    "test": "node --test dist/tests/schema.test.js dist/tests/server.test.js dist/tests/package.test.js scripts/coverage.test.mjs",
     "test:browser": "node --test dist/tests/browser.test.js dist/tests/native.test.js dist/tests/m6.test.js && node --experimental-test-module-mocks --test --test-concurrency=1 dist/tests/faults.test.js dist/tests/startup.test.js",
-    "ggb": "node dist/src/cli.js"
+    "ggb": "node dist/src/cli.js",
+    "coverage:commands": "pnpm build && node scripts/command-coverage.mjs"
   },
   "dependencies": {
     "playwright": "1.64.1"

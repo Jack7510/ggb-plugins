@@ -80,7 +80,7 @@ test('plugin ZIP contains a standalone compiled tool and discoverable skill, not
       assert(!code.includes('/Users/'), 'Compiled tool must not depend on a developer path');
       for (const [, target] of code.matchAll(/from ['"]\.\/([^'"]+)['"]/g)) assert((await stat(join(plugin, 'dist/src', target!))).isFile());
     }
-    for (const file of ['viewer/index.html', 'runtime.lock.json', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'scripts/setup-plugin.mjs', 'scripts/setup-runtime.mjs', 'skills/ggb-construction/references/capabilities.md']) {
+    for (const file of ['viewer/index.html', 'runtime.lock.json', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'scripts/setup-plugin.mjs', 'scripts/setup-runtime.mjs', 'skills/ggb-construction/references/capabilities.md', 'skills/ggb-construction/references/command-coverage.md']) {
       assert((await stat(join(plugin, file))).size > 0);
     }
     assert.deepEqual(await readFile(join(plugin, 'pnpm-lock.yaml')), await readFile(join(root, 'pnpm-lock.yaml')));

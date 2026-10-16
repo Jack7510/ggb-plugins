@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "ggb-plugins",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "根据文字或图片中的二维数学与代数题生成原生程序、核验并交付可交互 GeoGebra 文件。",
   "author": { "name": "Jack7510" },
   "repository": "https://github.com/Jack7510/ggb-plugins",

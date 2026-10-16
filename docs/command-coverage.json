@@ -1,0 +1,1215 @@
+{
+  "protocolVersion": 1,
+  "runtime": {
+    "version": "5.4.932.1",
+    "url": "https://download.geogebra.org/installers/5.4/geogebra-math-apps-bundle-5-4-932-1.zip",
+    "sha256": "c139f3edb51c004ec67d83226a1f1215486f8559ad98ee37e9e775aac278e96e"
+  },
+  "catalog": {
+    "source": "https://geogebra.github.io/docs/manual/en/commands/All_Commands/",
+    "retrieved": "2026-10-16",
+    "htmlSha256": "9a225926f495ead5ceaa90bf51c720b44f30693b9625b30d1e4ea8694140baf3"
+  },
+  "catalogSha256": "cbbed98f0404ea860838a25e4b0b702db544ef002ccb696c205a877a1cc011c1",
+  "created": "2026-10-16T08:11:45.368Z",
+  "cases": [
+    {
+      "name": "triangle",
+      "delivery": "output/command-coverage/coverage-6wBljn/triangle/ggb-kR9wjk/delivery",
+      "file": "output/command-coverage/coverage-6wBljn/triangle/ggb-kR9wjk/delivery/result.ggb",
+      "report": "output/command-coverage/coverage-6wBljn/triangle/ggb-kR9wjk/delivery/verification.json",
+      "ggbSha256": "55d343ed49a6b2434f97981cc83d9128100c255bde26997fab8818562fbf4b0b",
+      "requestSha256": "8eb09dc9348bdb33b8b959ea4a2fb96998a1be19d4d1045e65effa19071b6451",
+      "construction": "passed",
+      "reload": "passed",
+      "samples": 1,
+      "uses": [
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "Polygon(...)",
+          "commands": [
+            "Polygon"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "Midpoint(...)",
+          "commands": [
+            "Midpoint"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "Segment(...)",
+          "commands": [
+            "Segment"
+          ]
+        }
+      ],
+      "calls": [
+        "Midpoint",
+        "Polygon",
+        "Segment"
+      ]
+    },
+    {
+      "name": "parabola",
+      "delivery": "output/command-coverage/coverage-6wBljn/parabola/ggb-HggTBM/delivery",
+      "file": "output/command-coverage/coverage-6wBljn/parabola/ggb-HggTBM/delivery/result.ggb",
+      "report": "output/command-coverage/coverage-6wBljn/parabola/ggb-HggTBM/delivery/verification.json",
+      "ggbSha256": "9861891b50166d2d616dee0dc72b2978d952e692b249e58a5bd80bd947f1abb2",
+      "requestSha256": "e209fd0eb4ec6d9c6b13dc1632bbf5ab25c303903dec457d750f6c00f3eef640",
+      "construction": "passed",
+      "reload": "passed",
+      "samples": 1,
+      "uses": [
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "F=(1,0)",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "d: x=-1",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "p=Parabola(F,d)",
+          "commands": [
+            "Parabola"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "A=Point(d)",
+          "commands": [
+            "Point"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "M=Midpoint(F,A)",
+          "commands": [
+            "Midpoint"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "s=Line(F,A)",
+          "commands": [
+            "Line"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "b=OrthogonalLine(M,s)",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "FA=Segment(F,A)",
+          "commands": [
+            "Segment"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "T=((y(A))^2/4,y(A))",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "FT=Segment(F,T)",
+          "commands": [
+            "Segment"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "AT=Segment(A,T)",
+          "commands": [
+            "Segment"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "x(A)==-1",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "Distance(M,b)",
+          "commands": [
+            "Distance"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "Distance(T,p)",
+          "commands": [
+            "Distance"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "Distance(T,b)",
+          "commands": [
+            "Distance"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "y(T)==y(A)",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "AreEqual(Tangent(T,p),b)",
+          "commands": [
+            "AreEqual",
+            "Tangent"
+          ]
+        }
+      ],
+      "calls": [
+        "AreEqual",
+        "Distance",
+        "Line",
+        "Midpoint",
+        "Parabola",
+        "Point",
+        "Segment",
+        "Tangent"
+      ]
+    },
+    {
+      "name": "algebra",
+      "delivery": "output/command-coverage/coverage-6wBljn/algebra/ggb-WqffmL/delivery",
+      "file": "output/command-coverage/coverage-6wBljn/algebra/ggb-WqffmL/delivery/result.ggb",
+      "report": "output/command-coverage/coverage-6wBljn/algebra/ggb-WqffmL/delivery/verification.json",
+      "ggbSha256": "8ccd50878287d2a95e178dbdd6a15bba49a2d324867dd9e97fcdd40202f960cf",
+      "requestSha256": "5797a9b9dd5ce3c776b65187fb716ae7d157c11d779f1a4eddce7d2d175de2c8",
+      "construction": "passed",
+      "reload": "passed",
+      "samples": 0,
+      "uses": [
+        {
+          "mode": "cas",
+          "role": "program",
+          "source": "Factor(x^4-1)",
+          "commands": [
+            "Factor"
+          ]
+        },
+        {
+          "mode": "cas",
+          "role": "program",
+          "source": "Expand((x+2)^3)",
+          "commands": [
+            "Expand"
+          ]
+        },
+        {
+          "mode": "cas",
+          "role": "program",
+          "source": "Solutions(x^2-5x+6=0,x)",
+          "commands": [
+            "Solutions"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "matrixA={{1,2},{3,4}}",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "detA=Determinant(matrixA)",
+          "commands": [
+            "Determinant"
+          ]
+        },
+        {
+          "mode": "cas",
+          "role": "check",
+          "source": "Simplify(factored(x)-(x^4-1))",
+          "commands": [
+            "Simplify"
+          ]
+        },
+        {
+          "mode": "cas",
+          "role": "check",
+          "source": "Simplify(expanded(x)-(x^3+6x^2+12x+8))",
+          "commands": [
+            "Simplify"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "Length(solutions)",
+          "commands": [
+            "Length"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "Sum(solutions)",
+          "commands": [
+            "Sum"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "Product(solutions)",
+          "commands": [
+            "Product"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "detA",
+          "commands": []
+        }
+      ],
+      "calls": [
+        "Determinant",
+        "Expand",
+        "Factor",
+        "Length",
+        "Product",
+        "Simplify",
+        "Solutions",
+        "Sum"
+      ]
+    },
+    {
+      "name": "functions",
+      "delivery": "output/command-coverage/coverage-6wBljn/functions/ggb-709P1i/delivery",
+      "file": "output/command-coverage/coverage-6wBljn/functions/ggb-709P1i/delivery/result.ggb",
+      "report": "output/command-coverage/coverage-6wBljn/functions/ggb-709P1i/delivery/verification.json",
+      "ggbSha256": "2d83c23f2d3d9534abfa4c208a93d7b9028a4e00e6d74bc0542d743ed843e349",
+      "requestSha256": "11eabc4a5d4234c29121f34d12662d1de61b66b56357c188b9933db52bcbea1b",
+      "construction": "passed",
+      "reload": "passed",
+      "samples": 3,
+      "uses": [
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "a=Slider(1,3,0.1,1,140,false,true,false,false)",
+          "commands": [
+            "Slider"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "f(x)=a*x^2",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "derivative=Derivative(f)",
+          "commands": [
+            "Derivative"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "area=Integral(f,0,1)",
+          "commands": [
+            "Integral"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "region:x^2+y^2<a",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "O=(0,0)",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "circleA=Circle(O,2)",
+          "commands": [
+            "Circle"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "P=Point(circleA)",
+          "commands": [
+            "Point"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "lineA:y=1",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "Intersect(circleA,lineA)",
+          "commands": [
+            "Intersect"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "f(2)-4a",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "derivative(2)-4a",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "area-a/3",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "region(0,0)",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "region(2,2)",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "Distance(P,O)-2",
+          "commands": [
+            "Distance"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "x(A)+x(B)",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "y(A)",
+          "commands": []
+        }
+      ],
+      "calls": [
+        "Circle",
+        "Derivative",
+        "Distance",
+        "Integral",
+        "Intersect",
+        "Point",
+        "Slider"
+      ]
+    },
+    {
+      "name": "statistics",
+      "delivery": "output/command-coverage/coverage-6wBljn/statistics/ggb-XnHgeb/delivery",
+      "file": "output/command-coverage/coverage-6wBljn/statistics/ggb-XnHgeb/delivery/result.ggb",
+      "report": "output/command-coverage/coverage-6wBljn/statistics/ggb-XnHgeb/delivery/verification.json",
+      "ggbSha256": "26bcbdd04813c2e87d68fd40bb9701d3c456accb04d84cef4f5713f5e3ccab47",
+      "requestSha256": "365f7fd1634f8ceacf9b3a93cfbc422221052860d5b6cdf2863ad2cb4ae8373c",
+      "construction": "passed",
+      "reload": "passed",
+      "samples": 0,
+      "uses": [
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "samples={1,2,3,4}",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "meanA=Mean(samples)",
+          "commands": [
+            "Mean"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "spread=SD(samples)",
+          "commands": [
+            "SD"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "matrixA={{1,2},{3,4}}",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "inverse=Invert(matrixA)",
+          "commands": [
+            "Invert"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "identityA=matrixA*inverse",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "absoluteA(x)=sqrt(x^2)",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "complexA=1+2i",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "samples",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "meanA",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "spread",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "inverse",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "identityA",
+          "commands": []
+        },
+        {
+          "mode": "cas",
+          "role": "check",
+          "source": "Simplify(absoluteA(x)-x)",
+          "commands": [
+            "Simplify"
+          ]
+        },
+        {
+          "mode": "cas",
+          "role": "check",
+          "source": "Assume(x>0,Simplify(absoluteA(x)-x))",
+          "commands": [
+            "Assume",
+            "Simplify"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "abs(complexA)^2",
+          "commands": []
+        }
+      ],
+      "calls": [
+        "Assume",
+        "Invert",
+        "Mean",
+        "SD",
+        "Simplify"
+      ]
+    },
+    {
+      "name": "client-ellipse",
+      "delivery": "output/command-coverage/coverage-6wBljn/client-ellipse/ggb-6rSZlL/delivery",
+      "file": "output/command-coverage/coverage-6wBljn/client-ellipse/ggb-6rSZlL/delivery/result.ggb",
+      "report": "output/command-coverage/coverage-6wBljn/client-ellipse/ggb-6rSZlL/delivery/verification.json",
+      "ggbSha256": "2672cf466283ac7c3852cbd34aba8a5e3b9d1daa90618e9cf7c74f3d93787c92",
+      "requestSha256": "c6e9af465a7dac2c0710a3984e807c85097ec6726cb1a1ac3993f1b7596b6bd0",
+      "construction": "passed",
+      "reload": "passed",
+      "samples": 1,
+      "uses": [
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "c: x^2/9+y^2/4=1",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "P=Point(c)",
+          "commands": [
+            "Point"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "t: x(P)*x/9+y(P)*y/4=1",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "L={2,4,8,10}",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "meanValue=Mean(L)",
+          "commands": [
+            "Mean"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "program",
+          "source": "medianValue=Median(L)",
+          "commands": [
+            "Median"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "AreEqual(c, x^2/9+y^2/4=1)",
+          "commands": [
+            "AreEqual"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "{x(P),y(P)}",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "x(P)^2/9+y(P)^2/4",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "Distance(P,c)",
+          "commands": [
+            "Distance"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "Distance(P,t)",
+          "commands": [
+            "Distance"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "AreEqual(t,Polar(P,c))",
+          "commands": [
+            "AreEqual",
+            "Polar"
+          ]
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "L",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "meanValue",
+          "commands": []
+        },
+        {
+          "mode": "algebra",
+          "role": "check",
+          "source": "medianValue",
+          "commands": []
+        }
+      ],
+      "calls": [
+        "AreEqual",
+        "Distance",
+        "Mean",
+        "Median",
+        "Point",
+        "Polar"
+      ]
+    }
+  ],
+  "commands": [
+    {"command": "ANOVA", "status": "not_tested", "evidence": []},
+    {"command": "AffineRatio", "status": "not_tested", "evidence": []},
+    {"command": "Angle", "status": "not_tested", "evidence": []},
+    {"command": "AngleBisector", "status": "not_tested", "evidence": []},
+    {"command": "Append", "status": "not_tested", "evidence": []},
+    {"command": "ApplyMatrix", "status": "not_tested", "evidence": []},
+    {"command": "Arc", "status": "not_tested", "evidence": []},
+    {"command": "AreCollinear", "status": "not_tested", "evidence": []},
+    {"command": "AreConcurrent", "status": "not_tested", "evidence": []},
+    {"command": "AreConcyclic", "status": "not_tested", "evidence": []},
+    {"command": "AreCongruent", "status": "not_tested", "evidence": []},
+    {"command": "AreEqual", "status": "delivered_examples", "evidence": ["parabola", "client-ellipse"]},
+    {"command": "AreParallel", "status": "not_tested", "evidence": []},
+    {"command": "ArePerpendicular", "status": "not_tested", "evidence": []},
+    {"command": "Area", "status": "not_tested", "evidence": []},
+    {"command": "Assume", "status": "delivered_examples", "evidence": ["statistics"]},
+    {"command": "Asymptote", "status": "not_tested", "evidence": []},
+    {"command": "AttachCopyToView", "status": "not_tested", "evidence": []},
+    {"command": "Axes", "status": "not_tested", "evidence": []},
+    {"command": "AxisStepX", "status": "not_tested", "evidence": []},
+    {"command": "AxisStepY", "status": "not_tested", "evidence": []},
+    {"command": "BarChart", "status": "not_tested", "evidence": []},
+    {"command": "Barycenter", "status": "not_tested", "evidence": []},
+    {"command": "Bernoulli", "status": "not_tested", "evidence": []},
+    {"command": "BetaDist", "status": "not_tested", "evidence": []},
+    {"command": "BinomialDist", "status": "not_tested", "evidence": []},
+    {"command": "Bottom", "status": "not_tested", "evidence": []},
+    {"command": "BoxPlot", "status": "not_tested", "evidence": []},
+    {"command": "Button", "status": "not_tested", "evidence": []},
+    {"command": "CASLoaded", "status": "not_tested", "evidence": []},
+    {"command": "CFactor", "status": "not_tested", "evidence": []},
+    {"command": "CIFactor", "status": "not_tested", "evidence": []},
+    {"command": "CSolutions", "status": "not_tested", "evidence": []},
+    {"command": "CSolve", "status": "not_tested", "evidence": []},
+    {"command": "Cauchy", "status": "not_tested", "evidence": []},
+    {"command": "Cell", "status": "not_tested", "evidence": []},
+    {"command": "CellRange", "status": "not_tested", "evidence": []},
+    {"command": "Center", "status": "not_tested", "evidence": []},
+    {"command": "CenterView", "status": "not_tested", "evidence": []},
+    {"command": "Centroid", "status": "not_tested", "evidence": []},
+    {"command": "CharacteristicPolynomial", "status": "not_tested", "evidence": []},
+    {"command": "Checkbox", "status": "not_tested", "evidence": []},
+    {"command": "ChiSquared", "status": "not_tested", "evidence": []},
+    {"command": "ChiSquaredTest", "status": "not_tested", "evidence": []},
+    {"command": "Circle", "status": "delivered_examples", "evidence": ["functions"]},
+    {"command": "CircularArc", "status": "not_tested", "evidence": []},
+    {"command": "CircularSector", "status": "not_tested", "evidence": []},
+    {"command": "CircumcircularArc", "status": "not_tested", "evidence": []},
+    {"command": "CircumcircularSector", "status": "not_tested", "evidence": []},
+    {"command": "Circumference", "status": "not_tested", "evidence": []},
+    {"command": "Classes", "status": "not_tested", "evidence": []},
+    {"command": "ClosestPoint", "status": "not_tested", "evidence": []},
+    {"command": "ClosestPointRegion", "status": "not_tested", "evidence": []},
+    {"command": "Coefficients", "status": "not_tested", "evidence": []},
+    {"command": "Column", "status": "not_tested", "evidence": []},
+    {"command": "ColumnName", "status": "not_tested", "evidence": []},
+    {"command": "CommonDenominator", "status": "not_tested", "evidence": []},
+    {"command": "CompleteSquare", "status": "not_tested", "evidence": []},
+    {"command": "ComplexRoot", "status": "not_tested", "evidence": []},
+    {"command": "Cone", "status": "not_tested", "evidence": []},
+    {"command": "Conic", "status": "not_tested", "evidence": []},
+    {"command": "ConjugateDiameter", "status": "not_tested", "evidence": []},
+    {"command": "ConstructionStep", "status": "not_tested", "evidence": []},
+    {"command": "ContingencyTable", "status": "not_tested", "evidence": []},
+    {"command": "ContinuedFraction", "status": "not_tested", "evidence": []},
+    {"command": "ConvexHull", "status": "not_tested", "evidence": []},
+    {"command": "CopyFreeObject", "status": "not_tested", "evidence": []},
+    {"command": "Corner", "status": "not_tested", "evidence": []},
+    {"command": "CorrelationCoefficient", "status": "not_tested", "evidence": []},
+    {"command": "CountIf", "status": "not_tested", "evidence": []},
+    {"command": "Covariance", "status": "not_tested", "evidence": []},
+    {"command": "Cross", "status": "not_tested", "evidence": []},
+    {"command": "CrossRatio", "status": "not_tested", "evidence": []},
+    {"command": "Cube", "status": "not_tested", "evidence": []},
+    {"command": "Cubic", "status": "not_tested", "evidence": []},
+    {"command": "Curvature", "status": "not_tested", "evidence": []},
+    {"command": "CurvatureVector", "status": "not_tested", "evidence": []},
+    {"command": "Curve", "status": "not_tested", "evidence": []},
+    {"command": "Cylinder", "status": "not_tested", "evidence": []},
+    {"command": "DataFunction", "status": "not_tested", "evidence": []},
+    {"command": "Degree", "status": "not_tested", "evidence": []},
+    {"command": "DelaunayTriangulation", "status": "not_tested", "evidence": []},
+    {"command": "Delete", "status": "not_tested", "evidence": []},
+    {"command": "Denominator", "status": "not_tested", "evidence": []},
+    {"command": "Derivative", "status": "delivered_examples", "evidence": ["functions"]},
+    {"command": "Determinant", "status": "delivered_examples", "evidence": ["algebra"]},
+    {"command": "Difference", "status": "not_tested", "evidence": []},
+    {"command": "Dilate", "status": "not_tested", "evidence": []},
+    {"command": "Dimension", "status": "not_tested", "evidence": []},
+    {"command": "Direction", "status": "not_tested", "evidence": []},
+    {"command": "Directrix", "status": "not_tested", "evidence": []},
+    {"command": "Distance", "status": "delivered_examples", "evidence": ["parabola", "functions", "client-ellipse"]},
+    {"command": "Div", "status": "not_tested", "evidence": []},
+    {"command": "Division", "status": "not_tested", "evidence": []},
+    {"command": "Divisors", "status": "not_tested", "evidence": []},
+    {"command": "DivisorsList", "status": "not_tested", "evidence": []},
+    {"command": "DivisorsSum", "status": "not_tested", "evidence": []},
+    {"command": "Dodecahedron", "status": "not_tested", "evidence": []},
+    {"command": "Dot", "status": "not_tested", "evidence": []},
+    {"command": "DotPlot", "status": "not_tested", "evidence": []},
+    {"command": "DynamicCoordinates", "status": "not_tested", "evidence": []},
+    {"command": "Eccentricity", "status": "not_tested", "evidence": []},
+    {"command": "Eigenvalues", "status": "not_tested", "evidence": []},
+    {"command": "Eigenvectors", "status": "not_tested", "evidence": []},
+    {"command": "Element", "status": "not_tested", "evidence": []},
+    {"command": "Eliminate", "status": "not_tested", "evidence": []},
+    {"command": "Ellipse", "status": "not_tested", "evidence": []},
+    {"command": "Ends", "status": "not_tested", "evidence": []},
+    {"command": "Envelope", "status": "not_tested", "evidence": []},
+    {"command": "Erlang", "status": "not_tested", "evidence": []},
+    {"command": "Execute", "status": "not_tested", "evidence": []},
+    {"command": "Expand", "status": "delivered_examples", "evidence": ["algebra"]},
+    {"command": "Exponential", "status": "not_tested", "evidence": []},
+    {"command": "ExportImage", "status": "not_tested", "evidence": []},
+    {"command": "ExtendedGCD", "status": "not_tested", "evidence": []},
+    {"command": "Extremum", "status": "not_tested", "evidence": []},
+    {"command": "FDistribution", "status": "not_tested", "evidence": []},
+    {"command": "Factor", "status": "delivered_examples", "evidence": ["algebra"]},
+    {"command": "Factors", "status": "not_tested", "evidence": []},
+    {"command": "FillCells", "status": "not_tested", "evidence": []},
+    {"command": "FillColumn", "status": "not_tested", "evidence": []},
+    {"command": "FillRow", "status": "not_tested", "evidence": []},
+    {"command": "First", "status": "not_tested", "evidence": []},
+    {"command": "Fit", "status": "not_tested", "evidence": []},
+    {"command": "FitExp", "status": "not_tested", "evidence": []},
+    {"command": "FitGrowth", "status": "not_tested", "evidence": []},
+    {"command": "FitImplicit", "status": "not_tested", "evidence": []},
+    {"command": "FitLine", "status": "not_tested", "evidence": []},
+    {"command": "FitLineX", "status": "not_tested", "evidence": []},
+    {"command": "FitLog", "status": "not_tested", "evidence": []},
+    {"command": "FitLogistic", "status": "not_tested", "evidence": []},
+    {"command": "FitPoly", "status": "not_tested", "evidence": []},
+    {"command": "FitPow", "status": "not_tested", "evidence": []},
+    {"command": "FitSin", "status": "not_tested", "evidence": []},
+    {"command": "Flatten", "status": "not_tested", "evidence": []},
+    {"command": "Focus", "status": "not_tested", "evidence": []},
+    {"command": "FormulaText", "status": "not_tested", "evidence": []},
+    {"command": "FractionText", "status": "not_tested", "evidence": []},
+    {"command": "Frequency", "status": "not_tested", "evidence": []},
+    {"command": "FrequencyPolygon", "status": "not_tested", "evidence": []},
+    {"command": "FrequencyTable", "status": "not_tested", "evidence": []},
+    {"command": "FromBase", "status": "not_tested", "evidence": []},
+    {"command": "Function", "status": "not_tested", "evidence": []},
+    {"command": "FutureValue", "status": "not_tested", "evidence": []},
+    {"command": "GCD", "status": "not_tested", "evidence": []},
+    {"command": "Gamma", "status": "not_tested", "evidence": []},
+    {"command": "GeometricMean", "status": "not_tested", "evidence": []},
+    {"command": "GetTime", "status": "not_tested", "evidence": []},
+    {"command": "GroebnerDegRevLex", "status": "not_tested", "evidence": []},
+    {"command": "GroebnerLex", "status": "not_tested", "evidence": []},
+    {"command": "GroebnerLexDeg", "status": "not_tested", "evidence": []},
+    {"command": "HarmonicMean", "status": "not_tested", "evidence": []},
+    {"command": "Height", "status": "not_tested", "evidence": []},
+    {"command": "HideLayer", "status": "not_tested", "evidence": []},
+    {"command": "Histogram", "status": "not_tested", "evidence": []},
+    {"command": "HistogramRight", "status": "not_tested", "evidence": []},
+    {"command": "HyperGeometric", "status": "not_tested", "evidence": []},
+    {"command": "Hyperbola", "status": "not_tested", "evidence": []},
+    {"command": "IFactor", "status": "not_tested", "evidence": []},
+    {"command": "Icosahedron", "status": "not_tested", "evidence": []},
+    {"command": "Identity", "status": "not_tested", "evidence": []},
+    {"command": "If", "status": "not_tested", "evidence": []},
+    {"command": "ImplicitCurve", "status": "not_tested", "evidence": []},
+    {"command": "ImplicitDerivative", "status": "not_tested", "evidence": []},
+    {"command": "Incircle", "status": "not_tested", "evidence": []},
+    {"command": "IndexOf", "status": "not_tested", "evidence": []},
+    {"command": "InfiniteCone", "status": "not_tested", "evidence": []},
+    {"command": "InfiniteCylinder", "status": "not_tested", "evidence": []},
+    {"command": "InflectionPoint", "status": "not_tested", "evidence": []},
+    {"command": "InputBox", "status": "not_tested", "evidence": []},
+    {"command": "Insert", "status": "not_tested", "evidence": []},
+    {"command": "Integral", "status": "delivered_examples", "evidence": ["functions"]},
+    {"command": "IntegralBetween", "status": "not_tested", "evidence": []},
+    {"command": "IntegralSymbolic", "status": "not_tested", "evidence": []},
+    {"command": "InteriorAngles", "status": "not_tested", "evidence": []},
+    {"command": "Intersect", "status": "delivered_examples", "evidence": ["functions"]},
+    {"command": "IntersectConic", "status": "not_tested", "evidence": []},
+    {"command": "IntersectPath", "status": "not_tested", "evidence": []},
+    {"command": "Intersection", "status": "not_tested", "evidence": []},
+    {"command": "InverseBeta", "status": "not_tested", "evidence": []},
+    {"command": "InverseBinomial", "status": "not_tested", "evidence": []},
+    {"command": "InverseBinomialMinimumTrials", "status": "not_tested", "evidence": []},
+    {"command": "InverseCauchy", "status": "not_tested", "evidence": []},
+    {"command": "InverseChiSquared", "status": "not_tested", "evidence": []},
+    {"command": "InverseExponential", "status": "not_tested", "evidence": []},
+    {"command": "InverseFDistribution", "status": "not_tested", "evidence": []},
+    {"command": "InverseGamma", "status": "not_tested", "evidence": []},
+    {"command": "InverseHyperGeometric", "status": "not_tested", "evidence": []},
+    {"command": "InverseLaplace", "status": "not_tested", "evidence": []},
+    {"command": "InverseLogNormal", "status": "not_tested", "evidence": []},
+    {"command": "InverseLogistic", "status": "not_tested", "evidence": []},
+    {"command": "InverseNormal", "status": "not_tested", "evidence": []},
+    {"command": "InversePascal", "status": "not_tested", "evidence": []},
+    {"command": "InversePoisson", "status": "not_tested", "evidence": []},
+    {"command": "InverseTDistribution", "status": "not_tested", "evidence": []},
+    {"command": "InverseWeibull", "status": "not_tested", "evidence": []},
+    {"command": "InverseZipf", "status": "not_tested", "evidence": []},
+    {"command": "Invert", "status": "delivered_examples", "evidence": ["statistics"]},
+    {"command": "IsDefined", "status": "not_tested", "evidence": []},
+    {"command": "IsFactored", "status": "not_tested", "evidence": []},
+    {"command": "IsInRegion", "status": "not_tested", "evidence": []},
+    {"command": "IsInteger", "status": "not_tested", "evidence": []},
+    {"command": "IsPrime", "status": "not_tested", "evidence": []},
+    {"command": "IsTangent", "status": "not_tested", "evidence": []},
+    {"command": "IsVertexForm", "status": "not_tested", "evidence": []},
+    {"command": "Iteration", "status": "not_tested", "evidence": []},
+    {"command": "IterationList", "status": "not_tested", "evidence": []},
+    {"command": "Join", "status": "not_tested", "evidence": []},
+    {"command": "JordanDiagonalization", "status": "not_tested", "evidence": []},
+    {"command": "KeepIf", "status": "not_tested", "evidence": []},
+    {"command": "LCM", "status": "not_tested", "evidence": []},
+    {"command": "LUDecomposition", "status": "not_tested", "evidence": []},
+    {"command": "Laplace", "status": "not_tested", "evidence": []},
+    {"command": "Last", "status": "not_tested", "evidence": []},
+    {"command": "LeftSide", "status": "not_tested", "evidence": []},
+    {"command": "LeftSum", "status": "not_tested", "evidence": []},
+    {"command": "Length", "status": "delivered_examples", "evidence": ["algebra"]},
+    {"command": "LetterToUnicode", "status": "not_tested", "evidence": []},
+    {"command": "Limit", "status": "not_tested", "evidence": []},
+    {"command": "LimitAbove", "status": "not_tested", "evidence": []},
+    {"command": "LimitBelow", "status": "not_tested", "evidence": []},
+    {"command": "Line", "status": "delivered_examples", "evidence": ["parabola"]},
+    {"command": "LineGraph", "status": "not_tested", "evidence": []},
+    {"command": "LinearEccentricity", "status": "not_tested", "evidence": []},
+    {"command": "Locus", "status": "not_tested", "evidence": []},
+    {"command": "LocusEquation", "status": "not_tested", "evidence": []},
+    {"command": "LogNormal", "status": "not_tested", "evidence": []},
+    {"command": "Logistic", "status": "not_tested", "evidence": []},
+    {"command": "LowerSum", "status": "not_tested", "evidence": []},
+    {"command": "MAD", "status": "not_tested", "evidence": []},
+    {"command": "MajorAxis", "status": "not_tested", "evidence": []},
+    {"command": "MatrixRank", "status": "not_tested", "evidence": []},
+    {"command": "Max", "status": "not_tested", "evidence": []},
+    {"command": "Maximize", "status": "not_tested", "evidence": []},
+    {"command": "Mean", "status": "delivered_examples", "evidence": ["statistics", "client-ellipse"]},
+    {"command": "MeanX", "status": "not_tested", "evidence": []},
+    {"command": "MeanY", "status": "not_tested", "evidence": []},
+    {"command": "Median", "status": "delivered_examples", "evidence": ["client-ellipse"]},
+    {"command": "Midpoint", "status": "delivered_examples", "evidence": ["triangle", "parabola"]},
+    {"command": "Min", "status": "not_tested", "evidence": []},
+    {"command": "MinimalPolynomial", "status": "not_tested", "evidence": []},
+    {"command": "Minimize", "status": "not_tested", "evidence": []},
+    {"command": "MinimumSpanningTree", "status": "not_tested", "evidence": []},
+    {"command": "MinorAxis", "status": "not_tested", "evidence": []},
+    {"command": "MixedNumber", "status": "not_tested", "evidence": []},
+    {"command": "Mod", "status": "not_tested", "evidence": []},
+    {"command": "Mode", "status": "not_tested", "evidence": []},
+    {"command": "ModularExponent", "status": "not_tested", "evidence": []},
+    {"command": "NDerivative", "status": "not_tested", "evidence": []},
+    {"command": "NIntegral", "status": "not_tested", "evidence": []},
+    {"command": "NInvert", "status": "not_tested", "evidence": []},
+    {"command": "NSolutions", "status": "not_tested", "evidence": []},
+    {"command": "NSolve", "status": "not_tested", "evidence": []},
+    {"command": "NSolveODE", "status": "not_tested", "evidence": []},
+    {"command": "Name", "status": "not_tested", "evidence": []},
+    {"command": "Net", "status": "not_tested", "evidence": []},
+    {"command": "NextPrime", "status": "not_tested", "evidence": []},
+    {"command": "Normal", "status": "not_tested", "evidence": []},
+    {"command": "NormalQuantilePlot", "status": "not_tested", "evidence": []},
+    {"command": "Normalize", "status": "not_tested", "evidence": []},
+    {"command": "Numerator", "status": "not_tested", "evidence": []},
+    {"command": "Numeric", "status": "not_tested", "evidence": []},
+    {"command": "Object", "status": "not_tested", "evidence": []},
+    {"command": "Octahedron", "status": "not_tested", "evidence": []},
+    {"command": "Ordinal", "status": "not_tested", "evidence": []},
+    {"command": "OrdinalRank", "status": "not_tested", "evidence": []},
+    {"command": "OsculatingCircle", "status": "not_tested", "evidence": []},
+    {"command": "Pan", "status": "not_tested", "evidence": []},
+    {"command": "Parabola", "status": "delivered_examples", "evidence": ["parabola"]},
+    {"command": "Parameter", "status": "not_tested", "evidence": []},
+    {"command": "ParametricDerivative", "status": "not_tested", "evidence": []},
+    {"command": "ParseToFunction", "status": "not_tested", "evidence": []},
+    {"command": "ParseToNumber", "status": "not_tested", "evidence": []},
+    {"command": "PartialFractions", "status": "not_tested", "evidence": []},
+    {"command": "Pascal", "status": "not_tested", "evidence": []},
+    {"command": "PathParameter", "status": "not_tested", "evidence": []},
+    {"command": "Payment", "status": "not_tested", "evidence": []},
+    {"command": "Percentile", "status": "not_tested", "evidence": []},
+    {"command": "Perimeter", "status": "not_tested", "evidence": []},
+    {"command": "Periods", "status": "not_tested", "evidence": []},
+    {"command": "PerpendicularBisector", "status": "not_tested", "evidence": []},
+    {"command": "PerpendicularLine", "status": "not_tested", "evidence": []},
+    {"command": "PerpendicularPlane", "status": "not_tested", "evidence": []},
+    {"command": "PerpendicularVector", "status": "not_tested", "evidence": []},
+    {"command": "PieChart", "status": "not_tested", "evidence": []},
+    {"command": "Plane", "status": "not_tested", "evidence": []},
+    {"command": "PlaneBisector", "status": "not_tested", "evidence": []},
+    {"command": "PlaySound", "status": "not_tested", "evidence": []},
+    {"command": "PlotSolve", "status": "not_tested", "evidence": []},
+    {"command": "Point", "status": "delivered_examples", "evidence": ["parabola", "functions", "client-ellipse"]},
+    {"command": "PointIn", "status": "not_tested", "evidence": []},
+    {"command": "PointList", "status": "not_tested", "evidence": []},
+    {"command": "Poisson", "status": "not_tested", "evidence": []},
+    {"command": "Polar", "status": "delivered_examples", "evidence": ["client-ellipse"]},
+    {"command": "Polygon", "status": "delivered_examples", "evidence": ["triangle"]},
+    {"command": "Polyline", "status": "not_tested", "evidence": []},
+    {"command": "Polynomial", "status": "not_tested", "evidence": []},
+    {"command": "PresentValue", "status": "not_tested", "evidence": []},
+    {"command": "PreviousPrime", "status": "not_tested", "evidence": []},
+    {"command": "PrimeFactors", "status": "not_tested", "evidence": []},
+    {"command": "Prism", "status": "not_tested", "evidence": []},
+    {"command": "Product", "status": "delivered_examples", "evidence": ["algebra"]},
+    {"command": "Prove", "status": "not_tested", "evidence": []},
+    {"command": "ProveDetails", "status": "not_tested", "evidence": []},
+    {"command": "Pyramid", "status": "not_tested", "evidence": []},
+    {"command": "QRDecomposition", "status": "not_tested", "evidence": []},
+    {"command": "Quartile1", "status": "not_tested", "evidence": []},
+    {"command": "Quartile3", "status": "not_tested", "evidence": []},
+    {"command": "RSquare", "status": "not_tested", "evidence": []},
+    {"command": "Radius", "status": "not_tested", "evidence": []},
+    {"command": "RandomBetween", "status": "not_tested", "evidence": []},
+    {"command": "RandomBinomial", "status": "not_tested", "evidence": []},
+    {"command": "RandomDiscrete", "status": "not_tested", "evidence": []},
+    {"command": "RandomElement", "status": "not_tested", "evidence": []},
+    {"command": "RandomNormal", "status": "not_tested", "evidence": []},
+    {"command": "RandomPointIn", "status": "not_tested", "evidence": []},
+    {"command": "RandomPoisson", "status": "not_tested", "evidence": []},
+    {"command": "RandomPolynomial", "status": "not_tested", "evidence": []},
+    {"command": "RandomUniform", "status": "not_tested", "evidence": []},
+    {"command": "Rate", "status": "not_tested", "evidence": []},
+    {"command": "Rationalize", "status": "not_tested", "evidence": []},
+    {"command": "Ray", "status": "not_tested", "evidence": []},
+    {"command": "ReadText", "status": "not_tested", "evidence": []},
+    {"command": "RectangleSum", "status": "not_tested", "evidence": []},
+    {"command": "ReducedRowEchelonForm", "status": "not_tested", "evidence": []},
+    {"command": "Reflect", "status": "not_tested", "evidence": []},
+    {"command": "Relation", "status": "not_tested", "evidence": []},
+    {"command": "RemovableDiscontinuity", "status": "not_tested", "evidence": []},
+    {"command": "Remove", "status": "not_tested", "evidence": []},
+    {"command": "RemoveUndefined", "status": "not_tested", "evidence": []},
+    {"command": "Rename", "status": "not_tested", "evidence": []},
+    {"command": "Repeat", "status": "not_tested", "evidence": []},
+    {"command": "ReplaceAll", "status": "not_tested", "evidence": []},
+    {"command": "ResidualPlot", "status": "not_tested", "evidence": []},
+    {"command": "Reverse", "status": "not_tested", "evidence": []},
+    {"command": "RightSide", "status": "not_tested", "evidence": []},
+    {"command": "RigidPolygon", "status": "not_tested", "evidence": []},
+    {"command": "Root", "status": "not_tested", "evidence": []},
+    {"command": "RootList", "status": "not_tested", "evidence": []},
+    {"command": "RootMeanSquare", "status": "not_tested", "evidence": []},
+    {"command": "Roots", "status": "not_tested", "evidence": []},
+    {"command": "Rotate", "status": "not_tested", "evidence": []},
+    {"command": "RotateText", "status": "not_tested", "evidence": []},
+    {"command": "Row", "status": "not_tested", "evidence": []},
+    {"command": "RunClickScript", "status": "not_tested", "evidence": []},
+    {"command": "RunUpdateScript", "status": "not_tested", "evidence": []},
+    {"command": "SD", "status": "delivered_examples", "evidence": ["statistics"]},
+    {"command": "SDX", "status": "not_tested", "evidence": []},
+    {"command": "SDY", "status": "not_tested", "evidence": []},
+    {"command": "SVD", "status": "not_tested", "evidence": []},
+    {"command": "Sample", "status": "not_tested", "evidence": []},
+    {"command": "SampleSD", "status": "not_tested", "evidence": []},
+    {"command": "SampleSDX", "status": "not_tested", "evidence": []},
+    {"command": "SampleSDY", "status": "not_tested", "evidence": []},
+    {"command": "SampleVariance", "status": "not_tested", "evidence": []},
+    {"command": "ScientificText", "status": "not_tested", "evidence": []},
+    {"command": "Sector", "status": "not_tested", "evidence": []},
+    {"command": "Segment", "status": "delivered_examples", "evidence": ["triangle", "parabola"]},
+    {"command": "SelectObjects", "status": "not_tested", "evidence": []},
+    {"command": "SelectedElement", "status": "not_tested", "evidence": []},
+    {"command": "SelectedIndex", "status": "not_tested", "evidence": []},
+    {"command": "SemiMajorAxisLength", "status": "not_tested", "evidence": []},
+    {"command": "SemiMinorAxisLength", "status": "not_tested", "evidence": []},
+    {"command": "Semicircle", "status": "not_tested", "evidence": []},
+    {"command": "Sequence", "status": "not_tested", "evidence": []},
+    {"command": "SetActiveView", "status": "not_tested", "evidence": []},
+    {"command": "SetAxesRatio", "status": "not_tested", "evidence": []},
+    {"command": "SetBackgroundColor", "status": "not_tested", "evidence": []},
+    {"command": "SetCaption", "status": "not_tested", "evidence": []},
+    {"command": "SetColor", "status": "not_tested", "evidence": []},
+    {"command": "SetConditionToShowObject", "status": "not_tested", "evidence": []},
+    {"command": "SetConstructionStep", "status": "not_tested", "evidence": []},
+    {"command": "SetCoords", "status": "not_tested", "evidence": []},
+    {"command": "SetDecoration", "status": "not_tested", "evidence": []},
+    {"command": "SetDynamicColor", "status": "not_tested", "evidence": []},
+    {"command": "SetFilling", "status": "not_tested", "evidence": []},
+    {"command": "SetFixed", "status": "not_tested", "evidence": []},
+    {"command": "SetImage", "status": "not_tested", "evidence": []},
+    {"command": "SetLabelMode", "status": "not_tested", "evidence": []},
+    {"command": "SetLayer", "status": "not_tested", "evidence": []},
+    {"command": "SetLevelOfDetail", "status": "not_tested", "evidence": []},
+    {"command": "SetLineOpacity", "status": "not_tested", "evidence": []},
+    {"command": "SetLineStyle", "status": "not_tested", "evidence": []},
+    {"command": "SetLineThickness", "status": "not_tested", "evidence": []},
+    {"command": "SetPerspective", "status": "not_tested", "evidence": []},
+    {"command": "SetPointSize", "status": "not_tested", "evidence": []},
+    {"command": "SetPointStyle", "status": "not_tested", "evidence": []},
+    {"command": "SetSeed", "status": "not_tested", "evidence": []},
+    {"command": "SetSpinSpeed", "status": "not_tested", "evidence": []},
+    {"command": "SetTooltipMode", "status": "not_tested", "evidence": []},
+    {"command": "SetTrace", "status": "not_tested", "evidence": []},
+    {"command": "SetValue", "status": "not_tested", "evidence": []},
+    {"command": "SetViewDirection", "status": "not_tested", "evidence": []},
+    {"command": "SetVisibleInView", "status": "not_tested", "evidence": []},
+    {"command": "Shear", "status": "not_tested", "evidence": []},
+    {"command": "ShortestDistance", "status": "not_tested", "evidence": []},
+    {"command": "ShowAxes", "status": "not_tested", "evidence": []},
+    {"command": "ShowGrid", "status": "not_tested", "evidence": []},
+    {"command": "ShowLabel", "status": "not_tested", "evidence": []},
+    {"command": "ShowLayer", "status": "not_tested", "evidence": []},
+    {"command": "Shuffle", "status": "not_tested", "evidence": []},
+    {"command": "Side", "status": "not_tested", "evidence": []},
+    {"command": "SigmaXX", "status": "not_tested", "evidence": []},
+    {"command": "SigmaXY", "status": "not_tested", "evidence": []},
+    {"command": "SigmaYY", "status": "not_tested", "evidence": []},
+    {"command": "Simplify", "status": "delivered_examples", "evidence": ["algebra", "statistics"]},
+    {"command": "Slider", "status": "delivered_examples", "evidence": ["functions"]},
+    {"command": "Slope", "status": "not_tested", "evidence": []},
+    {"command": "SlopeField", "status": "not_tested", "evidence": []},
+    {"command": "SlowPlot", "status": "not_tested", "evidence": []},
+    {"command": "Solutions", "status": "delivered_examples", "evidence": ["algebra"]},
+    {"command": "Solve", "status": "not_tested", "evidence": []},
+    {"command": "SolveCubic", "status": "not_tested", "evidence": []},
+    {"command": "SolveODE", "status": "not_tested", "evidence": []},
+    {"command": "SolveQuartic", "status": "not_tested", "evidence": []},
+    {"command": "Sort", "status": "not_tested", "evidence": []},
+    {"command": "Spearman", "status": "not_tested", "evidence": []},
+    {"command": "Sphere", "status": "not_tested", "evidence": []},
+    {"command": "Spline", "status": "not_tested", "evidence": []},
+    {"command": "Split", "status": "not_tested", "evidence": []},
+    {"command": "StartAnimation", "status": "not_tested", "evidence": []},
+    {"command": "StartRecord", "status": "not_tested", "evidence": []},
+    {"command": "StemPlot", "status": "not_tested", "evidence": []},
+    {"command": "StepGraph", "status": "not_tested", "evidence": []},
+    {"command": "StickGraph", "status": "not_tested", "evidence": []},
+    {"command": "Stretch", "status": "not_tested", "evidence": []},
+    {"command": "Substitute", "status": "not_tested", "evidence": []},
+    {"command": "Sum", "status": "delivered_examples", "evidence": ["algebra"]},
+    {"command": "SumSquaredErrors", "status": "not_tested", "evidence": []},
+    {"command": "SurdText", "status": "not_tested", "evidence": []},
+    {"command": "Surface", "status": "not_tested", "evidence": []},
+    {"command": "Sxx", "status": "not_tested", "evidence": []},
+    {"command": "Sxy", "status": "not_tested", "evidence": []},
+    {"command": "Syy", "status": "not_tested", "evidence": []},
+    {"command": "TDistribution", "status": "not_tested", "evidence": []},
+    {"command": "TMean2Estimate", "status": "not_tested", "evidence": []},
+    {"command": "TMeanEstimate", "status": "not_tested", "evidence": []},
+    {"command": "TTest", "status": "not_tested", "evidence": []},
+    {"command": "TTest2", "status": "not_tested", "evidence": []},
+    {"command": "TTestPaired", "status": "not_tested", "evidence": []},
+    {"command": "TableText", "status": "not_tested", "evidence": []},
+    {"command": "Take", "status": "not_tested", "evidence": []},
+    {"command": "Tangent", "status": "delivered_examples", "evidence": ["parabola"]},
+    {"command": "TaylorPolynomial", "status": "not_tested", "evidence": []},
+    {"command": "Tetrahedron", "status": "not_tested", "evidence": []},
+    {"command": "Text", "status": "not_tested", "evidence": []},
+    {"command": "TextToUnicode", "status": "not_tested", "evidence": []},
+    {"command": "TiedRank", "status": "not_tested", "evidence": []},
+    {"command": "ToBase", "status": "not_tested", "evidence": []},
+    {"command": "ToComplex", "status": "not_tested", "evidence": []},
+    {"command": "ToExponential", "status": "not_tested", "evidence": []},
+    {"command": "ToPoint", "status": "not_tested", "evidence": []},
+    {"command": "ToPolar", "status": "not_tested", "evidence": []},
+    {"command": "ToolImage", "status": "not_tested", "evidence": []},
+    {"command": "Top", "status": "not_tested", "evidence": []},
+    {"command": "Translate", "status": "not_tested", "evidence": []},
+    {"command": "Transpose", "status": "not_tested", "evidence": []},
+    {"command": "TrapezoidalSum", "status": "not_tested", "evidence": []},
+    {"command": "TravelingSalesman", "status": "not_tested", "evidence": []},
+    {"command": "TriangleCenter", "status": "not_tested", "evidence": []},
+    {"command": "TriangleCurve", "status": "not_tested", "evidence": []},
+    {"command": "Triangular", "status": "not_tested", "evidence": []},
+    {"command": "TrigCombine", "status": "not_tested", "evidence": []},
+    {"command": "TrigExpand", "status": "not_tested", "evidence": []},
+    {"command": "TrigSimplify", "status": "not_tested", "evidence": []},
+    {"command": "Trilinear", "status": "not_tested", "evidence": []},
+    {"command": "Turtle", "status": "not_tested", "evidence": []},
+    {"command": "TurtleBack", "status": "not_tested", "evidence": []},
+    {"command": "TurtleDown", "status": "not_tested", "evidence": []},
+    {"command": "TurtleForward", "status": "not_tested", "evidence": []},
+    {"command": "TurtleLeft", "status": "not_tested", "evidence": []},
+    {"command": "TurtleRight", "status": "not_tested", "evidence": []},
+    {"command": "TurtleUp", "status": "not_tested", "evidence": []},
+    {"command": "Type", "status": "not_tested", "evidence": []},
+    {"command": "UnicodeToLetter", "status": "not_tested", "evidence": []},
+    {"command": "UnicodeToText", "status": "not_tested", "evidence": []},
+    {"command": "Uniform", "status": "not_tested", "evidence": []},
+    {"command": "Union", "status": "not_tested", "evidence": []},
+    {"command": "Unique", "status": "not_tested", "evidence": []},
+    {"command": "UnitPerpendicularVector", "status": "not_tested", "evidence": []},
+    {"command": "UnitVector", "status": "not_tested", "evidence": []},
+    {"command": "UpdateConstruction", "status": "not_tested", "evidence": []},
+    {"command": "UpperSum", "status": "not_tested", "evidence": []},
+    {"command": "Variance", "status": "not_tested", "evidence": []},
+    {"command": "Vector", "status": "not_tested", "evidence": []},
+    {"command": "Vertex", "status": "not_tested", "evidence": []},
+    {"command": "VerticalText", "status": "not_tested", "evidence": []},
+    {"command": "Volume", "status": "not_tested", "evidence": []},
+    {"command": "Voronoi", "status": "not_tested", "evidence": []},
+    {"command": "Weibull", "status": "not_tested", "evidence": []},
+    {"command": "ZMean2Estimate", "status": "not_tested", "evidence": []},
+    {"command": "ZMean2Test", "status": "not_tested", "evidence": []},
+    {"command": "ZMeanEstimate", "status": "not_tested", "evidence": []},
+    {"command": "ZMeanTest", "status": "not_tested", "evidence": []},
+    {"command": "ZProportion2Estimate", "status": "not_tested", "evidence": []},
+    {"command": "ZProportion2Test", "status": "not_tested", "evidence": []},
+    {"command": "ZProportionEstimate", "status": "not_tested", "evidence": []},
+    {"command": "ZProportionTest", "status": "not_tested", "evidence": []},
+    {"command": "Zip", "status": "not_tested", "evidence": []},
+    {"command": "Zipf", "status": "not_tested", "evidence": []},
+    {"command": "ZoomIn", "status": "not_tested", "evidence": []},
+    {"command": "ZoomOut", "status": "not_tested", "evidence": []}
+  ]
+}

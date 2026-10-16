@@ -1,0 +1,295 @@
+{
+  "protocolVersion": 2,
+  "prompt": "请用 GeoGebra 作图：椭圆 x^2/9+y^2/4=1，取上面的可拖动点 P（初始在 (0,2)），作 P 处切线，显示点名。验证 P 始终在椭圆上且切线经过 P；同时计算列表 {2,4,8,10} 的均值与中位数并保存在文件中。请完成 GGB 导出、重载及拖动核验。此次是自动验收：全程 headless，保存截图和核验报告，不打开可见浏览器，最终展示由调用方完成。只使用本机已安装能力，不读取开发仓库的源码、tests 或 examples。",
+  "locale": "zh-CN",
+  "outputDir": "output/client-ellipse",
+  "plan": {
+    "program": [
+      {
+        "id": "c",
+        "op": "native",
+        "mode": "algebra",
+        "source": "c: x^2/9+y^2/4=1"
+      },
+      {
+        "id": "P",
+        "op": "native",
+        "mode": "algebra",
+        "source": "P=Point(c)",
+        "initial": [
+          0,
+          2
+        ]
+      },
+      {
+        "id": "t",
+        "op": "native",
+        "mode": "algebra",
+        "source": "t: x(P)*x/9+y(P)*y/4=1"
+      },
+      {
+        "id": "L",
+        "op": "native",
+        "mode": "algebra",
+        "source": "L={2,4,8,10}"
+      },
+      {
+        "id": "meanValue",
+        "op": "native",
+        "mode": "algebra",
+        "source": "meanValue=Mean(L)"
+      },
+      {
+        "id": "medianValue",
+        "op": "native",
+        "mode": "algebra",
+        "source": "medianValue=Median(L)"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "ellipse",
+        "source": "椭圆 x^2/9+y^2/4=1",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "c"
+            ],
+            "expression": "AreEqual(c, x^2/9+y^2/4=1)",
+            "mode": "algebra",
+            "expected": true,
+            "scope": "initial"
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "c"
+            ],
+            "properties": {
+              "visible": true
+            },
+            "scope": "initial"
+          }
+        ]
+      },
+      {
+        "id": "initial",
+        "source": "P（初始在 (0,2)）",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "P"
+            ],
+            "expression": "{x(P),y(P)}",
+            "mode": "algebra",
+            "expected": [
+              0,
+              2
+            ],
+            "scope": "initial"
+          }
+        ]
+      },
+      {
+        "id": "path",
+        "source": "验证 P 始终在椭圆上且切线经过 P",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "P"
+            ],
+            "expression": "x(P)^2/9+y(P)^2/4",
+            "mode": "algebra",
+            "expected": 1,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "P",
+              "c"
+            ],
+            "expression": "Distance(P,c)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "P",
+              "c"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "tangent",
+        "source": "作 P 处切线",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "P",
+              "t"
+            ],
+            "expression": "Distance(P,t)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "P",
+              "c",
+              "t"
+            ],
+            "expression": "AreEqual(t,Polar(P,c))",
+            "mode": "algebra",
+            "expected": true,
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "t",
+              "P"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "t"
+            ],
+            "properties": {
+              "visible": true
+            },
+            "scope": "initial"
+          }
+        ]
+      },
+      {
+        "id": "label",
+        "source": "显示点名",
+        "checks": [
+          {
+            "kind": "style",
+            "subjects": [
+              "P"
+            ],
+            "properties": {
+              "visible": true,
+              "labelVisible": true,
+              "fixed": false
+            },
+            "scope": "initial"
+          }
+        ]
+      },
+      {
+        "id": "statistics",
+        "source": "计算列表 {2,4,8,10} 的均值与中位数并保存在文件中",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "L"
+            ],
+            "expression": "L",
+            "mode": "algebra",
+            "expected": [
+              2,
+              4,
+              8,
+              10
+            ],
+            "scope": "initial"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "meanValue"
+            ],
+            "expression": "meanValue",
+            "mode": "algebra",
+            "expected": 6,
+            "scope": "initial"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "medianValue"
+            ],
+            "expression": "medianValue",
+            "mode": "algebra",
+            "expected": 6,
+            "scope": "initial"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "meanValue",
+              "L"
+            ],
+            "scope": "initial"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "medianValue",
+              "L"
+            ],
+            "scope": "initial"
+          }
+        ]
+      }
+    ],
+    "interactions": [
+      {
+        "point": "P",
+        "dx": 110,
+        "dy": 65
+      }
+    ],
+    "styles": [
+      {
+        "object": "c",
+        "properties": {
+          "visible": true,
+          "color": "#3156A6",
+          "lineThickness": 4
+        }
+      },
+      {
+        "object": "P",
+        "properties": {
+          "visible": true,
+          "labelVisible": true,
+          "fixed": false,
+          "color": "#D93434"
+        }
+      },
+      {
+        "object": "t",
+        "properties": {
+          "visible": true,
+          "color": "#198754",
+          "lineThickness": 4
+        }
+      }
+    ],
+    "view": {
+      "xMin": -5,
+      "xMax": 5,
+      "yMin": -3.5,
+      "yMax": 3.5
+    },
+    "display": "graphics"
+  }
+}
