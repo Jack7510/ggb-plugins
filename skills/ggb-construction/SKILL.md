@@ -38,4 +38,4 @@ node <plugin>/dist/src/cli.js build --request <absolute-request.json>
 node <plugin>/dist/src/cli.js preview --delivery <absolute-delivery-dir>
 ```
 
-预览需要本机已安装 Google Chrome；不要直接导航到 .ggb 文件，用上述命令加载文件。预览是前台进程，使用宿主的进程会话保持运行。等待就绪 JSON；仅打开窗口不算完成。交付 `result.ggb`、检查报告和截图，说明已验证的条件及有限交互样本。采样通过不等于一般命题已证明。预览失败时保留文件并单独报告展示错误。
+预览需要本机已安装 Google Chrome；不要直接导航到 .ggb 文件，用上述命令加载文件。预览是前台进程，使用宿主的进程会话保持运行。等待就绪 JSON；仅打开窗口不算完成。用户关闭预览标签页或窗口后，CLI 自动退出本次专用浏览器并释放服务。交付 `result.ggb`、检查报告和截图，说明已验证的条件及有限交互样本。采样通过不等于一般命题已证明。预览失败时保留文件并单独报告展示错误。

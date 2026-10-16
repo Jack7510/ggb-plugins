@@ -181,7 +181,7 @@ test('doctor CLI reports SIGTERM during cleanup as cancelled, not successful', {
   });
 });
 
-test('committed files survive journal and preview errors; repeated calls remain independent', { timeout: 30_000 }, async () => {
+test('committed files survive journal and preview errors; repeated calls remain independent', { timeout: 30_000 }, async t => {
   const directory = await fs.mkdtemp(join(tmpdir(), 'ggb-committed-'));
   const input = structuredClone(fixture); input.outputDir = directory;
   try {
@@ -203,15 +203,34 @@ test('committed files survive journal and preview errors; repeated calls remain 
       let session;
       mock.module(${JSON.stringify(join(root, 'dist/src/browser.js'))}, { namedExports: { ...browser, async openBrowser(...args) {
         session = await browser.openBrowser(...args);
-        return { ...session, async close() { await session.close(); if (process.env.GGB_TEST_LATE_ERROR) throw new Error('Injected preview cleanup error'); } };
+        return { ...session, async close() {
+          await session.close();
+          await (await import('node:fs/promises')).writeFile(${JSON.stringify(join(directory, 'preview-closed.json'))}, JSON.stringify({ connected: session.browser.isConnected() }));
+          if (process.env.GGB_TEST_LATE_ERROR) throw new Error('Injected preview cleanup error');
+        } };
       } }});
       const log = console.log;
-      console.log = value => { log(value); if (JSON.parse(value).data?.url) void session.browser.close(); };
+      console.log = value => {
+        log(value);
+        if (JSON.parse(value).data?.url) {
+          if (process.env.GGB_TEST_CLOSE_PAGE) void session.browser.contexts()[0].pages()[0].close();
+          else void session.browser.close();
+        }
+      };
       await import(${JSON.stringify(join(root, 'dist/src/cli.js'))});
     `;
     const { stdout } = await promisify(execFile)(process.execPath, ['--experimental-test-module-mocks', '--input-type=module', '-e', script, 'preview', '--delivery', first.delivery, '--headless'], { timeout: 15_000 });
     const ready = JSON.parse(stdout); assert.equal(ready.ok, true); await assert.rejects(fetch(ready.data.url));
     assert.deepEqual(await fs.readFile(first.file), before);
+    await t.test('closing the preview page exits CLI and releases browser and port', async () => {
+      const { stdout } = await promisify(execFile)(process.execPath, ['--experimental-test-module-mocks', '--input-type=module', '-e', script, 'preview', '--delivery', first.delivery, '--headless'], {
+        timeout: 10_000, env: { ...process.env, GGB_TEST_CLOSE_PAGE: '1' },
+      });
+      const ready = JSON.parse(stdout); assert.equal(ready.ok, true);
+      assert.equal(JSON.parse(await fs.readFile(join(directory, 'preview-closed.json'), 'utf8')).connected, false);
+      await assert.rejects(fetch(ready.data.url));
+      assert.deepEqual(await fs.readFile(first.file), before);
+    });
     await assert.rejects(promisify(execFile)(process.execPath, ['--experimental-test-module-mocks', '--input-type=module', '-e', script, 'preview', '--delivery', first.delivery, '--headless'], {
       timeout: 15_000, env: { ...process.env, GGB_TEST_LATE_ERROR: '1' },
     }), (error: any) => {

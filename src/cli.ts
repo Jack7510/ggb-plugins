@@ -30,7 +30,13 @@ try {
   } else if (command === 'preview' && values.delivery && !values.request && !values.output) {
     const session = await openPreview(values.delivery, !values.headless, cancellation.signal);
     try {
-      const closed = session.browser.isConnected() ? new Promise<void>(done => session.browser.once('disconnected', () => done())) : Promise.resolve();
+      const closed = new Promise<void>(done => {
+        const finish = () => {
+          session.page.off('close', finish); session.browser.off('disconnected', finish); done();
+        };
+        session.page.once('close', finish); session.browser.once('disconnected', finish);
+        if (session.page.isClosed() || !session.browser.isConnected()) finish();
+      });
       emit({ url: session.url, delivery: session.delivery }); ready = true; await closed;
       if (cancellation.signal.aborted) process.exitCode = 130;
     } finally { await session.close(); }

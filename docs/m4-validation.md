@@ -104,3 +104,11 @@ a6771b5de696ced600c5b7c50959ee0d12a08aebbf6753165c2eae37558f64a7
 正式交付位于 `/private/tmp/ggb-041-circumcircle-DuoA9d/output/ggb-PPGkxw/delivery`；交付、截图和精简证据的持久副本位于本地忽略目录 `output/0.4.1-acceptance/`。有限拖动样本不代表对所有构型的数学证明。类型检查、构建、27 项基础与打包回归及 git diff --check 通过；未重复执行既有 55 项浏览器回归，当前执行代码未修改。
 
 独立复核成功、headless 测试会话关闭后，才向同一客户端发送展示指令。客户端用已安装 CLI 在本机 Chrome 加载原 result.ggb，返回就绪；回合结束时及三秒后均收到 HTTP 200。前台客户端连接继续保留，关闭展示浏览器后释放资源。本轮验收范围仍为真实 CLI 运行时，不扩展为桌面插件目录 UI 验收。
+
+## 0.4.2 预览关闭与进程清理
+
+旧 CLI 只等待 browser.disconnected。在 macOS 关闭最后一个窗口但浏览器未退出时，CLI 会继续等待，专用浏览器及本地服务可能残留。0.4.2 同时等待预览页 close 和浏览器 disconnected；任一事件触发后，CLI 执行同一幂等清理路径，退出本次专用浏览器并释放服务。取消和清理失败仍沿用既有错误规则。
+
+新增真实 headless 回归：只关闭预览页，检查 CLI 成功退出、浏览器断开、端口不可访问及 GGB 内容不变。27 项基础、15 项构图、41 项故障与启动测试通过；类型检查、构建、Skill 校验、打包及 git diff --check 通过。已通过正常取消清理三个确认属于本仓库的过期 M1/M2/M4 预览，复查 Chrome for Testing 主进程均退出，保留当前 Chrome 展示。
+
+本机已安装 0.4.2，并通过 headless doctor。新包为 `output/plugin/ggb-plugin-jGgS35/ggb-plugins-0.4.2.zip`，SHA-256 为 `cf660311a9767fbd9a8e1ad7068492e1a6d93d27ddb0c9572ea41cfec7cd21aa`。本轮不弹出额外窗口，不重新执行文字题自动发现验收。更新适用于新启动的预览；运行中的旧 CLI 不会热更新。Dock 固定或最近使用的图标可以在进程退出后继续显示，不作为进程存活证据。
