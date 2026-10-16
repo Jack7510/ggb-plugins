@@ -41,3 +41,13 @@ npm 会自动排除名为 pnpm-lock.yaml 的文件。DSH TGZ 因此携带同内�
 最终安装副本的八个编译模块、页面、两份安装器、runtime 锁、还原后的依赖锁及 Skill 资源共 16 个文件逐字节一致。分别用各自副本重新 headless 打开其真实回合交付，保存 ecosystem-preview.png，关闭页面后确认浏览器断开、服务不可访问、GGB 摘要不变。结果见 final-acceptance.json。最终两种宿主的技能发现和 DSH 引用加载也重新通过。
 
 Codex GGB SHA-256：`0c2f69111b79b2f06da0153d81ef8de89bd100591fe98528f2df7286397721c3`；DSH GGB SHA-256：`bc6a1fc7e706347589b9e43bc747ab5882b31bde1e26aea26f73a0e493bda3c6`。
+
+## 公开发布和最终来源
+
+`v0.8.0` 固定到提交 `4971dff`。[发布工作流 38894317938](https://github.com/Jack7510/ggb-plugins/actions/runs/38894317938) 完整通过，实际发布 [0.8.0 Release](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.0) 中的两种包与摘要。ZIP SHA-256 为 `68f6a8218b82f182e0f5107e4bd9d8ace708595f89d2091deb30f3a85d5334de`；DSH TGZ 为 `6b5c08b8fc4a14b2c507245683f3acb634e77b839b031f3c3606a9d7f4d392d2`。匿名下载、校验及共享文件对比均通过，记录在 public/acceptance.json。CI 只覆盖基础检查与打包，真实浏览器证据来自上述本机验收。
+
+本机 Codex 最终 marketplace 来源为 `Jack7510/ggb-plugins --ref v0.8.0`，重新执行源码安装分支并通过 doctor。DSH 最终安装源为 `~/.dsh/local-packages/ggb-plugins-dsh-0.8.0.tgz`，来自校验后的公开资产；profile 仍为独立 ggb-plugins。两者均不依赖 output 内的临时打包来源。
+
+公开来源安装后，再次通过两个实际宿主的 Skill 发现和加载、共享文件对比、headless 预览关页清理及 GGB 摘要不变检查。Codex 记录为 codex-registry-public.json，DSH 记录为 dsh-registry.json，安装日志分别为 codex-github-setup.log、dsh-public-installation.log 和 dsh-public-setup.log。
+
+所有自动验收通过后，持续运行的调用方使用 DSH 安装副本打开本机 Google Chrome，展示 DSH 回合的原始 delivery。此次不把物理点击关闭窗口计为新的自动验收；关页退出和文件不变已在 headless 复核中检查。
