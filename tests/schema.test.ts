@@ -58,3 +58,20 @@ test('consistency comparison tolerates numerical noise but preserves identity an
   assert(!equivalent({ ref: 'A' }, { ref: 'B' }));
   assert(!equivalent({ x: 1 }, { x: '1' }));
 });
+
+test('numeric literals preserve small and negative values without scientific notation', () => {
+  for (const value of [1e-7, -1e-7, 1.23456789e-12, -1.23456789e-12, Number.MIN_VALUE, 0, -0, 10000]) {
+    const input = structuredClone(fixture);
+    input.plan.program = [{ id: 'P', op: 'freePoint', x: value, y: -value },
+      { id: 'k', op: 'command', name: 'Circle', args: [{ ref: 'P' }, Math.abs(value) || 1] }];
+    input.plan.requirements = [{ id: 'point', source: input.prompt, checks: [{ kind: 'exists', subjects: ['P'], scope: 'initial' }] }];
+    input.plan.styles = []; input.plan.interactions = [{ point: 'P', dx: 40, dy: 30 }];
+    const commands = compile(parseRequest(input)).program.map(s => s.command);
+    const coordinates = /^P=\(([^,]+),([^,]+)\)$/.exec(commands[0]!)!;
+    const radius = /^k=Circle\(P,([^)]+)\)$/.exec(commands[1]!)![1]!;
+    for (const literal of [...coordinates.slice(1), radius]) assert(!/[eE]/.test(literal));
+    assert.equal(Number(coordinates[1]), value === 0 ? 0 : value);
+    assert.equal(Number(coordinates[2]), value === 0 ? 0 : -value);
+    assert.equal(Number(radius), Math.abs(value) || 1);
+  }
+});

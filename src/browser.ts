@@ -132,7 +132,7 @@ export async function snapshot(page: Page) {
       if (type === 'circle' && m) {
         const a = Array.from({ length: 6 }, (_, i) => Number(m.getAttribute('A' + i)));
         const x = -a[4]! / a[0]!, y = -a[5]! / a[1]!;
-        const radius = Math.sqrt(x * x + y * y - a[2]! / a[0]!);
+        const radius = api.getValue(`Radius(${name})`);
         if ([x, y, radius].every(Number.isFinite)) circle = { x, y, radius };
       }
       return {

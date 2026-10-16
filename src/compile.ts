@@ -3,6 +3,19 @@ import { commands, predicates, type Request, type Step } from './schema.js';
 
 const matches = (type: string, expected: string) => expected === 'any' || expected.split('|').includes(type);
 
+// GeoGebra treats JavaScript's `1e-7` as an expression involving Euler's e.
+// Expand the shortest round-trippable JS representation without rounding it.
+function numberLiteral(value: number): string {
+  const [coefficient, exponent] = String(value).split('e');
+  if (exponent === undefined) return coefficient!;
+  const sign = value < 0 ? '-' : '';
+  const [integer, fraction = ''] = coefficient!.replace('-', '').split('.');
+  const digits = integer! + fraction, point = integer!.length + Number(exponent);
+  return sign + (point <= 0 ? '0.' + '0'.repeat(-point) + digits
+    : point >= digits.length ? digits + '0'.repeat(point - digits.length)
+    : digits.slice(0, point) + '.' + digits.slice(point));
+}
+
 export function compile(request: Request) {
   const byId = new Map(request.plan.program.map(step => [step.id, step]));
   assert.equal(byId.size, request.plan.program.length, 'Duplicate object ID');
@@ -54,8 +67,8 @@ export function compile(request: Request) {
     }
   }
   const program = ordered.map(step => ({ step, type: types.get(step.id)!, command: step.op === 'freePoint'
-    ? `${step.id}=(${step.x},${step.y})`
-    : `${step.id}=${step.name}(${step.args.map(arg => typeof arg === 'number' ? arg : arg.ref).join(',')})` }));
+    ? `${step.id}=(${numberLiteral(step.x)},${numberLiteral(step.y)})`
+    : `${step.id}=${step.name}(${step.args.map(arg => typeof arg === 'number' ? numberLiteral(arg) : arg.ref).join(',')})` }));
   const points = ordered.filter(step => step.op === 'freePoint');
   assert(points.length > 0, 'A construction needs free points');
   return { program, view: request.plan.view, styles: request.plan.styles ?? [] };

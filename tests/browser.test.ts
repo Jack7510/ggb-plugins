@@ -16,6 +16,70 @@ import { compareSnapshots, verify } from '../src/verify.js';
 const fixture = async (name: string) => parseRequest(JSON.parse(await readFile(join(root, `examples/${name}.json`), 'utf8')));
 const cli = join(root, 'dist/src/cli.js');
 
+test('numeric and native visibility boundaries survive delivery and preview', { timeout: 120_000 }, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'ggb-boundaries-'));
+  const check = async (request: Request, inspect: (objects: Awaited<ReturnType<typeof snapshot>>) => void) => {
+    const result = await build(request);
+    const report = JSON.parse(await readFile(result.report, 'utf8'));
+    for (const phase of ['construction', 'reload']) {
+      assert.equal(report[phase].status, 'passed'); inspect(report[phase].objects);
+    }
+    assert.equal(report.interaction.status, 'passed');
+    for (const sample of report.interaction.samples) inspect(sample.after.objects);
+    const session = await openPreview(result.delivery, process.env.GGB_HEADED === '1');
+    try { inspect(await snapshot(session.page)); }
+    finally { await session.close(); }
+  };
+  try {
+    await t.test('positive and negative small coordinates and radius parameters', async () => {
+      const request = await fixture('triangle'); request.outputDir = join(directory, 'decimal');
+      request.plan.program[0] = { id: 'A', op: 'freePoint', x: 1e-7, y: -1.23456789e-7 };
+      request.plan.program.push({ id: 'k', op: 'command', name: 'Circle', args: [{ ref: 'A' }, 1.23456789e-7] });
+      // Drag B so the small coordinates stay fixed while the midpoint is sampled.
+      request.plan.interactions = [{ point: 'B', dx: 60, dy: -40 }];
+      await check(request, objects => {
+        const a = objects.find(o => o.name === 'A')!, k = objects.find(o => o.name === 'k')!;
+        assert(Math.abs(a.x! - 1e-7) < 1e-18);
+        assert(Math.abs(a.y! + 1.23456789e-7) < 1e-18);
+        assert(Math.abs(k.circle!.radius - 1.23456789e-7) < 1e-18);
+      });
+    });
+    await t.test('native radii at a distant center do not lose precision', async () => {
+      const request: Request = {
+        protocolVersion: 1, prompt: '以P(9000,9000)为圆心，作半径为0.1和0.0001的圆。', locale: 'zh-CN', outputDir: join(directory, 'distant'),
+        plan: {
+          program: [{ id: 'P', op: 'freePoint', x: 9000, y: 9000 },
+            ...[0.1, 0.0001].map((radius, i) => ({ id: `k${i}`, op: 'command' as const, name: 'Circle', args: [{ ref: 'P' }, radius] }))],
+          requirements: [0.1, 0.0001].map((radius, i) => ({ id: `circle${i}`, source: '作半径为0.1和0.0001的圆', checks: [
+            { kind: 'radius', subjects: [`k${i}`], value: radius, scope: 'sampled' as const },
+            { kind: 'center', subjects: [`k${i}`, 'P'], scope: 'sampled' as const },
+          ] })),
+          interactions: [{ point: 'P', dx: 60, dy: -40 }],
+        },
+      };
+      await check(request, objects => {
+        for (const [i, radius] of [0.1, 0.0001].entries()) assert(Math.abs(objects.find(o => o.name === `k${i}`)!.circle!.radius - radius) < 1e-15);
+      });
+    });
+    await t.test('hidden polygon permits hidden native edges but declared visibility still applies', async () => {
+      const request = await fixture('triangle'); request.outputDir = join(directory, 'hidden');
+      request.prompt += '隐藏三角形。';
+      request.plan.styles!.push({ object: 'shape', properties: { visible: false } });
+      request.plan.requirements.push({ id: 'hidden', source: '隐藏三角形', checks: [{ kind: 'style', subjects: ['shape'], properties: { visible: false }, scope: 'sampled' }] });
+      await check(request, objects => {
+        assert.equal(objects.find(o => o.name === 'shape')!.visible, false);
+        const edges = objects.filter(o => !request.plan.program.some(step => step.id === o.name));
+        assert.equal(edges.length, 3); assert(edges.every(o => !o.visible));
+        const changed = structuredClone(objects); changed.find(o => o.name === 'median')!.visible = false;
+        assert.equal(verify(request, changed, 'sampled').status, 'failed');
+        changed.find(o => o.name === 'median')!.visible = true;
+        changed.find(o => o.name === 'shape')!.visible = true;
+        assert.equal(verify(request, changed, 'sampled').status, 'failed');
+      });
+    });
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
 test('different constructions use one execution, verification and delivery pipeline', { timeout: 120_000 }, async t => {
   const directory = await mkdtemp(join(tmpdir(), 'ggb-browser-'));
   try {

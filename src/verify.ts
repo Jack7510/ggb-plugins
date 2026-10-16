@@ -114,7 +114,6 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
     results.push({ requirementId, checkId: `${requirementId}:${index}`, subjects, method, scope, status, evidence });
   };
   add('$canvas', 0, objects.map(o => o.name), 'objects_defined', () => truth(objects.length > 0 && objects.every(o => o.defined)));
-  add('$canvas', 1, objects.map(o => o.name), 'default_visibility', () => truth(objects.every(o => o.visible === (request.plan.styles?.find(s => s.object === o.name)?.properties.visible ?? true))));
   for (const step of request.plan.program) {
     add('$program:' + step.id, 0, [step.id], 'construction', () => {
       const fact = get(step.id);

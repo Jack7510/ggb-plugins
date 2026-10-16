@@ -46,7 +46,7 @@
 
 目前不支持两圆交点、滑块、函数表达式、三维和任意 GGBScript。实际不定义的对象会阻止交付。原生命令可能创建额外边对象；若与显式 ID 冲突，工具拒绝覆盖，重新选择内部 ID。
 
-`plan.styles` 可选，格式为 `{object: ID, properties: {...}}[]`；每个目标只能出现一次。属性包括 `visible`、`labelVisible`、`color`（六位十六进制）、`lineThickness`（1–13）、`lineStyle`（0–4）和 `caption`（1–100 字）。只对路径对象设置线宽或线型。对象默认可见，点默认显示名称；关键样式另外写入 requirement 的 style 检查。中文或希腊显示名可使用 caption，内部 ID 仍用 ASCII。
+`plan.styles` 可选，格式为 `{object: ID, properties: {...}}[]`；每个目标只能出现一次。属性包括 `visible`、`labelVisible`、`color`（六位十六进制）、`lineThickness`（1–13）、`lineStyle`（0–4）和 `caption`（1–100 字）。只对路径对象设置线宽或线型。程序声明对象默认可见，点默认显示名称；关键样式另外写入 requirement 的 style 检查。原生附属对象遵循 GeoGebra 语义；隐藏多边形会同时隐藏其自动边，不要求调用方声明边的样式。中文或希腊显示名可使用 caption，内部 ID 仍用 ASCII。
 
 `plan.view` 可选，包含 `xMin,xMax,yMin,yMax`。省略时按实际点和圆的边界取景并保持单位比例。交互点及目标位置必须在视野内。视野参数用于控制画面，当前没有布局或视野边界的验收谓词；不能据此声称已核验这类必需要求。
 
