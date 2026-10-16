@@ -31,7 +31,7 @@ Use reusable operations and predicates. Never add problem-type dispatch, keyword
 
 ## Testing Guidelines
 
-Use Node's built-in runner and `*.test.ts`. Fault injection stays in tests using Node module mocks; never add production fault switches. Add behavioral checks and relevant counterexamples. Browser acceptance requires real applets. Samples use reloaded copies; preserve the exported canvas. Require coverage and evidence; compare numbers with fixed tolerance. Commit delivery only after cleanup. A post-commit journal error cannot invalidate delivery. No coverage threshold.
+Use Node's built-in runner and `*.test.ts`. Fault injection stays in tests using Node module mocks; never add production fault switches. Add behavioral checks and relevant counterexamples. Use real headless applets and save screenshots. Open only the final preview in Google Chrome; automated previews use --headless. Samples use reloaded copies; preserve the exported canvas. Require coverage and evidence; compare numbers with fixed tolerance. Commit delivery only after cleanup. A post-commit journal error cannot invalidate delivery. No coverage threshold.
 
 ## Commit & Pull Request Guidelines
 

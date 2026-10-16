@@ -31,6 +31,8 @@ test('startup stops waiting on abort and owns late native resources', { timeout:
     if (phase === 'context-deadline') limits.operationMs = 1500;
     t.mock.method(chromium, 'launch', (options: Parameters<typeof chromium.launch>[0]) => {
       assert.equal(options!.timeout, limits.operationMs);
+      assert.equal(options!.headless, true);
+      assert.equal(options!.channel, undefined);
       const task = (async () => {
         const browser = await originalLaunch(options); browsers.push(browser);
         if (phase.startsWith('launch')) { observed.resolve(); await gate.promise; }

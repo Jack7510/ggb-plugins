@@ -26,7 +26,7 @@ test('numeric and native visibility boundaries survive delivery and preview', { 
     }
     assert.equal(report.interaction.status, 'passed');
     for (const sample of report.interaction.samples) inspect(sample.after.objects);
-    const session = await openPreview(result.delivery, process.env.GGB_HEADED === '1');
+    const session = await openPreview(result.delivery, false);
     try { inspect(await snapshot(session.page)); }
     finally { await session.close(); }
   };
@@ -95,7 +95,7 @@ test('different constructions use one execution, verification and delivery pipel
       for (const key of ['construction', 'reload', 'interaction']) assert.equal(report[key].status, 'passed');
       const handlers = ['SIGINT', 'SIGTERM'].map(signal => process.listeners(signal));
       const exitCode = process.exitCode;
-      const session = await openPreview(delivery, process.env.GGB_HEADED === '1');
+      const session = await openPreview(delivery, false);
       try {
         assert.deepEqual(['SIGINT', 'SIGTERM'].map(signal => process.listeners(signal)), handlers);
         assert.equal(process.exitCode, exitCode);
@@ -147,7 +147,7 @@ test('different constructions use one execution, verification and delivery pipel
           } finally { await writeFile(reportPath, contents); }
         });
         await t.test('CLI cancellation closes the preview and releases its port', async () => {
-          const child = spawn(process.execPath, [cli, 'preview', '--delivery', delivery], { stdio: ['ignore', 'pipe', 'pipe'] });
+          const child = spawn(process.execPath, [cli, 'preview', '--delivery', delivery, '--headless'], { stdio: ['ignore', 'pipe', 'pipe'] });
           const lines = createInterface({ input: child.stdout });
           const timer = setTimeout(() => child.kill('SIGKILL'), 20_000);
           try {
@@ -191,7 +191,7 @@ test('different constructions use one execution, verification and delivery pipel
       const distance = { kind: 'distance', subjects: ['A', 'B'], value: 6, scope: 'initial' as const };
       request.plan.requirements.push({ id: 'initial', source: 'A的初始坐标为(0,0)，AB的初始长度为6', checks: [coordinate, distance] });
       const result = await build(request);
-      const session = await openPreview(result.delivery, process.env.GGB_HEADED === '1');
+      const session = await openPreview(result.delivery, false);
       try {
         const objects = await snapshot(session.page);
         coordinate.coordinates = [1, 0]; assert.equal(verify(request, objects, 'initial').status, 'failed');

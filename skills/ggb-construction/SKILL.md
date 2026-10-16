@@ -26,14 +26,16 @@ description: 根据文字二维数学题生成可组合的 GeoGebra 构图程序
 node <plugin>/dist/src/cli.js build --request <absolute-request.json>
 ```
 
+构图、重载、拖动及 Playwright 验证均使用 headless，不在中间步骤打开可见浏览器。工具将成功截图保存为交付目录中的 preview.png；需要诊断截图时也保存到工作区。
+
 读取返回的 JSON 和失败运行中的 `verification.json`、`run.json`。修正程序时保留原始要求，不放宽容差，不提交模型自判的 `passed`。最多尝试三次，每次工具从空白 applet 开始；仍失败时报告具体要求、能力缺口或错误，不在半完成画布上追加操作。
 
 成功结果若带 warnings，向用户说明诊断写入问题；完整交付目录仍有效，不因此重新作图。失败时从 error.details.run 定位诊断，保存失败信息；不连接残留画布。
 
-成功后自动打开返回的交付目录：
+全部验证成功后，再用本机 Google Chrome 打开交付目录中 result.ggb 的交互预览：
 
 ```sh
 node <plugin>/dist/src/cli.js preview --delivery <absolute-delivery-dir>
 ```
 
-预览是前台进程，使用宿主的进程会话保持运行。等待就绪 JSON；仅打开窗口不算完成。交付 `result.ggb`、检查报告和截图，说明已验证的条件及有限交互样本。采样通过不等于一般命题已证明。预览失败时保留文件并单独报告展示错误。
+预览需要本机已安装 Google Chrome；不要直接导航到 .ggb 文件，用上述命令加载文件。预览是前台进程，使用宿主的进程会话保持运行。等待就绪 JSON；仅打开窗口不算完成。交付 `result.ggb`、检查报告和截图，说明已验证的条件及有限交互样本。采样通过不等于一般命题已证明。预览失败时保留文件并单独报告展示错误。

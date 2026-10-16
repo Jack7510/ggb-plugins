@@ -323,11 +323,11 @@ M2 使用请求明确声明的自由点及非退化像素位移样本；每个�
     manifest.json              协议、runtime 版本、输入及文件摘要
 ```
 
-不建立任务数据库、事件日志或多层 attempt 目录。记录不包含登录令牌、Provider Key 或宿主私有推理。Codex 在 `build` 成功后自动调用 `preview`。预览加载同一文件并提供缩放和自由点拖动，不重新构造对象。预览失败时保留文件并报告展示错误，可以单独重新调用 `preview`。
+不建立任务数据库、事件日志或多层 attempt 目录。记录不包含登录令牌、Provider Key 或宿主私有推理。构图、doctor、重载和交互回归使用 headless，过程中不打开可见窗口；截图保存到交付或诊断目录。Codex 在 `build` 的全部验证成功后再自动调用 `preview`，用本机 Google Chrome 展示最终文件。自动化预览检查添加 `--headless`，使用测试用 Chromium。预览加载同一文件并提供缩放和自由点拖动，不重新构造对象。预览失败时保留文件并报告展示错误，可以单独重新调用 `preview`。
 
 ## 9 运行依赖与安装
 
-依赖为 Node.js、pnpm 构建产物、Playwright Chromium 和固定版本 GeoGebra runtime。版本及资源摘要集中记录。目标客户端必须验证插件相对路径、子进程运行和前台预览会话。
+依赖为 Node.js、pnpm 构建产物、Playwright Chromium 和固定版本 GeoGebra runtime；最终可见预览另需本机 Google Chrome。版本及资源摘要集中记录。目标客户端必须验证插件相对路径、子进程运行和前台预览会话。
 
 第一版使用明确安装步骤准备浏览器和 runtime，不引入自动更新器或多平台安装框架。运行时资源由本地供应；是否完全离线须在断网装置测试后才能声明。
 

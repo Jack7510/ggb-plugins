@@ -80,3 +80,11 @@ a6771b5de696ced600c5b7c50959ee0d12a08aebbf6753165c2eae37558f64a7
 上述初始 M4 自动发现和客户端验收记录仍对应原安装副本。本次未重新执行客户端自动选择 Skill；本轮验证范围为安装分支及既有回归。
 
 修复后 pnpm check、pnpm build、pnpm test（27 项）、pnpm test:browser（15 项构图、40 项故障与启动测试）、pnpm pack:plugin 及 git diff --check 均通过。浏览器回归使用 headless 模式；本次未重跑 headed 模式。
+
+## 静默验证与最终 Chrome 展示
+
+构图、doctor 和全部自动回归固定使用 headless。自动化 CLI 预览添加 --headless；不再使用 GGB_HEADED 环境变量切换回归窗口。启动故障测试同时断言 headless 和测试浏览器通道。截图仍保存在交付目录。
+
+最终 preview 使用本机 Google Chrome。2026-10-16 本轮 pnpm check、pnpm build、27 项基础测试、15 项构图回归、40 项故障与启动测试、Skill 校验、打包及 git diff --check 均通过。三角形样例静默交付到 `output/headless-preview/ggb-WfqTjq/delivery`，随后 Chrome 加载同一 result.ggb，完成重载核验并返回就绪 JSON。预览前台会话保留，用户关闭展示浏览器后释放资源。
+
+新包为 `output/plugin/ggb-plugin-22YtV8/ggb-plugins-0.4.0.zip`，SHA-256 为 `2157035a7b2505d0bba9478bb77b6ad3718d492f73c9047fc6376b233e9a5e80`。本轮未重新执行安装后的 Skill 自动发现。

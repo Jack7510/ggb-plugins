@@ -65,6 +65,7 @@ async function launchBrowser(headed: boolean, signal?: AbortSignal) {
     startup.throwIfAborted();
     const launch = chromium.launch({
       timeout: limits.operationMs,
+      channel: headed ? 'chrome' : undefined,
       headless: !headed, handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false,
     }).then(async opened => {
       // launch has no AbortSignal API. This handler owns any late result even

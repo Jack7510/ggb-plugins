@@ -75,6 +75,8 @@ pnpm preview --delivery /absolute/path/to/delivery
 
 M2 使用新的交付契约，旧 M1 产物需重新生成。M2 Review 修复更新了呈现检查的结果集合；修复前的 M2 报告也需用原请求重新 build。当前不接受图片、外部 GGB 续题、三维、任意脚本或通用证明。复杂布局和视野边界暂无验收谓词；无法核验的必需要求不得作为成功结果交付。
 
+构图、doctor 和自动回归均使用 headless，过程中不弹出浏览器，交付截图保存在 preview.png。全部验证完成后，preview 使用本机已安装的 Google Chrome 加载 result.ggb。自动化预览检查使用 `preview --delivery <dir> --headless`。
+
 ## 验证与实现边界
 
 ```sh
@@ -82,7 +84,6 @@ pnpm check
 pnpm build
 pnpm test
 pnpm test:browser
-GGB_HEADED=1 pnpm test:browser
 ```
 
 离线测试覆盖严格输入、依赖图、拒绝路径、容差、资源边界和插件归档。真实浏览器测试覆盖四种构造、对象改名和坐标旋转、M1 呈现反例、伪造依赖、错误关系、数值灰区、文件缺项和 CLI 取消。M3 故障测试另覆盖依赖缺失、回调超时、写盘及提交失败、清理异常、资源释放和提交前后真实 SIGKILL。故障注入仅使用 Node 测试模块 mock，需支持 `--experimental-test-module-mocks` 的 Node.js；未增加运行依赖。记录见 [M3 验收记录](docs/m3-validation.md) 及 [M2 验收记录](docs/m2-validation.md)。

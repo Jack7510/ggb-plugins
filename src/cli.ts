@@ -9,14 +9,16 @@ const emit = (data: unknown) => console.log(JSON.stringify({ protocolVersion: 1,
 const cancellation = new AbortController();
 const stop = () => cancellation.abort(new Error('Cancelled'));
 process.once('SIGINT', stop); process.once('SIGTERM', stop);
-const usage = 'doctor | build --request <file> | preview --delivery <dir> | demo [--output <dir>]';
+const usage = 'doctor | build --request <file> | preview --delivery <dir> [--headless] | demo [--output <dir>]';
 let command: string | undefined, ready = false;
 try {
   const { positionals, values } = parseArgs({ allowPositionals: true, options: {
     request: { type: 'string' }, delivery: { type: 'string' }, output: { type: 'string' },
+    headless: { type: 'boolean' },
   } });
   if (positionals.length !== 1) throw new Error(usage);
   command = positionals[0];
+  if (values.headless && command !== 'preview') throw new Error(usage);
   if (command === 'doctor' && !values.request && !values.delivery && !values.output) {
     emit(await doctor(cancellation.signal));
   } else if (command === 'build' && values.request && !values.delivery && !values.output) {
@@ -26,7 +28,7 @@ try {
     input.outputDir = values.output ?? 'output/ggb';
     emit(await build(input, cancellation.signal));
   } else if (command === 'preview' && values.delivery && !values.request && !values.output) {
-    const session = await openPreview(values.delivery, true, cancellation.signal);
+    const session = await openPreview(values.delivery, !values.headless, cancellation.signal);
     try {
       const closed = session.browser.isConnected() ? new Promise<void>(done => session.browser.once('disconnected', () => done())) : Promise.resolve();
       emit({ url: session.url, delivery: session.delivery }); ready = true; await closed;

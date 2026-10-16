@@ -209,10 +209,10 @@ test('committed files survive journal and preview errors; repeated calls remain 
       console.log = value => { log(value); if (JSON.parse(value).data?.url) void session.browser.close(); };
       await import(${JSON.stringify(join(root, 'dist/src/cli.js'))});
     `;
-    const { stdout } = await promisify(execFile)(process.execPath, ['--experimental-test-module-mocks', '--input-type=module', '-e', script, 'preview', '--delivery', first.delivery], { timeout: 15_000 });
+    const { stdout } = await promisify(execFile)(process.execPath, ['--experimental-test-module-mocks', '--input-type=module', '-e', script, 'preview', '--delivery', first.delivery, '--headless'], { timeout: 15_000 });
     const ready = JSON.parse(stdout); assert.equal(ready.ok, true); await assert.rejects(fetch(ready.data.url));
     assert.deepEqual(await fs.readFile(first.file), before);
-    await assert.rejects(promisify(execFile)(process.execPath, ['--experimental-test-module-mocks', '--input-type=module', '-e', script, 'preview', '--delivery', first.delivery], {
+    await assert.rejects(promisify(execFile)(process.execPath, ['--experimental-test-module-mocks', '--input-type=module', '-e', script, 'preview', '--delivery', first.delivery, '--headless'], {
       timeout: 15_000, env: { ...process.env, GGB_TEST_LATE_ERROR: '1' },
     }), (error: any) => {
       assert.equal(error.code, 1); assert.equal(JSON.parse(error.stdout).ok, true);
