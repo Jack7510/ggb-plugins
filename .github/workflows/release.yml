@@ -3,6 +3,12 @@ name: Release plugin
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -13,9 +19,12 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
@@ -24,7 +33,7 @@ jobs:
       - uses: pnpm/action-setup@v6
       - name: Check version, build and test
         run: |
-          node --input-type=module -e 'import pkg from "./package.json" with {type:"json"}; if (process.env.GITHUB_REF_NAME !== `v${pkg.version}`) throw new Error("Tag and package version differ");'
+          node --input-type=module -e 'import pkg from "./package.json" with {type:"json"}; if (process.env.RELEASE_TAG !== `v${pkg.version}`) throw new Error("Tag and package version differ");'
           pnpm install --frozen-lockfile --ignore-scripts
           pnpm check
           pnpm build
@@ -36,5 +45,5 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           archive=$(node -p 'JSON.parse(require("fs").readFileSync("release.json")).archive')
-          gh release create "$GITHUB_REF_NAME" "$archive" "$archive.sha256" --verify-tag --draft --title "GeoGebra Construction $GITHUB_REF_NAME" --notes-file "docs/releases/$GITHUB_REF_NAME.md"
-          gh release edit "$GITHUB_REF_NAME" --draft=false --latest
+          gh release create "$RELEASE_TAG" "$archive" "$archive.sha256" --verify-tag --draft --title "GeoGebra Construction $RELEASE_TAG" --notes-file "docs/releases/$RELEASE_TAG.md"
+          gh release edit "$RELEASE_TAG" --draft=false --latest

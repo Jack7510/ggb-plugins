@@ -20,6 +20,8 @@ pnpm pack:plugin
 
 维护者推送与 package.json/plugin.json 一致的 `v<version>` 标签后，发布工作流执行类型检查、构建及基础／打包测试，上传 ZIP 和校验文件后发布 Release。每个标签需提供 `docs/releases/<tag>.md` 发布说明；不要移动已发布标签。
 
+也可在 Actions 中手动运行 Release plugin，输入已存在的版本标签。工作流从该标签检出源码，不把 main 的后续改动混入发布包。
+
 ## 源码开发环境
 
 需要 Node.js 22+、pnpm 11，以及系统 `curl`、`unzip`。已在 macOS arm64 验证；其他平台尚未验收。
