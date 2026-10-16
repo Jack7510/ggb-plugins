@@ -88,3 +88,19 @@ a6771b5de696ced600c5b7c50959ee0d12a08aebbf6753165c2eae37558f64a7
 最终 preview 使用本机 Google Chrome。2026-10-16 本轮 pnpm check、pnpm build、27 项基础测试、15 项构图回归、40 项故障与启动测试、Skill 校验、打包及 git diff --check 均通过。三角形样例静默交付到 `output/headless-preview/ggb-WfqTjq/delivery`，随后 Chrome 加载同一 result.ggb，完成重载核验并返回就绪 JSON。预览前台会话保留，用户关闭展示浏览器后释放资源。
 
 新包为 `output/plugin/ggb-plugin-22YtV8/ggb-plugins-0.4.0.zip`，SHA-256 为 `2157035a7b2505d0bba9478bb77b6ad3718d492f73c9047fc6376b233e9a5e80`。本轮未重新执行安装后的 Skill 自动发现。
+
+## 0.4.1 本机更新与新文字题验收
+
+日期：2026-10-16。同步更新 package.json 和 plugin.json 为 0.4.1，重新打包并通过 codex plugin marketplace/add 安装。安装缓存为 `~/.codex/plugins/cache/ggb-plugins-local/ggb-plugins/0.4.1`；22 个发布文件与包逐字节一致。生产依赖安装、固定 runtime 摘要核验及 headless doctor 通过。
+
+新包：`output/plugin/ggb-plugin-djdlc3/ggb-plugins-0.4.1.zip`。SHA-256：`e32c9851e49274f7f38c1be84c83b859068d92cc3ad77241517c64d74b02691b`。
+
+在仓库外的新工作区启动真实 Codex CLI app-server 会话。skills/list 自动发现已启用的 0.4.1 Skill；只向模型提交文字题，没有指定 Skill 名称、路径或预生成程序：
+
+> 作任意非退化三角形 PQR 的外接圆。通过 PQ 和 PR 的垂直平分线确定圆心 O，连接 OP、OQ、OR，将外接圆标蓝。拖动三个顶点时，圆仍经过 P、Q、R，三条半径保持相等。
+
+模型自行读取安装缓存中的 Skill 和能力契约，选择 P=(-3,-1)、Q=(3,-1)、R=(1,3)，生成组合程序。构造与重载各 68 项检查通过；三个顶点各一次实际拖动及缩放通过。全部构图、doctor、预览测试和独立复核均使用 headless，截图已保存并查看。首次 doctor 因沙箱本地端口限制失败，正常自动审批后重试成功，未更改插件或绕过核验。
+
+正式交付位于 `/private/tmp/ggb-041-circumcircle-DuoA9d/output/ggb-PPGkxw/delivery`；交付、截图和精简证据的持久副本位于本地忽略目录 `output/0.4.1-acceptance/`。有限拖动样本不代表对所有构型的数学证明。类型检查、构建、27 项基础与打包回归及 git diff --check 通过；未重复执行既有 55 项浏览器回归，当前执行代码未修改。
+
+独立复核成功、headless 测试会话关闭后，才向同一客户端发送展示指令。客户端用已安装 CLI 在本机 Chrome 加载原 result.ggb，返回就绪；回合结束时及三秒后均收到 HTTP 200。前台客户端连接继续保留，关闭展示浏览器后释放资源。本轮验收范围仍为真实 CLI 运行时，不扩展为桌面插件目录 UI 验收。
