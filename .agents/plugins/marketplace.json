@@ -1,0 +1,20 @@
+{
+  "name": "ggb-plugins-local",
+  "interface": {
+    "displayName": "GeoGebra Construction (Local)"
+  },
+  "plugins": [
+    {
+      "name": "ggb-plugins",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

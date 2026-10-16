@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "ggb-plugins",
+  "version": "0.4.0",
+  "description": "根据文字二维数学题生成、核验并预览可交互 GeoGebra 构图。",
+  "author": { "name": "Jack7510" },
+  "repository": "https://github.com/Jack7510/ggb-plugins",
+  "license": "MIT",
+  "keywords": ["geogebra", "geometry", "mathematics"],
+  "extensions": {
+    "com.openai": {
+      "requires_local_executor": true,
+      "interface": {
+        "displayName": "GeoGebra Construction",
+        "shortDescription": "文字数学题到经核验、可交互的 GGB 文件"
+      }
+    }
+  }
+}

@@ -1,8 +1,8 @@
 # ggb-plugins 独立工程设计草案
 
-日期：2026-10-16。状态：M1–M3 已实现并验证；M4 插件安装发布及目标客户端验收尚未完成。
+日期：2026-10-16。状态：M1–M4 已实现并在本地 Codex CLI 0.162.1 运行时验收；桌面 UI 自动化与其他平台不在已验证范围。
 
-M2 已提供通用 `pnpm ggb build --request <file>`、`pnpm preview --delivery <dir>` 和仓库内 Skill。`pnpm demo` 通过同一接口运行三角形回归数据。运行方法见 [README](../README.md)，当前验证见 [M2 验收记录](m2-validation.md)，历史记录见 [M1 验证记录](m1-validation.md)。M3 已增加 `pnpm ggb doctor`；当前故障验收见 [M3 验收记录](m3-validation.md)。插件安装格式仍是后续拟议接口。
+M2 已提供通用 `pnpm ggb build --request <file>`、`pnpm preview --delivery <dir>` 和仓库内 Skill。`pnpm demo` 通过同一接口运行三角形回归数据。运行方法见 [README](../README.md)，当前验证见 [M2 验收记录](m2-validation.md)，历史记录见 [M1 验证记录](m1-validation.md)。M3 已增加 `pnpm ggb doctor`；当前故障验收见 [M3 验收记录](m3-validation.md)。M4 的插件安装格式与目标客户端结果见 [M4 验收记录](m4-validation.md)，操作见 [安装说明](installation.md)。
 
 `ggb-plugins` 是面向本地 Codex 的 GeoGebra 构图插件。第一版只处理文字二维题目。Codex 通过 Skill 理解题意并生成结构化方案。本地工具在真实 GeoGebra 中构造、核验、导出和重载，再打开可交互预览。
 
@@ -73,7 +73,8 @@ GitHub 仓库为 [Jack7510/ggb-plugins](https://github.com/Jack7510/ggb-plugins)
 
 ```text
 ggb-plugins/
-  plugin.json                  待 M4
+  plugin.json                  本地执行插件清单
+  .agents/plugins/marketplace.json  可安装的仓库 marketplace
   skills/ggb-construction/
     SKILL.md
     references/capabilities.md
@@ -94,7 +95,7 @@ ggb-plugins/
   pnpm-lock.yaml
 ```
 
-只在文件职责过大时拆分模块。构建产物和启动脚本通过插件相对路径定位，不能依赖开发机器的绝对路径。安装包必须包含构建产物，或提供明确的构建步骤。
+只在文件职责过大时拆分模块。构建产物和启动脚本通过插件相对路径定位，不能依赖开发机器的绝对路径。M4 ZIP 采用显式文件清单，包含 dist/src 编译产物、Skill、页面、安装脚本、锁文件和许可；不包含源码、测试、runtime、依赖目录或用户产物。源码 Git 安装由同一安装器构建。
 
 M2 已删除生产路径中的 `triangle.ts`，将 M1 样例移至 `examples/triangle.json`。生产执行和验证接收程序及要求；不按新题新增 `solveXxx()` 文件。当前完整 JSON 契约见 [能力说明](../skills/ggb-construction/references/capabilities.md)，实现见 `src/schema.ts`。
 
@@ -104,7 +105,7 @@ M2 已删除生产路径中的 `triangle.ts`，将 M1 样例移至 `examples/tri
 
 Skill 负责题意理解、澄清、程序生成和结果说明。CLI 负责确定性执行及交付门禁，不识别或路由题型。第一版不建立手册检索子系统；Skill 使用精简能力说明，必要时查阅官方手册。
 
-插件优先采用根目录 `plugin.json`。字段、安装位置和资源访问方式必须在目标 Codex 客户端验证。参见[插件架构](https://developers.openai.com/plugins/concepts/plugins)和[插件打包](https://developers.openai.com/plugins/build/plugins)。
+插件采用根目录 `plugin.json`，通过 `extensions.com.openai.requires_local_executor` 声明本地执行。仓库 marketplace 指向插件根目录。M4 已在 Codex CLI 0.162.1 验证安装缓存、命名空间 Skill 自动发现和资源相对路径；桌面 UI 的目录安装过程未自动化验收。参见[插件架构](https://developers.openai.com/plugins/concepts/plugins)和[插件打包](https://developers.openai.com/plugins/build/plugins)。
 
 ```mermaid
 flowchart LR
@@ -221,7 +222,7 @@ flowchart TD
 | 清理 | `build` 在退出时关闭所有候选 applet、浏览器和资源服务 | 不保留可续接的构图会话 |
 | 展示 | `preview` 新进程启动本地服务和可见浏览器，加载交付文件 | 用户关闭浏览器或终止进程后释放服务 |
 
-CLI 调用之间只传递文件和结果 JSON，不传递 Playwright 对象或浏览器连接。`preview` 必须等待 applet 加载交付文件并完成基本对象检查，才能输出一条就绪 JSON，再保持前台运行；Codex 使用宿主支持的进程会话保留它。仅打开浏览器窗口不算就绪。用户关闭标签页后可能仍有浏览器进程，因此以关闭展示浏览器或终止进程为清理入口。
+CLI 调用之间只传递文件和结果 JSON，不传递 Playwright 对象或浏览器连接。`preview` 必须等待 applet 加载交付文件并完成基本对象检查，才能输出一条就绪 JSON，再保持前台运行；Codex 使用宿主支持的进程会话保留它。一次性 codex exec 退出会回收前台进程；M4 用保持连接的 Codex app-server 验证答复后的预览存活，不引入插件后台服务。仅打开浏览器窗口不算就绪。用户关闭标签页后可能仍有浏览器进程，因此以关闭展示浏览器或终止进程为清理入口。
 
 预览进程不提供控制 API、编辑 API 或后台守护功能。资源服务只监听 `127.0.0.1`，只映射页面壳和固定 runtime，检查 Host，不提供通用磁盘读取；CLI 读取 GGB 后通过 applet API 加载，不直接服务产物目录。预览修改不写回 `result.ggb`，也不继承原验证结论。
 
@@ -354,7 +355,7 @@ GeoGebra runtime 的分发及用途须核对[官方许可](https://www.geogebra.
 
 现有命令为 `pnpm check`（类型检查）、`pnpm build`（编译）、`pnpm test`（输入及资源服务测试）和 `pnpm test:browser`（真实 applet 回归）。不单独建立验收框架；发布时再通过目标 Codex 客户端执行 A2 并记录结果。
 
-第一版完成标准为 A1–A11 有对应结果，且文字题完整链路在真实客户端成功。A11 可以使用三角形中线、线段垂直平分线和以中点为圆心的圆等不同组合；这些是测试输入，不成为生产题型路由或模板库。新题仍须位于已声明能力内。图片、外部导入及续题不属于第一版验收。报告记录版本、题目、检查范围、耗时和产物位置。
+第一版完成标准为 A1–A11 有对应结果，且文字题完整链路在声明的真实目标客户端成功。M4 目标为本地 Codex CLI 0.162.1 运行时；A1、A2 见 M4 记录，A3–A10 见 M3 记录，A11 见 M2 记录，不代表全部 Codex 界面及平台均已验收。A11 可以使用三角形中线、线段垂直平分线和以中点为圆心的圆等不同组合；这些是测试输入，不成为生产题型路由或模板库。新题仍须位于已声明能力内。图片、外部导入及续题不属于第一版验收。报告记录版本、题目、检查范围、耗时和产物位置。
 
 ## 11 实施顺序与待确认事项
 
@@ -363,7 +364,7 @@ GeoGebra runtime 的分发及用途须核对[官方许可](https://www.geogebra.
 | M1 | 最小浏览器链路：页面、固定 applet、三角形和中线、导出、重载、前台预览 | 单个开发入口生成真实 GGB；关闭构图进程后仍可由预览进程打开并拖动 |
 | M2 | 已完成文字题产品链路：可组合程序 schema、统一执行、谓词核验、build 和 Skill；固定样例转为测试 | Codex 按题生成程序并交付文件；A11 跨题复用通过，固定坐标冒充依赖等反例被拒绝；工具不含题型分支 |
 | M3 | 已完成第一版有限能力验收、错误清理、产物提交及 doctor | A3–A10 通过；依赖、数值和交互检查范围明确 |
-| M4 | 插件打包、安装说明和目标客户端验收 | A1、A2 通过；第一版可独立安装和使用 |
+| M4 | 已完成插件打包、安装说明和本地 Codex CLI 目标验收 | A1、A2 通过；第一版可独立安装和使用 |
 
 M1 的文件与浏览器链路已由 M2 改为接收可组合程序，并完成跨题复用、改名及构型变化验收。实现不包含题型路由或专用三角形核验器；不宣称满足任意文字题或完整第一版产品验收。不得在完成这条链路前建设通用任务调度、MCP、导入解析器或恢复框架。
 
@@ -375,14 +376,14 @@ M1 的文件与浏览器链路已由 M2 改为接收可组合程序，并完成�
 | 最小依赖读取及加载完成信号 | M1–M2 | 中点等构造能否从真实 applet 核验 |
 | 可组合程序及核验谓词的最小契约 | M2 已确定 | 见 schema、能力说明及跨题验收记录 |
 | 数值容差、拖动样本、输入容量及超时 | M3 已完成故障验收 | 固定容差及灰区、显式样本、输入上限和 120 秒构图总时限 |
-| 目标客户端清单格式、资源路径和前台会话 | M4 前；路径风险在 M1 先做小型验证 | 安装后能否运行并保留预览 |
+| 目标客户端清单格式、资源路径和前台会话 | M4 已验证本地 CLI；桌面 UI 未验收 | 根清单、安装缓存、自动发现及保持连接后的前台预览 |
 | 移植代码的具体基线和许可 | 每次移植前 | 来源追踪及独立运行 |
 
 ## 12 参考与设计覆盖
 
 原工程的 Native 文档、`geogebra/host.ts` 和 `native-browser-e2e.mjs` 可作为实现调查入口。其服务端流程、九阶段状态和回归 runner 不直接移植为新产品架构。具体路径及提交在实际移植时登记。
 
-官方依据见第 3、4、8、9 节链接。M1–M3 实现范围见文首、README 及验证记录；插件安装发布仍为拟议设计。
+官方依据见第 3、4、8、9 节链接。M1–M3 实现范围见文首、README 及验证记录；本地安装格式与 CLI 目标验收已实现，未提交到公共插件目录。
 
 | 显性要素 | 位置 | 状态 |
 | --- | --- | --- |
@@ -390,6 +391,6 @@ M1 的文件与浏览器链路已由 M2 改为接收可组合程序，并完成�
 | 正常、拒绝及失败流程 | 第 5、8 节 | 已提供；无自动恢复 |
 | 画布生命周期与状态迁移 | 第 6 节 | 已提供；运行与预览分离 |
 | 输入、工具及文件契约 | 第 4、7、8 节 | M3 已实现；容量与超时已设限，故障验收通过 |
-| 验收与实施顺序 | 第 10、11 节 | 已提供；M1 样例、M2 跨题复用及 M3 故障已验证，完整第一版验收未执行 |
+| 验收与实施顺序 | 第 10、11 节 | 已提供；M1–M4 的本地 CLI 验收已执行；桌面 UI 及其他平台未验收 |
 
 本文已应用 STE 的中文清晰写作原则；完整规则和词典核对未完成，不声明 ASD-STE100 英文合规。

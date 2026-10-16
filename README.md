@@ -1,10 +1,20 @@
 # ggb-plugins
 
-面向本地 Codex 的 GeoGebra 构图工具。**M3 已实现**：Codex 根据文字题生成结构化程序，经统一 CLI 构造、逐条件核验、导出、重载和交互检查，再打开独立预览。题意分析由宿主 Codex 完成，本地工具不额外调用模型 API。
+面向本地 Codex 的 GeoGebra 构图工具。**M4 已打包**：Codex 根据文字题生成结构化程序，经统一 CLI 构造、逐条件核验、导出、重载和交互检查，再打开独立预览。题意分析由宿主 Codex 完成，本地工具不额外调用模型 API。
 
-新题通过组合原语解决。生产执行器和验证器不按题型分支；M1 三角形现在是 `examples/triangle.json` 回归输入。支持范围及完整请求格式见 [Skill 能力契约](skills/ggb-construction/references/capabilities.md)，阶段划分见 [设计文档](docs/ggb-plugins-design.md)。M3 已补齐 doctor、错误清理和产物提交故障验收；正式插件打包及目标客户端安装验收留待 M4。
+新题通过组合原语解决。生产执行器和验证器不按题型分支；M1 三角形现在是 `examples/triangle.json` 回归输入。支持范围及完整请求格式见 [Skill 能力契约](skills/ggb-construction/references/capabilities.md)，阶段划分见 [设计文档](docs/ggb-plugins-design.md)。M4 提供可安装插件 ZIP、本地 marketplace 和安装器。目标客户端验收使用 Codex CLI 0.162.1 的运行时；桌面 UI 自动化不在本轮已验证范围。
 
-## 安装
+## 插件打包与安装
+
+```sh
+pnpm pack:plugin
+```
+
+命令先编译，再输出插件目录、ZIP 和 SHA-256 路径。每次使用独立输出目录，不覆盖旧包。包内包含根 plugin.json、marketplace、Skill 及能力说明、八个编译模块、页面、两项安装脚本、锁文件和许可说明。不包含源码、测试、开发文档、node_modules、GeoGebra、Chromium 或用户产物；生产依赖和 runtime 在安装后准备。
+
+按 [安装说明](docs/installation.md) 注册 marketplace、安装插件，再在安装缓存内执行 setup-plugin。ZIP 已编译；GitHub 源码安装会由同一安装器构建。插件自动发现路径来自安装缓存，构图不依赖开发仓库。客户端验收见 [M4 验收记录](docs/m4-validation.md)。
+
+## 源码开发环境
 
 需要 Node.js 22+、pnpm 11，以及系统 `curl`、`unzip`。已在 macOS arm64 验证；其他平台尚未验收。
 
@@ -32,7 +42,7 @@ pnpm ggb doctor
 
 ## 在 Codex 中作图
 
-让 Codex 读取 [ggb-construction Skill](skills/ggb-construction/SKILL.md)，提交文字题。Skill 指导 Codex 保留条件来源、生成可组合程序和检查条件、处理执行反馈并交付结果。当前 Skill 在仓库内，尚未完成插件安装后的自动发现验收。
+让 Codex 读取 [ggb-construction Skill](skills/ggb-construction/SKILL.md)，提交文字题。Skill 指导 Codex 保留条件来源、生成可组合程序和检查条件、处理执行反馈并交付结果。插件安装并启用后，在新会话自动发现 `ggb-plugins:ggb-construction`。源码开发时也可手动读取仓库中的 Skill；这不代替安装验收。
 
 CLI 消费 Codex 生成的 JSON 请求。请求包含用户原文、locale、outputDir，以及 program、requirements、styles 和交互样本；使用绝对产物路径可避免工作目录歧义。
 
@@ -61,7 +71,7 @@ pnpm demo
 pnpm preview --delivery /absolute/path/to/delivery
 ```
 
-预览核对文件完整性、摘要、报告覆盖和实际重载事实，再输出就绪 JSON 并保持前台运行。拖动自由点观察联动，使用右下角按钮缩放。预览修改不覆盖交付文件。关闭展示浏览器或按 Ctrl+C 会释放本地服务；仅关闭标签页可能不会结束浏览器。
+预览核对文件完整性、摘要、报告覆盖和实际重载事实，再输出就绪 JSON 并保持前台运行。拖动自由点观察联动，使用右下角按钮缩放。预览修改不覆盖交付文件。预览依赖宿主保留前台进程：交互客户端或保持连接的 app-server 可保留；一次性 codex exec 退出会回收其进程会话。不要把刚输出就绪后即退出的 exec 当作持久预览。关闭展示浏览器或按 Ctrl+C 会释放本地服务；仅关闭标签页可能不会结束浏览器。
 
 M2 使用新的交付契约，旧 M1 产物需重新生成。M2 Review 修复更新了呈现检查的结果集合；修复前的 M2 报告也需用原请求重新 build。当前不接受图片、外部 GGB 续题、三维、任意脚本或通用证明。复杂布局和视野边界暂无验收谓词；无法核验的必需要求不得作为成功结果交付。
 
@@ -75,6 +85,6 @@ pnpm test:browser
 GGB_HEADED=1 pnpm test:browser
 ```
 
-离线测试覆盖严格输入、依赖图、拒绝路径、容差及资源边界。真实浏览器测试覆盖四种构造、对象改名和坐标旋转、M1 呈现反例、伪造依赖、错误关系、数值灰区、文件缺项和 CLI 取消。M3 故障测试另覆盖依赖缺失、回调超时、写盘及提交失败、清理异常、资源释放和提交前后真实 SIGKILL。故障注入仅使用 Node 测试模块 mock，需支持 `--experimental-test-module-mocks` 的 Node.js；未增加运行依赖。记录见 [M3 验收记录](docs/m3-validation.md) 及 [M2 验收记录](docs/m2-validation.md)。
+离线测试覆盖严格输入、依赖图、拒绝路径、容差、资源边界和插件归档。真实浏览器测试覆盖四种构造、对象改名和坐标旋转、M1 呈现反例、伪造依赖、错误关系、数值灰区、文件缺项和 CLI 取消。M3 故障测试另覆盖依赖缺失、回调超时、写盘及提交失败、清理异常、资源释放和提交前后真实 SIGKILL。故障注入仅使用 Node 测试模块 mock，需支持 `--experimental-test-module-mocks` 的 Node.js；未增加运行依赖。记录见 [M3 验收记录](docs/m3-validation.md) 及 [M2 验收记录](docs/m2-validation.md)。
 
 `schema.ts` 定义能力和契约，`compile.ts` 检查类型及依赖并编译，`browser.ts` 执行并采集事实，`verify.ts` 只消费数据判定，`delivery.ts` 编排文件交付，`cli.ts` 拥有进程信号和退出码，`doctor.ts` 编排依赖冒烟检查。所有构图共用一个页面、一个 TypeScript 包，不引入常驻构图服务或第二套几何引擎。

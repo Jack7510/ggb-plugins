@@ -7,7 +7,7 @@ description: 根据文字二维数学题生成可组合的 GeoGebra 构图程序
 
 你负责理解题目、选择构法并生成请求；本地工具负责执行、读取事实、核验和交付。用相同的工具组合原语解决新题，不修改源码、不按题型添加分支或套用固定答案模板。
 
-先读取 [能力和请求契约](references/capabilities.md)。从本 Skill 目录向上两级定位仓库根目录；工具位于 `dist/src/cli.js`。依赖和构建步骤见仓库 README。运行前执行 `node <repo>/dist/src/cli.js doctor`，确认返回 ok；失败时先处理依赖和版本问题，不继续构图。不需要额外模型 API Key。
+先读取 [能力和请求契约](references/capabilities.md)。从本 Skill 目录向上两级定位插件根目录 `<plugin>`；工具位于 `dist/src/cli.js`。必须使用当前已安装插件的路径，不依赖开发仓库或工作目录。首次安装缺少依赖时，按插件 README 执行 `node <plugin>/scripts/setup-plugin.mjs`；其他故障不要重复安装。运行前执行 `node <plugin>/dist/src/cli.js doctor`，确认返回 ok；失败时先处理依赖和版本问题，不继续构图。不需要额外模型 API Key。
 
 ## 生成请求
 
@@ -23,7 +23,7 @@ description: 根据文字二维数学题生成可组合的 GeoGebra 构图程序
 将请求保存为 JSON 文件，使用绝对路径：
 
 ```sh
-node <repo>/dist/src/cli.js build --request <absolute-request.json>
+node <plugin>/dist/src/cli.js build --request <absolute-request.json>
 ```
 
 读取返回的 JSON 和失败运行中的 `verification.json`、`run.json`。修正程序时保留原始要求，不放宽容差，不提交模型自判的 `passed`。最多尝试三次，每次工具从空白 applet 开始；仍失败时报告具体要求、能力缺口或错误，不在半完成画布上追加操作。
@@ -33,7 +33,7 @@ node <repo>/dist/src/cli.js build --request <absolute-request.json>
 成功后自动打开返回的交付目录：
 
 ```sh
-node <repo>/dist/src/cli.js preview --delivery <absolute-delivery-dir>
+node <plugin>/dist/src/cli.js preview --delivery <absolute-delivery-dir>
 ```
 
 预览是前台进程，使用宿主的进程会话保持运行。等待就绪 JSON；仅打开窗口不算完成。交付 `result.ggb`、检查报告和截图，说明已验证的条件及有限交互样本。采样通过不等于一般命题已证明。预览失败时保留文件并单独报告展示错误。
