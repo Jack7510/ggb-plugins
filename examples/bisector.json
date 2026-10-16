@@ -1,0 +1,136 @@
+{
+  "protocolVersion": 1,
+  "prompt": "给定两个自由点P、Q，作PQ的垂直平分线b，并显示中点N。",
+  "locale": "zh-CN",
+  "outputDir": "output/ggb",
+  "plan": {
+    "program": [
+      {
+        "id": "P",
+        "op": "freePoint",
+        "x": -3,
+        "y": 0
+      },
+      {
+        "id": "Q",
+        "op": "freePoint",
+        "x": 3,
+        "y": 1
+      },
+      {
+        "id": "base",
+        "op": "command",
+        "name": "Line",
+        "args": [
+          {
+            "ref": "P"
+          },
+          {
+            "ref": "Q"
+          }
+        ]
+      },
+      {
+        "id": "N",
+        "op": "command",
+        "name": "Midpoint",
+        "args": [
+          {
+            "ref": "P"
+          },
+          {
+            "ref": "Q"
+          }
+        ]
+      },
+      {
+        "id": "b",
+        "op": "command",
+        "name": "PerpendicularLine",
+        "args": [
+          {
+            "ref": "N"
+          },
+          {
+            "ref": "base"
+          }
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "id": "midpoint",
+        "source": "显示中点N",
+        "checks": [
+          {
+            "kind": "midpoint",
+            "subjects": [
+              "N",
+              "P",
+              "Q"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "N"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true,
+              "labelVisible": true
+            }
+          }
+        ]
+      },
+      {
+        "id": "bisector",
+        "source": "作PQ的垂直平分线b",
+        "checks": [
+          {
+            "kind": "type",
+            "subjects": [
+              "b"
+            ],
+            "scope": "sampled",
+            "objectType": "line"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "N",
+              "b"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "perpendicular",
+            "subjects": [
+              "base",
+              "b"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "b",
+              "P",
+              "Q"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      }
+    ],
+    "styles": [],
+    "interactions": [
+      {
+        "point": "P",
+        "dx": 65,
+        "dy": -40
+      }
+    ]
+  }
+}

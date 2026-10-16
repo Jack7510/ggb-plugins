@@ -1,0 +1,329 @@
+{
+  "protocolVersion": 1,
+  "prompt": "给定三个不共线的自由点D、E、F，过F作与直线DE平行的直线p和垂直的直线q；作q与DE的交点H，连接FH。以F为圆心作半径1.23456789的圆k。将H显示为“垂足”，将q设为虚线。",
+  "locale": "zh-CN",
+  "outputDir": "output/m2-transfer",
+  "plan": {
+    "program": [
+      {
+        "id": "D",
+        "op": "freePoint",
+        "x": -2,
+        "y": 1
+      },
+      {
+        "id": "E",
+        "op": "freePoint",
+        "x": 4,
+        "y": 4
+      },
+      {
+        "id": "F",
+        "op": "freePoint",
+        "x": -1,
+        "y": 5
+      },
+      {
+        "id": "baseDE",
+        "op": "command",
+        "name": "Line",
+        "args": [
+          {
+            "ref": "D"
+          },
+          {
+            "ref": "E"
+          }
+        ]
+      },
+      {
+        "id": "p",
+        "op": "command",
+        "name": "Line",
+        "args": [
+          {
+            "ref": "F"
+          },
+          {
+            "ref": "baseDE"
+          }
+        ]
+      },
+      {
+        "id": "q",
+        "op": "command",
+        "name": "PerpendicularLine",
+        "args": [
+          {
+            "ref": "F"
+          },
+          {
+            "ref": "baseDE"
+          }
+        ]
+      },
+      {
+        "id": "H",
+        "op": "command",
+        "name": "Intersect",
+        "args": [
+          {
+            "ref": "q"
+          },
+          {
+            "ref": "baseDE"
+          }
+        ]
+      },
+      {
+        "id": "FH",
+        "op": "command",
+        "name": "Segment",
+        "args": [
+          {
+            "ref": "F"
+          },
+          {
+            "ref": "H"
+          }
+        ]
+      },
+      {
+        "id": "k",
+        "op": "command",
+        "name": "Circle",
+        "args": [
+          {
+            "ref": "F"
+          },
+          1.23456789
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "id": "nondegenerate",
+        "source": "三个不共线的自由点D、E、F",
+        "checks": [
+          {
+            "kind": "nonCollinear",
+            "subjects": [
+              "D",
+              "E",
+              "F"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "parallel",
+        "source": "过F作与直线DE平行的直线p",
+        "checks": [
+          {
+            "kind": "type",
+            "subjects": [
+              "p"
+            ],
+            "scope": "sampled",
+            "objectType": "line"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "F",
+              "p"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "parallel",
+            "subjects": [
+              "p",
+              "baseDE"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "normal",
+        "source": "垂直的直线q",
+        "checks": [
+          {
+            "kind": "type",
+            "subjects": [
+              "q"
+            ],
+            "scope": "sampled",
+            "objectType": "line"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "F",
+              "q"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "perpendicular",
+            "subjects": [
+              "q",
+              "baseDE"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "intersection",
+        "source": "作q与DE的交点H",
+        "checks": [
+          {
+            "kind": "type",
+            "subjects": [
+              "H"
+            ],
+            "scope": "sampled",
+            "objectType": "point"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "H",
+              "q"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "H",
+              "baseDE"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "H",
+              "D",
+              "E",
+              "F"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "connector",
+        "source": "连接FH",
+        "checks": [
+          {
+            "kind": "type",
+            "subjects": [
+              "FH"
+            ],
+            "scope": "sampled",
+            "objectType": "segment"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "FH",
+              "F",
+              "H"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "circle",
+        "source": "以F为圆心作半径1.23456789的圆k",
+        "checks": [
+          {
+            "kind": "type",
+            "subjects": [
+              "k"
+            ],
+            "scope": "sampled",
+            "objectType": "circle"
+          },
+          {
+            "kind": "center",
+            "subjects": [
+              "k",
+              "F"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "radius",
+            "subjects": [
+              "k"
+            ],
+            "scope": "sampled",
+            "value": 1.23456789
+          }
+        ]
+      },
+      {
+        "id": "caption",
+        "source": "将H显示为“垂足”",
+        "checks": [
+          {
+            "kind": "style",
+            "subjects": [
+              "H"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "caption": "垂足",
+              "labelVisible": true
+            }
+          }
+        ]
+      },
+      {
+        "id": "lineStyle",
+        "source": "将q设为虚线",
+        "checks": [
+          {
+            "kind": "style",
+            "subjects": [
+              "q"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "lineStyle": 1
+            }
+          }
+        ]
+      }
+    ],
+    "styles": [
+      {
+        "object": "H",
+        "properties": {
+          "caption": "垂足",
+          "labelVisible": true
+        }
+      },
+      {
+        "object": "q",
+        "properties": {
+          "lineStyle": 1
+        }
+      }
+    ],
+    "interactions": [
+      {
+        "point": "F",
+        "dx": 60,
+        "dy": -40
+      }
+    ]
+  }
+}

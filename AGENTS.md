@@ -2,38 +2,36 @@
 
 ## Project Structure & Module Organization
 
-This repository currently implements the M1 GeoGebra prototype, not the complete plugin. Read `docs/ggb-plugins-design.md` for planned scope and `README.md` for implemented behavior.
+This single TypeScript package implements M2 composable GeoGebra construction. Read `docs/ggb-plugins-design.md` for scope and `README.md` for commands. For construction requests, read `skills/ggb-construction/SKILL.md` and its capability reference.
 
-Keep this a single TypeScript package. `src/cli.ts` handles arguments, JSON output, signals, and exit codes; `server.ts` serves local assets; `browser.ts` owns Playwright and applet lifecycle; `triangle.ts` constructs and checks the fixed example; `delivery.ts` exports, reloads, and previews files. Construction and preview share `viewer/index.html`. Tests live in `tests/`; the installer lives in `scripts/`.
+`src/schema.ts` owns request validation and capabilities; `compile.ts` checks references and types; `browser.ts` executes operations and reads real facts; `verify.ts` evaluates facts without browser calls; `delivery.ts` exports, reloads, and previews; `cli.ts` owns arguments, output, signals, and exit codes. `server.ts` serves fixed local resources. All tasks share `viewer/index.html`.
 
-Do not commit `.runtime/`, `node_modules/`, `dist/`, or generated `output/`. Do not introduce dependencies on another checkout.
+`examples/` contains input programs, including the M1 triangle regression. Tests live in `tests/`; installation scripts live in `scripts/`. Never commit `.runtime/`, `node_modules/`, `dist/`, or `output/`. Do not depend on another checkout.
 
 ## Build, Test, and Development Commands
 
 - `pnpm install --frozen-lockfile`: install pinned dependencies.
-- `pnpm setup:runtime`: download and verify the pinned GeoGebra bundle; requires `curl` and `unzip`.
+- `pnpm setup:runtime`: download and verify GeoGebra; requires `curl` and `unzip`.
 - `pnpm exec playwright install chromium`: install the matching browser.
-- `pnpm check`: run strict TypeScript checks.
-- `pnpm build`: compile source and tests into `dist/`.
-- `pnpm demo`: construct the fixed triangle and median, verify, export, and reload.
-- `pnpm preview --delivery <dir>`: open an interactive foreground preview.
-- `pnpm test`: check resource-server boundaries and cleanup.
-- `pnpm test:browser`: run real GeoGebra regression checks after building.
+- `pnpm check`: check strict TypeScript types.
+- `pnpm build`: compile source and tests.
+- `pnpm ggb build --request <file>`: construct, verify, export, and reload a generated request.
+- `pnpm demo`: run the M1 fixture through the same pipeline.
+- `pnpm preview --delivery <dir>`: open a foreground preview.
+- `pnpm test`: run input, graph, comparison, and resource tests.
+- `pnpm test:browser`: run real GeoGebra regression tests after building.
+- `GGB_HEADED=1 pnpm test:browser`: check visible preview interaction.
 
-## Coding Style & Naming Conventions
+## Coding Style & Architecture
 
-Use TypeScript ES modules, two-space indentation, single quotes, and `.js` extensions for local imports. Use descriptive camelCase function names. No formatter or linter is configured; match surrounding code and run `git diff --check`.
+Use TypeScript ES modules, two-space indentation, single quotes, and `.js` local import extensions. Match surrounding code; no formatter or linter is configured. Run `git diff --check`.
 
-Keep resource lifecycle, geometry checks, and file delivery cohesive. Avoid generic frameworks, services, or configuration layers until actual functionality requires them.
-
-Generate programs using reusable GeoGebra operations and verification predicates. Do not add problem-type dispatch, keyword templates, or hardcoded object names to production execution. Keep the M1 triangle as a regression fixture; M2 must run different constructions through the same pipeline.
+Generate programs using reusable native operations and verification predicates. Never add problem-type dispatch, keyword templates, or fixed object names to production execution. New questions change input programs and checks. Keep the M1 triangle in fixtures. Avoid frameworks, service layers, and mechanical per-function file splitting.
 
 ## Testing Guidelines
 
-Use Node's built-in test runner with `*.test.ts` files. Add behavioral regression checks for meaningful changes. Browser tests require the real installed runtime and Chromium; mocks cannot establish final construction correctness. No coverage threshold is set.
-
-Verify both object relationships and dependencies. Keep destructive interaction checks on disposable reloaded applets. Never accept static coordinates as evidence of dynamic construction.
+Use Node's built-in runner and `*.test.ts`. Add behavioral checks and relevant counterexamples. Browser acceptance requires real applets. Destructive samples use reloaded copies and cannot alter the exported canvas. Preserve requirement coverage, reject missing evidence, and compare numerical facts with fixed tolerance. There is no coverage percentage threshold.
 
 ## Commit & Pull Request Guidelines
 
-Use concise, imperative commit subjects, following the existing `Add ...` convention. Keep commits focused. Pull requests should explain behavior, scope, validation, and remaining limitations; link related issues and include screenshots for visible changes. Preserve GeoGebra attribution and third-party licensing boundaries.
+Use concise, imperative subjects and focused commits. Explain behavior, validation, and limitations; link issues and include screenshots for visible changes. Preserve GeoGebra attribution and licensing boundaries.

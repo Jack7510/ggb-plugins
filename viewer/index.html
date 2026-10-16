@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>三角形与中线 · GeoGebra</title>
+  <title>GeoGebra 构图</title>
   <style>
     body { margin: 0; background: #f5f7fa; color: #243043; font: 15px system-ui, sans-serif; }
     header { padding: 16px 24px; }
-    h1 { margin: 0 0 6px; font-size: 20px; }
+    h1 { margin: 0 0 6px; font-size: 20px; max-width: 1000px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     p { margin: 0; }
     #applet { margin: 0 24px; width: 1000px; background: white; }
     footer { padding: 12px 24px; font-size: 13px; }
@@ -16,7 +16,7 @@
   <script src="/runtime/GeoGebra/deployggb.js"></script>
 </head>
 <body>
-  <header><h1>三角形 ABC 与中线 CM</h1><p id="status">正在加载…</p></header>
+  <header><h1>GeoGebra 构图</h1><p id="status">正在加载…</p></header>
   <div id="applet"></div>
   <footer><a href="https://www.geogebra.org/" target="_blank" rel="noreferrer">Made with GeoGebra®</a> · 关闭此浏览器窗口即可结束预览。</footer>
   <script>
@@ -30,7 +30,7 @@
         randomize: false, errorDialogsActive: false,
         appletOnLoad: api => {
           window.ggb = api;
-          document.getElementById('status').textContent = '拖动 A、B、C 观察中点和中线联动；使用右下角按钮或 Ctrl + 滚轮缩放。';
+          document.getElementById('status').textContent = '拖动自由点观察构图联动；使用右下角按钮缩放。';
           resolve(api);
         }
       }, true);

@@ -1,0 +1,184 @@
+{
+  "protocolVersion": 1,
+  "prompt": "作三角形ABC，取AB的中点M，连接CM。将M和CM标红，显示点名，CM线宽为5。",
+  "locale": "zh-CN",
+  "outputDir": "output/ggb",
+  "plan": {
+    "program": [
+      {
+        "id": "A",
+        "op": "freePoint",
+        "x": 0,
+        "y": 0
+      },
+      {
+        "id": "B",
+        "op": "freePoint",
+        "x": 6,
+        "y": 0
+      },
+      {
+        "id": "C",
+        "op": "freePoint",
+        "x": 2,
+        "y": 4
+      },
+      {
+        "id": "shape",
+        "op": "command",
+        "name": "Polygon",
+        "args": [
+          {
+            "ref": "A"
+          },
+          {
+            "ref": "B"
+          },
+          {
+            "ref": "C"
+          }
+        ]
+      },
+      {
+        "id": "M",
+        "op": "command",
+        "name": "Midpoint",
+        "args": [
+          {
+            "ref": "A"
+          },
+          {
+            "ref": "B"
+          }
+        ]
+      },
+      {
+        "id": "median",
+        "op": "command",
+        "name": "Segment",
+        "args": [
+          {
+            "ref": "C"
+          },
+          {
+            "ref": "M"
+          }
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "id": "triangle",
+        "source": "作三角形ABC",
+        "checks": [
+          {
+            "kind": "type",
+            "subjects": [
+              "shape"
+            ],
+            "scope": "sampled",
+            "objectType": "polygon"
+          },
+          {
+            "kind": "nonCollinear",
+            "subjects": [
+              "A",
+              "B",
+              "C"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "midpoint",
+        "source": "取AB的中点M",
+        "checks": [
+          {
+            "kind": "midpoint",
+            "subjects": [
+              "M",
+              "A",
+              "B"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "median",
+        "source": "连接CM",
+        "checks": [
+          {
+            "kind": "type",
+            "subjects": [
+              "median"
+            ],
+            "scope": "sampled",
+            "objectType": "segment"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "median",
+              "C",
+              "M"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "presentation",
+        "source": "将M和CM标红，显示点名，CM线宽为5",
+        "checks": [
+          {
+            "kind": "style",
+            "subjects": [
+              "M"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "color": "#D74830",
+              "labelVisible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "median"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "color": "#D74830",
+              "lineThickness": 5
+            }
+          }
+        ]
+      }
+    ],
+    "styles": [
+      {
+        "object": "M",
+        "properties": {
+          "color": "#D74830",
+          "labelVisible": true
+        }
+      },
+      {
+        "object": "median",
+        "properties": {
+          "color": "#D74830",
+          "lineThickness": 5
+        }
+      }
+    ],
+    "interactions": [
+      {
+        "point": "A",
+        "dx": 65,
+        "dy": -40
+      }
+    ]
+  }
+}

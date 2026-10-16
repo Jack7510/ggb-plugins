@@ -1,0 +1,160 @@
+{
+  "protocolVersion": 1,
+  "prompt": "以自由点U、V的中点O为圆心，作经过U的圆k，并连接OU和OV，要求OU等于OV。",
+  "locale": "zh-CN",
+  "outputDir": "output/ggb",
+  "plan": {
+    "program": [
+      {
+        "id": "U",
+        "op": "freePoint",
+        "x": -3,
+        "y": -1
+      },
+      {
+        "id": "V",
+        "op": "freePoint",
+        "x": 3,
+        "y": 1
+      },
+      {
+        "id": "O",
+        "op": "command",
+        "name": "Midpoint",
+        "args": [
+          {
+            "ref": "U"
+          },
+          {
+            "ref": "V"
+          }
+        ]
+      },
+      {
+        "id": "k",
+        "op": "command",
+        "name": "Circle",
+        "args": [
+          {
+            "ref": "O"
+          },
+          {
+            "ref": "U"
+          }
+        ]
+      },
+      {
+        "id": "radiusU",
+        "op": "command",
+        "name": "Segment",
+        "args": [
+          {
+            "ref": "O"
+          },
+          {
+            "ref": "U"
+          }
+        ]
+      },
+      {
+        "id": "radiusV",
+        "op": "command",
+        "name": "Segment",
+        "args": [
+          {
+            "ref": "O"
+          },
+          {
+            "ref": "V"
+          }
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "id": "center",
+        "source": "自由点U、V的中点O",
+        "checks": [
+          {
+            "kind": "midpoint",
+            "subjects": [
+              "O",
+              "U",
+              "V"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "circle",
+        "source": "作经过U的圆k",
+        "checks": [
+          {
+            "kind": "type",
+            "subjects": [
+              "k"
+            ],
+            "scope": "sampled",
+            "objectType": "circle"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "U",
+              "k"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "k",
+              "O",
+              "U"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "radii",
+        "source": "连接OU和OV，要求OU等于OV",
+        "checks": [
+          {
+            "kind": "type",
+            "subjects": [
+              "radiusU"
+            ],
+            "scope": "sampled",
+            "objectType": "segment"
+          },
+          {
+            "kind": "type",
+            "subjects": [
+              "radiusV"
+            ],
+            "scope": "sampled",
+            "objectType": "segment"
+          },
+          {
+            "kind": "equalLength",
+            "subjects": [
+              "radiusU",
+              "radiusV"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      }
+    ],
+    "styles": [],
+    "interactions": [
+      {
+        "point": "U",
+        "dx": 65,
+        "dy": -40
+      }
+    ]
+  }
+}
