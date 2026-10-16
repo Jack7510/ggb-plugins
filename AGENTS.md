@@ -26,6 +26,8 @@ Use TypeScript ES modules, two-space indentation, single quotes, and `.js` exten
 
 Keep resource lifecycle, geometry checks, and file delivery cohesive. Avoid generic frameworks, services, or configuration layers until actual functionality requires them.
 
+Generate programs using reusable GeoGebra operations and verification predicates. Do not add problem-type dispatch, keyword templates, or hardcoded object names to production execution. Keep the M1 triangle as a regression fixture; M2 must run different constructions through the same pipeline.
+
 ## Testing Guidelines
 
 Use Node's built-in test runner with `*.test.ts` files. Add behavioral regression checks for meaningful changes. Browser tests require the real installed runtime and Chromium; mocks cannot establish final construction correctness. No coverage threshold is set.

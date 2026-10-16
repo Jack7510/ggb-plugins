@@ -4,6 +4,8 @@ Codex 本地 GeoGebra 构图插件原型。当前完成设计中的 **M1**：固
 
 当前不接受任意题目、图片或外部 GGB，也没有通用 `build`、`doctor` 或插件安装包。这些功能按 [设计文档](docs/ggb-plugins-design.md) 后续实施。
 
+后续采用“用户提出问题 → Codex 生成构图程序 → 统一工具执行、观察、核验和交付”的方式。新题通过组合 GeoGebra 操作解决，不增加按题型匹配的模板或分支。M1 三角形保留为回归样例，执行基础继续使用 TypeScript。
+
 ## 安装
 
 需要 Node.js 22+、pnpm 11，以及系统 `curl`、`unzip`。已在 macOS arm64 验证，其他平台尚未验收。
