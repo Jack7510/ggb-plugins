@@ -48,14 +48,37 @@ export function equivalent(a: unknown, b: unknown): boolean {
   const x = a as Record<string, unknown>, y = b as typeof x;
   return equivalent(Object.keys(x).sort(), Object.keys(y).sort()) && Object.keys(x).every(key => equivalent(x[key], y[key]));
 }
-export function compareSnapshots(a: Snapshot, b: Snapshot) {
+function normalizeSnapshots(facts: Snapshot) {
   // GeoGebra normalizes graphics-label flags on non-graphical algebra objects.
   // Explicit presentation requirements are still checked by verify.
-  const normalize = (facts: Snapshot) => facts.map(({ command, nativeDefinition, expression, valueString, labelStyle, labelVisible, ...fact }) => ({ ...fact,
+  return facts.map(({ command, nativeDefinition, expression, valueString, labelStyle, labelVisible, ...fact }) => ({ ...fact,
     ...(['numeric', 'list', 'boolean'].includes(fact.type) ? {} : { labelStyle, labelVisible }),
     ...(['function', 'functionnvar', 'text'].includes(fact.type) || (fact.type === 'list' && fact.data === null) ? { valueString } : {}),
     definition: definition({ ...fact, command, nativeDefinition, expression, valueString, labelStyle, labelVisible }) })).sort((x, y) => x.name.localeCompare(y.name));
-  assert(equivalent(normalize(a), normalize(b)), 'Construction facts changed');
+}
+
+/** Field-level diagnostics use the same normalization and tolerance as the gate. */
+export function snapshotDifferences(actual: Snapshot, expected: Snapshot) {
+  const a = normalizeSnapshots(actual), b = normalizeSnapshots(expected);
+  const differences: { object: string; field: string; expected: unknown; actual: unknown }[] = [];
+  for (const name of new Set([...a, ...b].map(fact => fact.name))) {
+    const before = b.filter(fact => fact.name === name), after = a.filter(fact => fact.name === name);
+    if (before.length !== 1 || after.length !== 1) {
+      differences.push({ object: name, field: 'objectCount', expected: before.length, actual: after.length });
+      continue;
+    }
+    const old = before[0]! as Record<string, unknown>, fresh = after[0]! as Record<string, unknown>;
+    for (const field of new Set([...Object.keys(old), ...Object.keys(fresh)])) {
+      if (!equivalent(old[field], fresh[field])) differences.push({ object: name, field, expected: old[field], actual: fresh[field] });
+    }
+  }
+  return differences;
+}
+
+export function compareSnapshots(a: Snapshot, b: Snapshot) {
+  if (!equivalent(normalizeSnapshots(a), normalizeSnapshots(b))) {
+    assert.fail(`Construction facts changed: ${JSON.stringify(snapshotDifferences(a, b))}`);
+  }
 }
 
 function styleStatus(fact: Fact, properties: Style): Status {

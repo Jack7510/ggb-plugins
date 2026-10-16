@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { dragPoint, interact, execute, exportGgb, loadGgb, openBrowser, openDefaultBrowser, runtimeVersion, snapshot, observe, zoom, type Snapshot } from './browser.js';
 import { compile } from './compile.js';
 import { limits, parseRequest, ToolError, toolError, type Request } from './schema.js';
-import { compareSnapshots, equivalent, verify, type Verification } from './verify.js';
+import { compareSnapshots, snapshotDifferences, equivalent, verify, type Verification } from './verify.js';
 
 export const sha256 = (data: Buffer) => createHash('sha256').update(data).digest('hex');
 const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n';
@@ -22,6 +22,14 @@ function requirePassed(result: Verification) {
 
 /** All problems use this one pipeline. Problem understanding belongs to the calling Codex. */
 export async function build(input: unknown, signal?: AbortSignal) {
+  const started = performance.now();
+  const timings: { phase: string; startMs: number; durationMs: number }[] = [];
+  const observationTimings: { phase: string; casMs: number; probesMs: number; valuesMs: number; snapshotMs: number }[] = [];
+  const timed = async <T>(phase: string, operation: () => Promise<T>): Promise<T> => {
+    const start = performance.now();
+    try { return await operation(); }
+    finally { timings.push({ phase, startMs: start - started, durationMs: performance.now() - start }); }
+  };
   let request: Request, compiled: ReturnType<typeof compile>;
   try { signal?.throwIfAborted(); request = parseRequest(input); compiled = compile(request); }
   catch (error) { throw toolError(error, 'invalid_input', signal); }
@@ -40,35 +48,55 @@ export async function build(input: unknown, signal?: AbortSignal) {
     await writeFile(join(run, 'request.json'), requestBytes);
     await save(join(run, 'run.json'), { state: 'running', requestSha256 });
     stage = 'runtime_unavailable';
-    session = await openBrowser(false, running);
-    const original = await session.page();
-    stage = 'execution_failed'; await execute(original, compiled, request.prompt);
-    const initialFacts = await observe(original, request, 'initial');
+    session = await timed('browser.start', () => openBrowser(false, running));
+    const original = await timed('construction.applet', () => session!.page());
+    stage = 'execution_failed'; await timed('construction.execute', () => execute(original, compiled, request.prompt));
+    const initialFacts = await timed('construction.observe', () => observe(original, request, 'initial'));
+    observationTimings.push({ phase: 'construction', ...initialFacts.durations });
     const construction = verify(request, initialFacts.objects, 'initial', initialFacts.observations);
     await save(join(run, 'verification.json'), construction); requirePassed(construction);
     stage = 'export_failed';
-    const bytes = Buffer.from(await exportGgb(original), 'base64');
+    const bytes = Buffer.from(await timed('export', () => exportGgb(original)), 'base64');
     if (bytes.length > limits.ggbBytes) throw new ToolError('limit_exceeded', 'GGB file exceeds the size limit');
     assert(bytes.subarray(0, 2).toString() === 'PK', 'Expected a GGB ZIP archive');
     await writeFile(join(temp, 'result.ggb'), bytes);
     stage = 'reload_failed';
-    const reloaded = await session.page();
+    const reloaded = await timed('reload.applet', () => session!.page());
     const data = (await readFile(join(temp, 'result.ggb'))).toString('base64');
-    await loadGgb(reloaded, data, request.prompt, request.plan.display);
-    const reloadFacts = await observe(reloaded, request, 'initial');
-    const reload = verify(request, reloadFacts.objects, 'initial', reloadFacts.observations); requirePassed(reload);
+    await timed('reload.load', () => loadGgb(reloaded, data, request.prompt, request.plan.display));
+    const reloadFacts = await timed('reload.observe', () => observe(reloaded, request, 'initial'));
+    observationTimings.push({ phase: 'reload', ...reloadFacts.durations });
+    const reload = verify(request, reloadFacts.objects, 'initial', reloadFacts.observations);
+    await save(join(run, 'verification.json'), { construction, reload });
+    requirePassed(reload);
+    const differences = snapshotDifferences(reload.objects, construction.objects);
+    if (differences.length) {
+      try { await save(join(run, 'snapshot-differences.json'), differences); }
+      catch (error) { diagnostics.push('Cannot save snapshot differences: ' + String(error)); }
+    }
     compareSnapshots(reload.objects, construction.objects);
-    stage = 'export_failed'; await reloaded.screenshot({ path: join(temp, 'preview.png') });
+    // One page ahead overlaps engine initialization with the current sample.
+    // Each sample still owns a separate applet reloaded from the original file.
+    const prepareSample = () => {
+      const pending = timed('sample.applet', () => session!.page());
+      void pending.catch(() => {}); // The session owns cleanup if a prior sample fails.
+      return pending;
+    };
+    let pendingSample = request.plan.interactions.length ? prepareSample() : undefined;
+    stage = 'export_failed'; await timed('screenshot', () => reloaded.screenshot({ path: join(temp, 'preview.png') }));
     stage = 'verification_failed';
     const samples = [];
-    for (const sample of request.plan.interactions) {
-      const candidate = await session.page();
+    for (const [index, sample] of request.plan.interactions.entries()) {
+      const candidate = await pendingSample!;
+      pendingSample = undefined;
       let interactionFailed = false;
       try {
-        await loadGgb(candidate, data, request.prompt, request.plan.display);
+        if (index + 1 < request.plan.interactions.length) pendingSample = prepareSample();
+        await timed('sample.load', () => loadGgb(candidate, data, request.prompt, request.plan.display));
         const before = await snapshot(candidate);
-        const method = 'point' in sample ? (await dragPoint(candidate, sample), 'mouse' as const) : await interact(candidate, sample);
-        const sampleFacts = await observe(candidate, request, 'sampled');
+        const method = 'point' in sample ? (await timed('sample.drag', () => dragPoint(candidate, sample)), 'mouse' as const) : await timed('sample.parameter', () => interact(candidate, sample));
+        const sampleFacts = await timed('sample.observe', () => observe(candidate, request, 'sampled'));
+        observationTimings.push({ phase: `sample.${index}`, ...sampleFacts.durations });
         const after = verify(request, sampleFacts.objects, 'sampled', sampleFacts.observations);
         samples.push({ ...sample, method, before, after });
         await save(join(run, 'verification.json'), { construction, reload, samples });
@@ -94,19 +122,19 @@ export async function build(input: unknown, signal?: AbortSignal) {
       sha256: sha256(bytes), requestSha256, objects: construction.objects,
     });
     // Close resources before the commit point. No fallible cleanup follows rename.
-    stage = 'export_failed'; await session.close(); session = undefined;
+    stage = 'export_failed'; await timed('cleanup', () => session!.close()); session = undefined;
     running.throwIfAborted();
     const delivery = join(run, 'delivery'); await rename(temp, delivery);
     const warnings: string[] = [];
-    try { await save(join(run, 'run.json'), { state: 'delivered', requestSha256, delivery: 'delivery' }); }
+    try { await save(join(run, 'run.json'), { state: 'delivered', requestSha256, delivery: 'delivery', totalMs: performance.now() - started, timings, observationTimings }); }
     catch (error) { warnings.push(`Delivery committed; run.json update failed: ${error instanceof Error ? error.message : String(error)}`); }
     return { delivery, file: join(delivery, 'result.ggb'), report: join(delivery, 'verification.json'), ...(warnings.length ? { warnings } : {}) };
   } catch (error) {
     const failure = toolError(error, stage, running);
-    try { await session?.close(); }
+    try { if (session) await timed('cleanup', () => session!.close()); }
     catch (cleanup) { diagnostics.push(`Cleanup failed: ${cleanup instanceof Error ? cleanup.message : String(cleanup)}`); }
     failure.details = { run, stage, cause: failure.details, diagnostics };
-    if (run) try { await save(join(run, 'run.json'), { state: 'failed', requestSha256, error: { code: failure.code, message: failure.message, details: failure.details }, diagnostics }); }
+    if (run) try { await save(join(run, 'run.json'), { state: 'failed', requestSha256, totalMs: performance.now() - started, timings, observationTimings, error: { code: failure.code, message: failure.message, details: failure.details }, diagnostics }); }
     catch (write) { diagnostics.push(`Cannot save run.json: ${write instanceof Error ? write.message : String(write)}`); }
     throw failure;
   }

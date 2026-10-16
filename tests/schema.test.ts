@@ -7,7 +7,8 @@ import { compile } from '../src/compile.js';
 import { build } from '../src/delivery.js';
 import { parseRequest } from '../src/schema.js';
 import { root } from '../src/server.js';
-import { equivalent } from '../src/verify.js';
+import { equivalent, compareSnapshots, snapshotDifferences } from '../src/verify.js';
+import type { Snapshot } from '../src/browser.js';
 
 const fixture = JSON.parse(await readFile(join(root, 'examples/triangle.json'), 'utf8'));
 test('M6 value, assumption and interaction envelopes reject invalid extensions before execution', async () => {
@@ -70,6 +71,20 @@ test('consistency comparison tolerates numerical noise but preserves identity an
   assert(!equivalent({ x: 1 }, { x: 1.001 }));
   assert(!equivalent({ ref: 'A' }, { ref: 'B' }));
   assert(!equivalent({ x: 1 }, { x: '1' }));
+});
+
+test('snapshot diagnostics preserve the math, dependency and presentation gates', () => {
+  const baseline = [{ name: 'A', type: 'point', independent: true, x: 1, y: 2, inputs: [], lineThickness: 5 }] as unknown as Snapshot;
+  for (const [field, value] of [['x', 1.01], ['inputs', ['B']], ['lineThickness', 7]] as const) {
+    const changed = structuredClone(baseline);
+    Object.assign(changed[0]!, { [field]: value });
+    const differences = snapshotDifferences(changed, baseline);
+    assert(differences.some(d => d.object === 'A' && d.field === field));
+    assert.throws(() => compareSnapshots(changed, baseline), /Construction facts changed/);
+  }
+  assert.deepEqual(snapshotDifferences(baseline, baseline), []);
+  assert.equal(snapshotDifferences([], baseline)[0]!.field, 'objectCount');
+  assert.throws(() => compareSnapshots([...baseline, ...baseline], baseline));
 });
 
 test('numeric literals preserve small and negative values without scientific notation', () => {

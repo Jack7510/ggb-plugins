@@ -155,9 +155,8 @@ export async function loadGgb(page: Page, base64: string, prompt?: string, displ
   await page.bringToFront();
   await page.waitForFunction(() => ['#applet canvas', '.algebraView'].some(selector =>
     [...document.querySelectorAll(selector)].some(element => { const r = element.getBoundingClientRect(); return r.width > 0 && r.height > 0; })));
-  // Material loading precedes the first painted frame in visible Chromium.
-  // A screenshot waits for that frame without introducing a fixed sleep.
-  await page.screenshot();
+  // setBase64 completion is the data gate. Mouse interactions wait for painting
+  // at their own boundary; the one retained screenshot waits for its own frame.
   await page.locator('#status').evaluate((element, display) => { element.textContent = display === 'algebra' ? '原生代数结果已显示。' : '拖动点或改变滑块观察联动；使用右下角按钮缩放。'; }, display);
 }
 
@@ -260,6 +259,9 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
         api.setCoords(step.id, initial[0], initial[1]);
       }
       for (const id of outputs) if (api.getObjectType(id) === 'point') { api.setLabelVisible(id, true); api.setLabelStyle(id, 0); }
+      // GeoGebra reloads a text object's default thickness as 5, not 0.
+      // Canonicalize at construction; explicit styles below still take precedence.
+      for (const id of outputs) if (api.getObjectType(id) === 'text') api.setLineThickness(id, 5);
       const xml = new DOMParser().parseFromString(api.getXML(), 'text/xml');
       if ([...xml.querySelectorAll('element')].some(e => /3d|plane|quadric|surface|image|button|textfield/i.test(e.getAttribute('type') ?? ''))
         || [...xml.querySelectorAll('javascript, ggbscript')].some(e => e.textContent?.trim() || [...e.attributes].some(a => a.value.trim()))) throw new Error('Unsupported spatial, external or scripted material');
@@ -302,6 +304,10 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
 
 export async function dragPoint(page: Page, sample: { point: string; dx: number; dy: number }) {
   await page.bringToFront();
+  await page.evaluate(timeout => new Promise<void>((done, reject) => {
+    const timer = setTimeout(() => reject(new Error('Drag canvas did not paint')), timeout);
+    requestAnimationFrame(() => requestAnimationFrame(() => { clearTimeout(timer); done(); }));
+  }), limits.operationMs);
   await page.locator('#applet canvas').first().hover({ position: { x: 40, y: 40 } });
   const screen = await page.evaluate(point => {
     const api = window.ggb;
@@ -413,16 +419,20 @@ async function nativeValues(names: string[]): Promise<(MathValue | null)[]> {
 }
 /** Probes are temporary native objects. Originals are audited before/after. */
 export async function observe(page: Page, request: Request, phase: 'initial' | 'sampled') {
+  const durations = { casMs: 0, probesMs: 0, valuesMs: 0, snapshotMs: 0 };
   if (request.plan.display === 'algebra') {
     await page.locator('.algebraPanel').waitFor({ state: 'visible' });
   }
   const checks = request.plan.requirements.flatMap(r => r.checks.flatMap((c, i) =>
     c.kind === 'expression' && (phase === 'initial' || c.scope === 'sampled') ? [{ id: `${r.id}:${i}`, expression: c.expression!, mode: c.mode!, assumptions: c.assumptions ?? [] }] : []));
-  if (checks.some(c => c.mode === 'cas')) await waitForCAS(page);
+  if (checks.some(c => c.mode === 'cas')) {
+    const start = performance.now(); await waitForCAS(page); durations.casMs = performance.now() - start;
+  }
   const originals = await page.evaluate(() => window.ggb.getAllObjectNames().map(name => ({ name, xml: window.ggb.getXML(name) })));
   let observations: Observation[];
   let failure: ReturnType<typeof toolError> | undefined;
   try {
+    const probeStart = performance.now();
     observations = await page.evaluate(async checks => {
       const api = window.ggb;
       const originals = api.getAllObjectNames();
@@ -443,7 +453,10 @@ export async function observe(page: Page, request: Request, phase: 'initial' | '
       }
       return observations;
     }, checks);
+    durations.probesMs = performance.now() - probeStart;
+    const valuesStart = performance.now();
     const values = await page.evaluate(nativeValues, checks.map((_, i) => `GgbProbe${i}`));
+    durations.valuesMs = performance.now() - valuesStart;
     observations.forEach((observation, i) => { observation.data = values[i] ?? null; });
   } catch (error) { failure = toolError(error, 'execution_failed'); throw failure; }
   finally {
@@ -457,5 +470,8 @@ export async function observe(page: Page, request: Request, phase: 'initial' | '
       failure.details = { cause: failure.details, cleanup: String(cleanup) };
     }
   }
-  return { objects: await snapshot(page), observations };
+  const snapshotStart = performance.now();
+  const objects = await snapshot(page);
+  durations.snapshotMs = performance.now() - snapshotStart;
+  return { objects, observations, durations };
 }

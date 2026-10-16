@@ -77,4 +77,6 @@ M1 回归的 freePoint/command 原语保留在协议 2，仍编译到同一执�
 
 容量和时限由 doctor/schema 给出。失败保留运行路径和原因；CAS 不就绪、语法错误、对象未定义、探针污染原对象和数学条件不满足均不能交付。最多三次新运行，保留要求；未验证必须说明能力缺口。
 
+外层 run.json 的 totalMs、timings 和 observationTimings 仅供性能诊断，不是检查结果。阶段记录 phase、startMs、durationMs，预加载时可以重叠；观察计时细分 casMs、probesMs、valuesMs、snapshotMs。重载失败时保留已有两阶段报告；快照差异另写 snapshot-differences.json，记录对象、字段、expected 与 actual。字段级诊断与正式比较共用规范化和容差，不能用诊断替代门禁。
+
 官方依据：[Apps API](https://geogebra.github.io/docs/reference/en/GeoGebra_Apps_API/)、[异步 API 源码](https://github.com/geogebra/geogebra/blob/main/source/web/web-common/src/main/java/org/geogebra/web/html5/main/DefaultExportedApi.java)、[Assume](https://geogebra.github.io/docs/manual/en/commands/Assume/)、[命令目录](https://geogebra.github.io/docs/manual/en/commands/All_Commands/)。接口行为以固定 runtime 实测为准。命令可接入不等于全部命令已验收，也不等于任意数学问题可求解。

@@ -16,6 +16,40 @@ import { compareSnapshots, verify } from '../src/verify.js';
 const fixture = async (name: string) => parseRequest(JSON.parse(await readFile(join(root, `examples/${name}.json`), 'utf8')));
 const cli = join(root, 'dist/src/cli.js');
 
+test('text defaults survive reload and incompatible explicit styles remain rejected', { timeout: 30_000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ggb-text-defaults-'));
+  try {
+    const result = await build({ protocolVersion: 2, prompt: '构造文字讲解图并显示动态坐标。', locale: 'zh-CN', outputDir: directory,
+      plan: {
+        program: [
+          { id: 'A', op: 'native', mode: 'algebra', source: 'A=(1,2)' },
+          { id: 'msg', op: 'native', mode: 'algebra', source: 'msg=Text("说明",(-3,3))' },
+          { id: 'label', op: 'native', mode: 'algebra', source: 'label=Text("x=" + x(A),(-3,2))' },
+        ],
+        requirements: [{ id: 'text', source: '构造文字讲解图并显示动态坐标', checks: [
+          { kind: 'type', subjects: ['msg'], objectType: 'text', scope: 'sampled' },
+          { kind: 'style', subjects: ['msg'], properties: { lineThickness: 5 }, scope: 'sampled' },
+          { kind: 'type', subjects: ['label'], objectType: 'text', scope: 'sampled' },
+        ] }],
+        styles: [{ object: 'msg', properties: { lineThickness: 5 } }],
+        interactions: [{ point: 'A', dx: 40, dy: -25 }],
+      },
+    });
+    const report = JSON.parse(await readFile(result.report, 'utf8'));
+    assert.equal(report.construction.status, 'passed'); assert.equal(report.reload.status, 'passed');
+    assert.equal(report.reload.objects.find((f: any) => f.name === 'label').lineThickness, 5);
+    assert.notEqual(report.reload.objects.find((f: any) => f.name === 'label').valueString,
+      report.interaction.samples[0].after.objects.find((f: any) => f.name === 'label').valueString);
+    const run = JSON.parse(await readFile(join(result.delivery, '../run.json'), 'utf8'));
+    assert(run.totalMs > 0 && run.timings.some((s: any) => s.phase === 'reload.load'));
+    assert(run.timings.every((s: any) => s.startMs >= 0 && s.durationMs >= 0));
+    const incompatible = JSON.parse(await readFile(join(result.delivery, 'request.json'), 'utf8'));
+    incompatible.plan.styles[0].properties.lineThickness = 7;
+    incompatible.plan.requirements[0].checks[1].properties.lineThickness = 7;
+    await assert.rejects(build(incompatible), (error: any) => error.code === 'verification_failed');
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
 test('default-browser viewer loads the exported bytes and acknowledges ready and finish', { timeout: 60_000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ggb-default-viewer-'));
   let session: Awaited<ReturnType<typeof openPreview>> | undefined;

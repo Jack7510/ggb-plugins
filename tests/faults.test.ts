@@ -107,6 +107,13 @@ mock.module('../src/browser.js', { namedExports: { ...browser,
     };
   },
   async dragPoint(...args: Parameters<typeof browser.dragPoint>) {
+    if (fault === 'drag-paint') {
+      await args[0].evaluate(() => { window.requestAnimationFrame = () => 0; });
+      const timeout = limits.operationMs; limits.operationMs = 50;
+      try { await browser.dragPoint(...args); }
+      finally { limits.operationMs = timeout; }
+      return;
+    }
     await browser.dragPoint(...args);
     if (fault === 'interaction-unverified-close' && args[1].point === 'C') {
       await args[0].evaluate(() => window.ggb.setCoords('C', 3, 2e-8));
@@ -163,7 +170,14 @@ test('independent equations survive delivery and changed exports cannot commit',
       input.outputDir = join(directory, `${objectType}-changed`);
       await assert.rejects(build(input), /Construction facts changed/);
       await released();
-      for (const run of await fs.readdir(input.outputDir)) assert(!(await fs.readdir(join(input.outputDir, run))).includes('delivery'));
+      for (const run of await fs.readdir(input.outputDir)) {
+        const runDirectory = join(input.outputDir, run);
+        assert(!(await fs.readdir(runDirectory)).includes('delivery'));
+        const differences = JSON.parse(await fs.readFile(join(runDirectory, 'snapshot-differences.json'), 'utf8'));
+        assert(differences.some((d: any) => d.object === 'p' && d.field === 'definition'));
+        const evidence = JSON.parse(await fs.readFile(join(runDirectory, 'verification.json'), 'utf8'));
+        assert.equal(evidence.construction.status, 'passed'); assert.equal(evidence.reload.status, 'passed');
+      }
       fault = '';
     });
   } finally { fault = ''; await fs.rm(directory, { recursive: true, force: true }); }
@@ -232,6 +246,7 @@ test('build failures preserve diagnostics, release resources and never commit', 
       ['export-cleanup', 'export_failed'],
       ['ggb-limit', 'limit_exceeded'], ['report-limit', 'limit_exceeded'],
       ['interaction-unverified-close', 'verification_unverified'], ['interaction-close', 'verification_failed'],
+      ['drag-paint', 'verification_failed'],
     ]) await t.test(name!, async () => {
       fault = name!; output = join(directory, fault); cancellation = new AbortController();
       if (fault === 'deadline') limits.buildMs = 1000;
@@ -261,6 +276,12 @@ test('build failures preserve diagnostics, release resources and never commit', 
           assert.equal(state.state, fault === 'failure-journal' ? 'running' : 'failed');
           if (state.state === 'failed') {
             assert.equal(state.error.code, code);
+            assert(state.totalMs > 0 && Array.isArray(state.timings));
+            if (fault === 'reload-change') {
+              const evidence = JSON.parse(await fs.readFile(join(output, run, 'verification.json'), 'utf8'));
+              assert.equal(evidence.construction.status, 'passed');
+              assert.equal(evidence.reload.status, 'failed');
+            }
             if (fault === 'interaction-unverified-close') {
               assert(state.error.details.cause.some((r: any) => r.status === 'unverified'));
               assert(state.diagnostics.some((s: string) => s.includes('Interaction cleanup failed')));

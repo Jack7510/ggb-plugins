@@ -1,0 +1,497 @@
+{
+  "date": "2026-10-16",
+  "baseline": "d82abfa67226733918bbb67596d83ce9a5da114e",
+  "method": "Serial alternating before/after; up to three full doctors per side; same installed assets; model and OS browser excluded.",
+  "repeats": 5,
+  "environment": {
+    "node": "v26.5.1",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "runtime": "5.4.932.1"
+  },
+  "inputs": [
+    {
+      "name": "hexagon",
+      "sha256": "d0c3fa11503b0e94e16f6debf973ca519f350f5b8c1674328b152acbe7ce89ed"
+    },
+    {
+      "name": "mercedes",
+      "sha256": "64f71441d90c7744683e573effd9196881df4ebcb285175932b50b84d3456cfd"
+    },
+    {
+      "name": "statistics",
+      "sha256": "b3c8b0204ed1dbfdd4f370c7b0565f6bc96972a78856092dda5b9977439b123e"
+    },
+    {
+      "name": "algebra",
+      "sha256": "357ebde137415e7dbc85841a06a8a76f44abc06fdb1fc04a8423376bccc3ec47"
+    }
+  ],
+  "summary": {
+    "hexagon": {
+      "beforeMs": 2586,
+      "afterMs": 2174,
+      "reductionPercent": 15.9
+    },
+    "mercedes": {
+      "beforeMs": 2660,
+      "afterMs": 2238,
+      "reductionPercent": 15.9
+    },
+    "statistics": {
+      "beforeMs": 1877,
+      "afterMs": 1827,
+      "reductionPercent": 2.7
+    },
+    "algebra": {
+      "beforeMs": 1704,
+      "afterMs": 1675,
+      "reductionPercent": 1.7
+    },
+    "doctor": {
+      "beforeMs": 1444,
+      "afterMs": 1430,
+      "reductionPercent": 0.9
+    }
+  },
+  "samples": [
+    {
+      "name": "hexagon",
+      "side": "before",
+      "repeat": 0,
+      "ms": 2586.305375,
+      "passed": true,
+      "checks": 50,
+      "samples": 2
+    },
+    {
+      "name": "hexagon",
+      "side": "after",
+      "repeat": 0,
+      "ms": 2169.889417,
+      "passed": true,
+      "checks": 50,
+      "samples": 2
+    },
+    {
+      "name": "mercedes",
+      "side": "before",
+      "repeat": 0,
+      "ms": 2639.4482499999995,
+      "passed": true,
+      "checks": 81,
+      "samples": 2
+    },
+    {
+      "name": "mercedes",
+      "side": "after",
+      "repeat": 0,
+      "ms": 2238.2322910000003,
+      "passed": true,
+      "checks": 81,
+      "samples": 2
+    },
+    {
+      "name": "statistics",
+      "side": "before",
+      "repeat": 0,
+      "ms": 1958.6167909999986,
+      "passed": true,
+      "checks": 24,
+      "samples": 0
+    },
+    {
+      "name": "statistics",
+      "side": "after",
+      "repeat": 0,
+      "ms": 1796.9910410000011,
+      "passed": true,
+      "checks": 24,
+      "samples": 0
+    },
+    {
+      "name": "algebra",
+      "side": "before",
+      "repeat": 0,
+      "ms": 1694.242583000001,
+      "passed": true,
+      "checks": 18,
+      "samples": 0
+    },
+    {
+      "name": "algebra",
+      "side": "after",
+      "repeat": 0,
+      "ms": 1660.8105000000014,
+      "passed": true,
+      "checks": 18,
+      "samples": 0
+    },
+    {
+      "name": "doctor",
+      "side": "before",
+      "repeat": 0,
+      "ms": 1438.997625
+    },
+    {
+      "name": "doctor",
+      "side": "after",
+      "repeat": 0,
+      "ms": 1400.430666999997
+    },
+    {
+      "name": "hexagon",
+      "side": "after",
+      "repeat": 1,
+      "ms": 2174.3874589999978,
+      "passed": true,
+      "checks": 50,
+      "samples": 2
+    },
+    {
+      "name": "hexagon",
+      "side": "before",
+      "repeat": 1,
+      "ms": 2525.429,
+      "passed": true,
+      "checks": 50,
+      "samples": 2
+    },
+    {
+      "name": "mercedes",
+      "side": "after",
+      "repeat": 1,
+      "ms": 2251.1810000000005,
+      "passed": true,
+      "checks": 81,
+      "samples": 2
+    },
+    {
+      "name": "mercedes",
+      "side": "before",
+      "repeat": 1,
+      "ms": 2767.0524160000023,
+      "passed": true,
+      "checks": 81,
+      "samples": 2
+    },
+    {
+      "name": "statistics",
+      "side": "after",
+      "repeat": 1,
+      "ms": 2067.2832909999997,
+      "passed": true,
+      "checks": 24,
+      "samples": 0
+    },
+    {
+      "name": "statistics",
+      "side": "before",
+      "repeat": 1,
+      "ms": 2017.6049159999966,
+      "passed": true,
+      "checks": 24,
+      "samples": 0
+    },
+    {
+      "name": "algebra",
+      "side": "after",
+      "repeat": 1,
+      "ms": 1848.872000000003,
+      "passed": true,
+      "checks": 18,
+      "samples": 0
+    },
+    {
+      "name": "algebra",
+      "side": "before",
+      "repeat": 1,
+      "ms": 1938.4234169999982,
+      "passed": true,
+      "checks": 18,
+      "samples": 0
+    },
+    {
+      "name": "doctor",
+      "side": "after",
+      "repeat": 1,
+      "ms": 1435.457709000002
+    },
+    {
+      "name": "doctor",
+      "side": "before",
+      "repeat": 1,
+      "ms": 1461.202333000001
+    },
+    {
+      "name": "hexagon",
+      "side": "before",
+      "repeat": 2,
+      "ms": 2605.3615840000057,
+      "passed": true,
+      "checks": 50,
+      "samples": 2
+    },
+    {
+      "name": "hexagon",
+      "side": "after",
+      "repeat": 2,
+      "ms": 2197.3537920000017,
+      "passed": true,
+      "checks": 50,
+      "samples": 2
+    },
+    {
+      "name": "mercedes",
+      "side": "before",
+      "repeat": 2,
+      "ms": 2660.493792000001,
+      "passed": true,
+      "checks": 81,
+      "samples": 2
+    },
+    {
+      "name": "mercedes",
+      "side": "after",
+      "repeat": 2,
+      "ms": 2266.253208000002,
+      "passed": true,
+      "checks": 81,
+      "samples": 2
+    },
+    {
+      "name": "statistics",
+      "side": "before",
+      "repeat": 2,
+      "ms": 1877.333083999998,
+      "passed": true,
+      "checks": 24,
+      "samples": 0
+    },
+    {
+      "name": "statistics",
+      "side": "after",
+      "repeat": 2,
+      "ms": 1827.3551249999946,
+      "passed": true,
+      "checks": 24,
+      "samples": 0
+    },
+    {
+      "name": "algebra",
+      "side": "before",
+      "repeat": 2,
+      "ms": 1704.3539579999997,
+      "passed": true,
+      "checks": 18,
+      "samples": 0
+    },
+    {
+      "name": "algebra",
+      "side": "after",
+      "repeat": 2,
+      "ms": 1674.7874589999992,
+      "passed": true,
+      "checks": 18,
+      "samples": 0
+    },
+    {
+      "name": "doctor",
+      "side": "before",
+      "repeat": 2,
+      "ms": 1443.8612079999948
+    },
+    {
+      "name": "doctor",
+      "side": "after",
+      "repeat": 2,
+      "ms": 1430.4722910000055
+    },
+    {
+      "name": "hexagon",
+      "side": "after",
+      "repeat": 3,
+      "ms": 2179.4116250000006,
+      "passed": true,
+      "checks": 50,
+      "samples": 2
+    },
+    {
+      "name": "hexagon",
+      "side": "before",
+      "repeat": 3,
+      "ms": 2568.115791999997,
+      "passed": true,
+      "checks": 50,
+      "samples": 2
+    },
+    {
+      "name": "mercedes",
+      "side": "after",
+      "repeat": 3,
+      "ms": 2229.890084000006,
+      "passed": true,
+      "checks": 81,
+      "samples": 2
+    },
+    {
+      "name": "mercedes",
+      "side": "before",
+      "repeat": 3,
+      "ms": 2672.666624999998,
+      "passed": true,
+      "checks": 81,
+      "samples": 2
+    },
+    {
+      "name": "statistics",
+      "side": "after",
+      "repeat": 3,
+      "ms": 1756.5821659999929,
+      "passed": true,
+      "checks": 24,
+      "samples": 0
+    },
+    {
+      "name": "statistics",
+      "side": "before",
+      "repeat": 3,
+      "ms": 1826.737666000001,
+      "passed": true,
+      "checks": 24,
+      "samples": 0
+    },
+    {
+      "name": "algebra",
+      "side": "after",
+      "repeat": 3,
+      "ms": 1637.0240829999966,
+      "passed": true,
+      "checks": 18,
+      "samples": 0
+    },
+    {
+      "name": "algebra",
+      "side": "before",
+      "repeat": 3,
+      "ms": 1696.8040409999958,
+      "passed": true,
+      "checks": 18,
+      "samples": 0
+    },
+    {
+      "name": "hexagon",
+      "side": "before",
+      "repeat": 4,
+      "ms": 2591.9424169999984,
+      "passed": true,
+      "checks": 50,
+      "samples": 2
+    },
+    {
+      "name": "hexagon",
+      "side": "after",
+      "repeat": 4,
+      "ms": 2156.766042000003,
+      "passed": true,
+      "checks": 50,
+      "samples": 2
+    },
+    {
+      "name": "mercedes",
+      "side": "before",
+      "repeat": 4,
+      "ms": 2644.4434579999943,
+      "passed": true,
+      "checks": 81,
+      "samples": 2
+    },
+    {
+      "name": "mercedes",
+      "side": "after",
+      "repeat": 4,
+      "ms": 2216.917625000002,
+      "passed": true,
+      "checks": 81,
+      "samples": 2
+    },
+    {
+      "name": "statistics",
+      "side": "before",
+      "repeat": 4,
+      "ms": 1800.1797499999957,
+      "passed": true,
+      "checks": 24,
+      "samples": 0
+    },
+    {
+      "name": "statistics",
+      "side": "after",
+      "repeat": 4,
+      "ms": 1849.7204159999965,
+      "passed": true,
+      "checks": 24,
+      "samples": 0
+    },
+    {
+      "name": "algebra",
+      "side": "before",
+      "repeat": 4,
+      "ms": 1742.0050829999964,
+      "passed": true,
+      "checks": 18,
+      "samples": 0
+    },
+    {
+      "name": "algebra",
+      "side": "after",
+      "repeat": 4,
+      "ms": 1768.6575420000008,
+      "passed": true,
+      "checks": 18,
+      "samples": 0
+    }
+  ],
+  "statisticsObservationMeanMs": {
+    "casMs": 510.9,
+    "probesMs": 140.3,
+    "valuesMs": 49.1,
+    "snapshotMs": 54.6
+  },
+  "implementationSha256": {
+    "src/browser.ts": "9c9307fabafa5e50d910630faf6a7ec48a5a41d8509f0a1518da88d1b0ec9af8",
+    "src/delivery.ts": "2070ad93e3f6444a7220fed9841cf2cc54f6002059eefa053f75935ccdb877a3",
+    "src/verify.ts": "49eb3223821fa9d9d25a9260632571d8cdc753896d8903a768a4b5f6de624c96",
+    "skills/ggb-construction/SKILL.md": "b45438cc8c4843aafe62bfb68fe645680db7455f8af76dd80f1c6bb9cb5c0f06",
+    "scripts/benchmark.mjs": "a99882433c0de8cd474608145404a627b7126d135424261a7803553fc89dc45f"
+  },
+  "installedReplay": {
+    "toolVersion": "0.8.0",
+    "doctor": {
+      "smoke": "passed",
+      "casSmoke": "passed"
+    },
+    "cases": [
+      {
+        "name": "horse",
+        "buildMs": 2683,
+        "checks": 83,
+        "samples": 3,
+        "construction": "passed",
+        "reload": "passed",
+        "interaction": "passed",
+        "preview": "passed"
+      },
+      {
+        "name": "ellipse",
+        "buildMs": 1827,
+        "checks": 60,
+        "samples": 1,
+        "construction": "passed",
+        "reload": "passed",
+        "interaction": "passed",
+        "preview": "passed"
+      }
+    ]
+  }
+}
