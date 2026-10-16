@@ -14,22 +14,23 @@
 
 ## 安装
 
-优先用 DSH 自带的插件管理器（在具备 `plugin_manager` 工具的会话里），它会完成装包与 bundle 选择：
+装进**当前实际启动的那个 profile**（用 `echo $DSH_PROFILE` 确认；打包版桌面应用是 `desktop`）。标准路径是用 DSH 自带的插件管理器：
 
 ```
 plugin_manager  action: install_bundle   target: <repo>/dsh
 ```
 
-没有该工具时，命令行等价路径是两步（`dsh plugin` 只是把参数转发给 profile 里的 pnpm）：
+桌面应用**独占管理** `desktop` profile：`dsh --profile desktop --dump-config` 会直接拒绝（`profile "desktop" is managed exclusively by the Electron application`），所以在那里只能用 `plugin_manager`；`dsh plugin --profile <name> add` 只适用于自己启动的 profile。
 
-```sh
-dsh plugin --profile web add /absolute/path/to/ggb-plugins/dsh
-# 再把 "@local/ggb-plugins-dsh" 加入该 profile package.json 的 dsh.profile.bundles
-```
+没有 `plugin_manager` 时，手工等价物是三样，缺一不可：
 
-新增 bundle 可以通过 HMR 生效；替换已安装包需要重启，才会加载新的 JS 模块。
+1. profile 的 `package.json` 里加依赖：`"@local/ggb-plugins-dsh": "link:<repo>/dsh"`；
+2. 把 `"@local/ggb-plugins-dsh"` 加进同一个 `package.json` 的 `dsh.profile.bundles`；
+3. 让包能从 profile 解析：`<profile>/node_modules/@local/ggb-plugins-dsh` → `<repo>/dsh`（`dsh plugin` 装的话它自己会建）。
 
-装好后在**新会话**查看技能列表，应出现 `ggb-construction`。
+**不要用手写补丁行代替安装**：补丁里匹配不到已有 id 的非 `insert` 行会被警告并跳过，而行的 `name` 只有在「随包插件」或「已登记的 bundle」中才解析得到——未登记的包名挂不上，只会静默失败。
+
+**生效时机（实测）**：bundle 列表只在 profile **启动时**读取，所以新增 bundle 需要重启 DSH（或由 `plugin_manager` 应用并回报 `application`）；补丁层相反，改动**热生效**（把随包的 `skill-badge` 行打开，`dsh-badge` 技能立即出现，还原后立即消失）。装好后在**新会话**的技能列表里应出现 `ggb-construction`。
 
 ## 为什么不需要配置
 
@@ -55,9 +56,33 @@ dsh plugin --profile web add /absolute/path/to/ggb-plugins/dsh
 ## 验证
 
 ```sh
+# 1) 插件本体：离线测试（桩注册表，不需要 DSH）
 node --test dsh/test/plugin.test.mjs
-dsh --profile web --dump-config --patch dsh/cordis.patch.yml   # 确认 ggb-plugins-dsh 行已插入
+
+# 2) 宿主能否解析到包（与启动时的解析动作一致）
+PROFILE_DIR="${DSH_PROFILE_DIR:-$HOME/.dsh/profiles/web}"
+node -e "const {createRequire}=require('node:module');console.log(createRequire(process.argv[1]).resolve('@local/ggb-plugins-dsh'))" "$PROFILE_DIR/package.json"
+
+# 3) 冷加载：确认它注册的技能与注入的绝对路径，不必等重启
+node --input-type=module -e '
+import { createRequire } from "node:module";
+const entry = createRequire(process.argv[1]).resolve("@local/ggb-plugins-dsh");
+const plugin = await import(entry);
+const providers = [];
+plugin.apply({ logger: { warn: console.warn }, skills: { registerProvider: c => providers.push(c({ invalidate(){}, signal: undefined })) } }, {});
+const [skill] = await providers[0].list();
+const loaded = await providers[0].get(skill, {});
+console.log(skill.name, "| rank", skill.rank, "|", JSON.parse(loaded.content.split("```json")[1].split("```")[0]).ggb.cli);
+' "$PROFILE_DIR/package.json"
 ```
+
+自己启动的 profile（例如 `dsh web`）还能直接核对合成树：
+
+```sh
+dsh --profile web --dump-config --patch dsh/cordis.patch.yml
+```
+
+桌面应用的 `desktop` profile 不允许 dump，用上面第 2、3 步代替。想确认宿主是否已经重新合成过，看 profile 根文件的写入时间即可（它在每次启动时被重写）：`stat -f '%Sm' "$PROFILE_DIR/cordis.yml"`。
 
 ## 与 Codex 的兼容
 
