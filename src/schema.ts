@@ -89,15 +89,33 @@ export interface Request {
   };
 }
 
+// Fields the model sometimes lifts out of `plan`; naming them shortens a retry.
+const planOnly = ['interactions', 'styles', 'requirements', 'view', 'display'];
+
 function record(value: unknown, keys: string[]): Record<string, any> {
-  assert(value && typeof value === 'object' && !Array.isArray(value), 'Expected an object');
-  assert(Object.keys(value).every(key => keys.includes(key)), `Unknown field in ${JSON.stringify(value).slice(0, 160)}`);
+  assert(value && typeof value === 'object' && !Array.isArray(value),
+    'Expected an object');
+  const unknown = Object.keys(value).filter(key => !keys.includes(key));
+  if (unknown.length) {
+    const misplaced = keys.includes('plan') ?
+      unknown.filter(key => planOnly.includes(key)) : [];
+    const hint = misplaced.length ?
+      `; ${misplaced.join(', ')} belong under plan` : '';
+    throw new ToolError('invalid_input',
+      `Unknown field: ${unknown.join(', ')}${hint}`);
+  }
   return value as Record<string, any>;
 }
 function text(value: unknown, max = 2048): asserts value is string {
   assert(typeof value === 'string' && value.trim().length > 0 && value.length <= max, 'Invalid text');
 }
 const labelPattern = /^[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?$/;
+/** Requirement IDs label evidence only; they never enter GeoGebra. */
+function requirementId(value: unknown): asserts value is string {
+  assert(typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(value),
+    `Invalid requirement ID: ${JSON.stringify(value)}`);
+}
+
 function identifier(value: unknown): asserts value is string {
   assert(typeof value === 'string' && value.length <= 32 && labelPattern.test(value)
     && !['e', 'i', 'x', 'y', 'z', 'pi'].includes(value) && !value.startsWith('GgbProbe'),
@@ -171,6 +189,20 @@ function expressionCheck(check: any, requirementId: string, index: number,
 // (`L_2'`) or subscripted (`B_{1,2}`). They are only used as lookup keys, never
 // spliced into expressions, so this grammar stays permissive on purpose.
 const baseLabelPattern = /^[^\s"<>&\u0000-\u001f]{1,64}$/;
+
+/** Subject counts follow the predicate arity; a miss names the check. */
+function subjectCount(
+  check: Record<string, any>, spec: { types: string[]; variadic?: boolean },
+  requirement: string,
+) {
+  const min = spec.types.length;
+  const max = spec.variadic ? 16 : min;
+  const actual = Array.isArray(check.subjects) ? check.subjects.length : -1;
+  assert(actual >= min && actual <= max,
+    `Check "${requirement}" ${String(check.kind)}: expected `
+    + `${String(min)}${max === min ? '' : `..${String(max)}`} subjects, `
+    + `got ${actual < 0 ? 'none' : String(actual)}`);
+}
 
 /** Accepts any label an existing file may hold. */
 function baseName(value: unknown): asserts value is string {
@@ -323,7 +355,8 @@ export function parseRequest(value: unknown): Request {
   let count = 0;
   for (const input of p.requirements) {
     const r = record(input, ['id', 'source', 'checks']);
-    identifier(r.id); assert(!ids.has(r.id), 'Duplicate requirement ID'); ids.add(r.id);
+    requirementId(r.id); assert(!ids.has(r.id), 'Duplicate requirement ID');
+    ids.add(r.id);
     text(r.source, limits.promptChars);
     assert(sources.some(source => source.includes(r.source)), 'Requirement source is not in the input');
     array(r.checks, 1, limits.checks);
@@ -331,7 +364,7 @@ export function parseRequest(value: unknown): Request {
       const c = record(input, ['kind', 'subjects', 'scope', 'value', 'coordinates', 'properties', 'objectType', 'expression', 'expected', 'mode', 'assumptions']);
       if (typeof c.kind !== 'string' || !Object.hasOwn(predicates, c.kind)) throw new ToolError('unsupported_operation', 'Unsupported verification method');
       const spec = predicates[c.kind]!;
-      array(c.subjects, spec.types.length, spec.variadic ? 16 : spec.types.length);
+      subjectCount(c, spec, r.id);
       c.subjects.forEach(subject);
       assert(['initial', 'sampled'].includes(c.scope), 'Check scope must be initial or sampled');
       if (c.kind === 'expression') {

@@ -5,9 +5,11 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { compile } from '../src/compile.js';
 import { build } from '../src/delivery.js';
-import { parseRequest } from '../src/schema.js';
+import { parseRequest, type Request } from '../src/schema.js';
 import { root } from '../src/server.js';
-import { equivalent, compareSnapshots, snapshotDifferences } from '../src/verify.js';
+import {
+  equivalent, compareSnapshots, snapshotDifferences, verify,
+} from '../src/verify.js';
 import type { Snapshot } from '../src/browser.js';
 
 const fixture = JSON.parse(await readFile(join(root, 'examples/v2-cases/triangle.json'), 'utf8'));
@@ -38,6 +40,64 @@ test('reserved step IDs are rejected while engine-owned outputs may use reserved
   });
   assert.doesNotThrow(() => parseRequest(outputs));
 });
+test('requirement IDs may carry report-style punctuation', () => {
+  const named = structuredClone(fixture);
+  named.plan.requirements[0].id = 'circle-exists.v2';
+  assert.equal(parseRequest(named).plan.requirements[0]?.id,
+    'circle-exists.v2');
+  for (const bad of ['1circle', 'circle exists', '']) {
+    const broken = structuredClone(fixture);
+    broken.plan.requirements[0].id = bad;
+    assert.throws(() => parseRequest(broken), /Invalid requirement ID/);
+  }
+});
+
+test('unknown fields are named and misplaced plan fields get a hint', () => {
+  const stray = structuredClone(fixture);
+  stray.plan.requirements[0].checks[0].kind2 = 'expression';
+  assert.throws(() => parseRequest(stray), /Unknown field: kind2/);
+  const lifted = structuredClone(fixture);
+  lifted.interactions = [];
+  assert.throws(() => parseRequest(lifted),
+    /Unknown field: interactions; interactions belong under plan/);
+});
+
+test('subject-count errors name the requirement and the predicate', () => {
+  const input = structuredClone(fixture);
+  input.plan.requirements[0].checks[0] = {
+    kind: 'midpoint', subjects: ['A', 'B'], scope: 'initial',
+  };
+  assert.throws(() => parseRequest(input),
+    /Check ".*" midpoint: expected 3 subjects, got 2/);
+});
+
+test('predicate errors name the expected type and the actual one', () => {
+  const facts = [
+    { name: 'A', type: 'point', defined: true, independent: true, moveable: true,
+      x: 1, y: 2, value: null, line: null, circle: null, inputs: [],
+      referenceState: 'direct' },
+    { name: 's', type: 'segment', defined: true, independent: false,
+      moveable: false, x: null, y: null, value: null, line: null, circle: null,
+      inputs: ['A'], referenceState: 'direct' },
+  ] as unknown as Snapshot;
+  const request = {
+    protocolVersion: 2, prompt: 'x', locale: 'zh', outputDir: 'x',
+    plan: {
+      program: [], interactions: [],
+      requirements: [
+        { id: 'par', source: 'x', checks: [
+          { kind: 'parallel', subjects: ['s', 's'], scope: 'initial' }] },
+        { id: 'on', source: 'x', checks: [
+          { kind: 'pointOn', subjects: ['A', 's'], scope: 'initial' }] },
+      ],
+    },
+  } as unknown as Request;
+  const result = verify(request, facts, 'initial');
+  const messages = JSON.stringify(result.results);
+  assert.match(messages, /Expected a line: s \(segment\)/);
+  assert.match(messages, /Expected a circle or conic: s \(segment\)/);
+});
+
 test('filling accepts fractions and rejects out-of-range values', () => {
   const sample = structuredClone(fixture);
   sample.plan.styles = [{ object: 'A', properties: { filling: 0.5 } }];
