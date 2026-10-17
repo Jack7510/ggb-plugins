@@ -4,6 +4,8 @@
 
 ## 未发布
 
+- 将军饮马案例的可见文字改为构图和观察提示，保留全部数学检查与拖动样本。viewer 支持简单 LaTeX 标题的纯文本展示及长标题换行，未知语法保留原文。Codex 安装副本复跑结果见 [验证报告](codex-v2-validation.md)。
+
 - 新增 `capabilities.json` 与 `skills/ggb-construction/worker.md`：插件是 Worker 提示词与能力契约的唯一来源。`capabilities.json` 由 `src/schema.ts` 和 `worker.md` 生成，包含请求协议版本、`pointOn` 支持的圆锥曲线类型、检查谓词、限额与 `workerSkillSha256`；ggb-agent Worker 启动时校验该哈希与 profile 版本，不匹配即拒绝启动。ggb-dsh 不再保存第二份完整 Skill。
 - `check` 与构造交付报告新增同义反复提示：路径点、`Midpoint`、`Circle` 圆心、`Line`／`ParallelLine`、`OrthogonalLine`／`PerpendicularLine`、`Intersect` 已经保证的关系再写成 `pointOn`／`midpoint`／`center`／`parallel`／`perpendicular` 只核对引擎行为，不能算题设条件的证据；这类检查以 `warnings`（`check`）与 `tautology`（报告）列出，不改变通过状态。Skill 与能力契约要求另加独立关系检查。
 - `pointOn` 支持圆锥曲线（椭圆、双曲线、抛物线）：从归档的齐次矩阵取隐式方程，按点到曲线的距离核验；此前只支持直线与圆，椭圆上取点只能用参数表达式绕开。另把「非 expression 检查出现 expression 字段」和「expected 类型错误」的报错改成点名具体字段与实际值。
@@ -29,7 +31,7 @@
 
 - 样式新增 `filling`（0–1 填充不透明度），用于"填充图形"类要求；样式比较对 `filling` 用容差，其余字段仍精确比较。`examples/v2-cases` 新增两个用例：`general-horse.json`（翻折原理说明图）与 `dashed-blue-circle.json`（虚线圆 + 半透明蓝色填充）。
 
-- 明确插件只分析题意与作图，不提供题目答案；宿主回复与可见产物遵循 [Skill 输出边界](../skills/ggb-construction/SKILL.md#分析与作图边界)，内部计算、证据和核验门禁保留。尚未打包更新已安装副本。
+- 明确插件只分析题意与作图，不提供题目答案；宿主回复与可见产物遵循 [Skill 输出边界](../skills/ggb-construction/SKILL.md#分析与作图边界)，内部计算、证据和核验门禁保留。开发包安装验证见 [Codex 验证](codex-v2-validation.md)，不代表公开发布包已更新。
 
 - 支持由 Agent 选择中文或英文工作语言，最终预览跟随请求 locale。README.md 默认英文，README.zh-CN.md 提供中文；两种分发包携带双语入口和中文 INSTALL.md，其余文档保留中文。
 

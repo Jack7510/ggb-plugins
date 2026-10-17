@@ -6,7 +6,9 @@ import { execFile, spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createInterface } from 'node:readline';
 import { promisify } from 'node:util';
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir, mkdtemp, readFile, readdir, rm, writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -18,6 +20,49 @@ import { compareSnapshots, verify } from '../src/verify.js';
 
 const fixture = async (name: string) => parseRequest(JSON.parse(await readFile(join(root, `examples/v2-cases/${name}.json`), 'utf8')));
 const cli = join(root, 'dist/src/cli.js');
+
+test('math titles wrap safely without changing the original request or GGB', {
+  timeout: 30_000,
+}, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ggb-math-title-'));
+  const evidence = join(root, 'output/codex-v2-display-fix');
+  const notation = String.raw` $2x^2+3y^2=6$，$F_1$，$\triangle ABF_2$，$C:\ x^2-y^2=4$，$\dfrac{1}{2}$，\(\sqrt{3}\)，$\unknown{x}$，价格 $5 and $10。<img src=x onerror=alert(1)>`;
+  const formatted = String.raw` 2x²+3y²=6，F₁，△ ABF₂，C: x²-y²=4，(1)/(2)，√(3)，$\unknown{x}$，价格 $5 and $10。<img src=x onerror=alert(1)>`;
+  try {
+    const request = await fixture('triangle');
+    const prefix = request.prompt.repeat(3);
+    request.prompt = prefix + notation;
+    request.outputDir = directory;
+    const result = await build(request);
+    const saved = await readFile(join(result.delivery, 'request.json'), 'utf8');
+    assert.equal(JSON.parse(saved).prompt, request.prompt);
+    const session = await openPreview(result.delivery, false);
+    try {
+      const expected = await snapshot(session.page);
+      const material = session.publishPreview({
+        base64: session.bytes.toString('base64'),
+        prompt: request.prompt, locale: 'zh-CN', display: 'graphics',
+      });
+      const published = await session.page.context().newPage();
+      await published.goto(material.url);
+      await material.loaded;
+      await mkdir(evidence, { recursive: true });
+      for (const [index, page] of [session.page, published].entries()) {
+        const heading = page.locator('h1');
+        assert.equal(await heading.textContent(), prefix + formatted);
+        assert.equal(await heading.getAttribute('title'), request.prompt);
+        assert.equal(await page.locator('h1 img').count(), 0);
+        assert.equal(await page.locator('h1').evaluate(element => {
+          return element.scrollWidth <= element.clientWidth;
+        }), true);
+        compareSnapshots(await snapshot(page), expected);
+        await page.screenshot({
+          path: join(evidence, `title-regression-${index}.png`), fullPage: true,
+        });
+      }
+    } finally { await session.close(); }
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
 
 test('text defaults survive reload and incompatible explicit styles remain rejected', { timeout: 30_000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ggb-text-defaults-'));

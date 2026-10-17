@@ -7,7 +7,7 @@
   <style>
     body { margin: 0; background: #f5f7fa; color: #243043; font: 15px system-ui, sans-serif; }
     header { padding: 16px 24px; }
-    h1 { margin: 0 0 6px; font-size: 20px; max-width: 1000px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    h1 { margin: 0 0 6px; font-size: 20px; max-width: 1000px; white-space: normal; overflow-wrap: anywhere; }
     p { margin: 0; }
     #applet { margin: 0 24px; width: 1000px; background: white; }
     footer { padding: 12px 24px; font-size: 13px; }
@@ -21,7 +21,7 @@
   <footer><a href="https://www.geogebra.org/" target="_blank" rel="noreferrer">Made with GeoGebra®</a> · <span id="closing">Close this browser window to end the preview.</span><button id="finish" hidden>End preview</button></footer>
   <script>
     /**
-     * @fileoverview Loads one GGB and owns Chinese/English viewer messages.
+     * @fileoverview Loads one GGB and owns localized, text-only viewer titles.
      */
     const material = window.previewMaterial;
     const translations = {
@@ -49,16 +49,48 @@
       },
     };
     let messages = translations.en;
+    /** Converts simple math notation; unknown syntax stays verbatim. */
+    function mathTitleText(source) {
+      const symbols = {
+        triangle: '△', cdot: '·', times: '×', leq: '≤', geq: '≥',
+      };
+      const scripts = {
+        '^': '⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻', '_': '₀₁₂₃₄₅₆₇₈₉₊₋',
+      };
+      let text = source
+        .replace(/\\(?:d?frac)\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)')
+        .replace(/\\sqrt\{([^{}]+)\}/g, '√($1)')
+        .replace(/\\(triangle|cdot|times|leq|geq)\b/g,
+          (_, name) => symbols[name])
+        .replace(/\\ /g, ' ');
+      text = text.replace(/([\^_])(?:\{([0-9+-]+)\}|([0-9]))/g,
+        (_, marker, group, digit) => [...(group ?? digit)].map(value => {
+          return scripts[marker]['0123456789+-'.indexOf(value)];
+        }).join(''));
+      return /[\\{}^_]/.test(text) ? null : text;
+    }
+    /** Formats math spans only; textContent keeps source HTML inert. */
+    function titleText(prompt) {
+      return prompt.replace(/\$([^$\n]+)\$|\\\((.+?)\\\)/g,
+        (original, dollar, parenthesis) => {
+          const math = dollar ?? parenthesis;
+          if (!/[\\^_=]/.test(math) && !/^[A-Za-z0-9]+$/.test(math)) {
+            return original;
+          }
+          return mathTitleText(math) ?? original;
+        });
+    }
     /** Updates viewer text; problem statements retain their original language. */
     function setViewerLocale(locale, display = 'graphics') {
       const chinese = locale.toLowerCase().startsWith('zh');
       messages = chinese ? translations.zh : translations.en;
       document.documentElement.lang = chinese ? 'zh-CN' : 'en';
       document.title = messages.title;
-      if (material || !window.ggb) {
-        document.querySelector('h1').textContent =
-          material?.prompt ?? messages.title;
-      }
+      const heading = document.querySelector('h1');
+      const prompt = material?.prompt ??
+        (window.ggb ? heading.textContent : messages.title);
+      heading.textContent = titleText(prompt);
+      heading.title = prompt;
       document.getElementById('status').textContent =
         display === 'algebra' ? messages.algebra : messages.graphics;
       document.getElementById('closing').textContent =

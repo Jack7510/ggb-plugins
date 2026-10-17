@@ -103,19 +103,19 @@
     "id": "t1",
     "op": "native",
     "mode": "algebra",
-    "source": "t1=Text(\"把 A 关于直线 l 翻折到 A'，则 AP = A'P\",(0.4,6.4))"
+    "source": "t1=Text(\"构造 A 关于直线 l 的对称点 A′\",(0.4,6.4))"
    },
    {
     "id": "t2",
     "op": "native",
     "mode": "algebra",
-    "source": "t2=Text(\"所以 AP + PB = A'P + PB ≥ A'B\",(0.4,5.8))"
+    "source": "t2=Text(\"拖动河岸上的 P，观察折线路径的变化\",(0.4,5.8))"
    },
    {
     "id": "t3",
     "op": "native",
     "mode": "algebra",
-    "source": "t3=Text(\"当 P 取 A'B 与 l 的交点 P₀ 时取等号\",(0.4,5.2))"
+    "source": "t3=Text(\"观察对称点连线与河岸的交点及辅助线段\",(0.4,5.2))"
    }
   ],
   "requirements": [
