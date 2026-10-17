@@ -4,6 +4,7 @@
 
 ## 未发布
 
+- Skill 与能力契约增加期望值规则：坐标、距离、面积、角度等 `expected` 必须按题目条件独立算出，不从失败证据、`inspect` 结果或上一轮观测里抄数值；失败后只改证据指出的那一项。评测中「将军饮马」连续三次构建都因自选期望值出错而耗尽构建次数。
 - 执行失败区分「引擎未创建该标签」与「标签已创建但未定义」：`Execution failed or output undefined: hit; actual labels: ...; missing: hit (undefined)`，不再把未定义的几何结果（如不相交的圆求交点）笼统报成缺失。
 - 诊断报错点名具体对象与检查：未知字段直接给出键名，顶层误放的 `interactions`／`styles`／`requirements`／`view`／`display` 提示放入 `plan`；subject 数量错误带需求 id 与谓词（`Check "m" midpoint: expected 3 subjects, got 2`）；谓词类型错误给出期望与实际类型（`Expected a line: s (segment)`）。需求 id 允许 `-` 与 `.`，因为它只作为证据键。
 - `build` 执行失败时报出引擎实际返回的标签与缺失的输出名（`actual labels` / `missing`）；输出是否定义改为执行后判定，结构化步骤不再把尚未创建的输出误报为缺失。
