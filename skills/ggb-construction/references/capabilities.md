@@ -1,6 +1,6 @@
 # 原生二维程序与核验契约（M6 / 0.6.0）
 
-执行入口为 `build --request <file>`；先用 `check --request <file>` 进行无浏览器的结构预检。check 复用 schema 和 compile，检查来源及声明引用；返回 validation:structural，不核验引擎语法、实际输出标签或数学关系。请求协议是 2，CLI 结果信封仍是 1。M1/M5 的协议 2 请求仍可执行；旧交付须重新构造以补齐 M6 证据。GeoGebra 负责解析数学语法，不按题型或数学命令白名单选择实现。
+执行入口为 `build --request <file>`；先用 `check --request <file>` 进行无浏览器的结构预检。修改已有 GGB 属于编辑模式，先用 `inspect --ggb <file>` 取得对象清单，见[编辑已有 GGB](#编辑已有-ggb-p0)。check 复用 schema 和 compile，检查来源及声明引用；返回 validation:structural，不核验引擎语法、实际输出标签或数学关系。请求协议是 2，CLI 结果信封仍是 1。M1/M5 的协议 2 请求仍可执行；旧交付须重新构造以补齐 M6 证据。GeoGebra 负责解析数学语法，不按题型或数学命令白名单选择实现。
 
 请求编写及交付展示遵循 [分析与作图边界](../SKILL.md#分析与作图边界)。下列示例绘制给定函数，不输出零点答案；底层 CAS 和核验数据能力仍保留。
 
@@ -34,6 +34,59 @@
 工作语言由 Agent 选择中文或英文；新请求 locale 使用 zh-CN 或 en，最终预览据此显示说明与结束按钮。caption 和 Text 由 Agent 用所选语言编写。locale 不翻译来源、命令、协议字段或原始诊断；其他既有 locale 值仍可解析，预览以英文回退。
 
 保留用户原文、可选 `clarifications: [{question,answer}]`。每个 requirement 有唯一 ID、输入中的原文 source 和非空 checks。不得写入检查结果、容差或未知字段。图片由宿主读取并转述题意；把来源和歧义澄清保存在 prompt/clarifications，不把图片当脚本输入。
+
+## 编辑已有 GGB（P0）
+
+编辑模式的输入是“已有 GGB + 文字指令”，输出是新的 GGB 文件；原文件只读。当前只支持显示属性，不支持增删对象、改值、改结构或改视图。
+
+```sh
+node <plugin>/dist/src/cli.js inspect --ggb /absolute/base.ggb
+```
+
+inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`bytes`、`version`、`entries`、`view` 和 `objects`（每个对象的 `name`、`type`、`defined`、`dependent`、`moveable`、`fixed`、`visible`、`color`、`lineThickness`、`lineStyle`、`filling`、`labelVisible`、`caption`、`definition`）。请求中的 `base.sha256` 必须等于该值；文件改动后必须重新 inspect。
+
+```json
+{
+  "protocolVersion": 2,
+  "prompt": "把三角形 aTri 填充改成蓝色 30%，隐藏 txtSum 文字",
+  "locale": "zh-CN",
+  "outputDir": "/absolute/output",
+  "base": { "path": "/absolute/base.ggb", "sha256": "<inspect 返回的 sha256>" },
+  "plan": {
+    "edits": [
+      {"object":"aTri","properties":{"color":"#3C78D8","filling":0.3}},
+      {"object":"txtSum","properties":{"visible":false}}
+    ],
+    "requirements": [{
+      "id":"appearance", "source":"填充改成蓝色 30%，隐藏 txtSum 文字",
+      "checks":[
+        {"kind":"style","subjects":["aTri"],"properties":{"color":"#3C78D8","filling":0.3},"scope":"initial"},
+        {"kind":"style","subjects":["txtSum"],"properties":{"visible":false},"scope":"initial"}
+      ]
+    }],
+    "interactions": []
+  }
+}
+```
+
+- `edits` 每项的 `properties` 只允许 `color`、`lineThickness`、`lineStyle`、`filling`、`labelVisible`、`visible`；同一对象只能出现一次。`filling` 只适用于封闭图形（圆、圆锥曲线、多边形、扇形、弧、不等式区域），`lineThickness`／`lineStyle` 只适用于有轮廓的对象。
+- 编辑请求不含 `program`、`styles`、`view` 与 `interactions`。基线自身带视图，重建或平移视图会破坏“只改声明字段”。
+- 对象名来自文件，可含撇号或下标（如 `A'`、`B_{1}`）；`check` 的 subjects 接受这类名字。含撇号的名称不参与 expression 检查的 token 匹配。
+- 每个声明的字段都有一条 requirement 检查，`source` 取自本次指令原文。
+
+**门禁**（前四条由工具判定，不能由模型豁免）：
+
+1. 摘要一致：文件 `sha256` 等于 `base.sha256`，原件不被写回；归档条目、脚本、宏、图片/按钮/3D 材料静态拒绝。
+2. 基线可解释：XML 中每个对象都出现在加载后的事实里，加载后不得出现无法描述的对象类型。
+3. 逐字段读回：每个 setter 之后读回声明的字段；未生效返回 `edit_no_effect`，不把“调用被接受”当作成功。
+4. 差异白名单：edited 文件的字段级差异必须落在声明的 `object:field` 集合内，否则返回 `preservation_violation`。
+5. 重载一致：导出文件在新 applet 中重载后，事实与编辑后状态完全一致，并重跑 requirement 检查。
+
+**交付**：除 result.ggb、request.json、verification.json、preview.png、manifest.json 外，另含 base.ggb（基线副本）、manifest 的 `base` 块与 diff.json（`baseSha256`、`allowed`、`changes`）。preview 会重新加载 base.ggb、重算差异，并核对报告中的 `changes`；报告中删改差异即预览失败。
+
+**错误码**：`base_invalid`（摘要不符）、`base_unsupported`（归档/脚本/宏/材料/对象不支持）、`unknown_edit_target`（对象不存在）、`invalid_edit`（属性与该类型不符）、`edit_no_effect`（读回未生效）、`preservation_violation`（出现未声明的变化）。
+
+**不支持**（返回错误，不静默降质）：增删或重定义对象、修改坐标或数值、重命名、视图/坐标轴调整、拖动样本、脚本、自定义工具、图片、按钮、输入框、三维材料，以及把旧图形“翻译成程序重画”。这些需求按新建构图处理，原文件另存。
 
 ## 原生构图程序
 
@@ -98,7 +151,7 @@ expression 检查的写法限制（本项目实测）：直接用比较表达式
 
 有界的可变数量构造，可以先生成容量固定的原生辅助对象，再取活动前缀。`Take(allPoints,1,count)` 取前 count 个对象，二参数 Take 从指定位置取到末尾。若只要求轮廓，可依次保存 `active=Take(allPoints,1,count)`、`first=Element(active,1)`、`closed=Append(active,first)`、`outline=Polyline(closed)`；拆开命令以保留直接依赖。所有辅助对象必须始终有定义，容量上限必须来自题目且满足 steps 限制。周长从实际相邻点距离求和并独立核验，不用“边数×边长”同时生成和检查结果。若要求填充面或原生 Polygon 类型，不能将轮廓表示当作完成。
 
-M1 回归的 freePoint/command 原语保留在协议 2，仍编译到同一执行器；旧命令表不限制 native 程序。不要在同一程序混合两种形式。几何示例见 examples/triangle.json 和 examples/parabola.json；代数、函数、统计及混合验收输入保留在 tests/fixtures，仅用于回归测试与覆盖记录。
+M1 回归的 freePoint/command 原语保留在协议 2，仍编译到同一执行器；旧命令表不限制 native 程序。不要在同一程序混合两种形式。几何示例见 examples/v2-cases/triangle.json 和 examples/v2-cases/parabola.json；代数、函数、统计及混合验收输入保留在 tests/fixtures，仅用于回归测试与覆盖记录。
 
 ## 交付与失败
 

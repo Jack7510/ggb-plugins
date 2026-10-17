@@ -42,11 +42,12 @@ The interactive preview loads the same GGB file. It supports applicable point dr
 
 ```sh
 node <installed-plugin>/dist/src/cli.js doctor
+node <installed-plugin>/dist/src/cli.js inspect --ggb /absolute/base.ggb
 node <installed-plugin>/dist/src/cli.js build --request /absolute/request.json
 node <installed-plugin>/dist/src/cli.js preview --delivery /absolute/delivery
 ```
 
-Request authoring is documented in the [Skill capability contract](skills/ggb-construction/references/capabilities.md), in Chinese. Use `--headless` for automated preview checks. The caller must keep the preview process running; a one-shot host may terminate it when the host exits.
+Pass `base` in the request to edit an existing GGB's colors, line styles, filling, or visibility. `inspect` lists the objects and the digest that the request must declare. Request authoring is documented in the [Skill capability contract](skills/ggb-construction/references/capabilities.md), in Chinese. Use `--headless` for automated preview checks. The caller must keep the preview process running; a one-shot host may terminate it when the host exits.
 
 Press Ctrl+C to end the preview session. Browser selection and tab-close behavior depend on the version. See the [change record](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md) for released behavior and pending changes.
 
