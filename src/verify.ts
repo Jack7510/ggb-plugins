@@ -82,7 +82,19 @@ export function compareSnapshots(a: Snapshot, b: Snapshot) {
 }
 
 function styleStatus(fact: Fact, properties: Style): Status {
-  return truth((properties.caption === undefined || fact.labelStyle === 3) && Object.entries(properties).every(([key, value]) => (fact as unknown as Record<string, unknown>)[key] === (key === 'color' ? String(value).toUpperCase() : value)));
+  const actual = fact as unknown as Record<string, unknown>;
+  const matches = ([key, value]: [string, unknown]): boolean => {
+    const observed = actual[key];
+    if (key === 'color') return observed === String(value).toUpperCase();
+    // `filling` is a float opacity; other style fields are exact integers.
+    if (key === 'filling') {
+      return typeof observed === 'number' && typeof value === 'number'
+        && Math.abs(observed - value) <= tolerance;
+    }
+    return observed === value;
+  };
+  return truth((properties.caption === undefined || fact.labelStyle === 3)
+    && Object.entries(properties).every(matches));
 }
 
 /** Pure verification: only actual observations and frozen requirements enter this function. */

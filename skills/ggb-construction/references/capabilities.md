@@ -70,9 +70,23 @@ CAS 物化的是当次计算结果，不是动态 CAS 单元；它不会自动�
 
 expression 检查的写法限制（本项目实测）：直接用比较表达式并把 `expected` 写成 `true`／`false`，例如 `n>=3`、`curPath-minPath+10^(-9)>=0`；包一层 `if(条件,1,0)` 会得到 unverified（原生探测不解析 `if`）。三点角是**带方向**的，`Angle(O,B,P)` 可能返回 270°，不能用 `角/(1°)-90` 判直角；垂直或直角用 `ArePerpendicular(Line(O,A),切线)`。`Distance(<circle>)` 未定义，圆半径用 `radius` 谓词、圆心加两点距离或 `Circle(I,圆上的点)`。检查的 `subjects` 必须逐字出现在 expression 中，缺失时 `check` 会指出具体检查编号和缺失名称。
 
+## 命名规则
+
+对象名（步骤 id 与 `outputs`）不能与 GeoGebra 的保留名相同，否则该步执行失败或覆盖内建含义：函数与算符（`ln`、`log`、`sin`、`cos`、`tan`、`sqrt`、`abs`、`exp`、`floor`、`round`、`if`、`and`、`or`、`not`、`mod`、`min`、`max`）、常量（`pi`、`e`、`i`、`true`、`false`）、常用命令（`Segment`、`Line`、`Circle`、`Point`、`Midpoint`、`Intersect`、`Distance`、`Angle`、`Polygon`、`Text`、`Slider`、`Locus` 等）。`check` 会以 `Reserved GeoGebra name` 拒绝这类名字，覆盖范围见源码中的 `reservedNames`。实测把 `ln` 用作对象名会得到 `Execution failed or output undefined: ln`。
+
+其他命名注意：单字母 `x`、`y`、`z` 是坐标变量，`x=2` 会被解析为直线；几何点用大写开头（`P`、`NotePos`），小写开头多字母名只用于数值、向量和线段。避免与已有标签重名，引擎自动生成附属标签时也要按实际返回值声明。
+
+## 图形与存在性
+
+`check` 只做静态校验：结构、来源、声明引用、命名和表达式写法，**不启动浏览器，无法证明 GeoGebra 真的创建了某个对象**。对象是否存在由 `build` 判定：每步声明的 `outputs` 必须存在且已定义，`$canvas:0` 要求全部对象已定义。
+
+因此题干点名的图形必须自己画出来：写"作三角形 ABC"就要有 `Polygon(A,B,C)` 或三条边，写"作圆"就要有 `Circle(...)`，并用 `type`／`exists`／周长或半径等检查覆盖它。只放三个点不算画出三角形；`build` 不会替作者补对象，也不会因为缺少题干要求的图形而失败。
+
 ## 呈现与交互
 
-`styles:[{object,properties}]` 支持 visible、labelVisible、color（#RRGGBB）、lineThickness（1–13）、lineStyle（0–4）、caption（1–100 字）、fixed。点默认显示名称。原生列表和数值不强制在图形画布可见；关键几何对象需明确 `visible:true` 及对应 style 检查。
+`styles:[{object,properties}]` 支持 visible、labelVisible、color（#RRGGBB）、lineThickness（1–13）、lineStyle（0–4）、filling（0–1 的填充不透明度，可写小数）、caption（1–100 字）、fixed。点默认显示名称。原生列表和数值不强制在图形画布可见；关键几何对象需明确 `visible:true` 及对应 style 检查。
+
+填充与线条同色：GeoGebra 一个对象只有一种颜色，`color` 同时用于描边与填充，`filling` 只改不透明度。所以"虚线 + 填充"要写在同一个对象上（`lineStyle:1` 配 `filling:0.5`），否则不透明的填充面会盖住同位的虚线轮廓。
 
 `view:{xMin,xMax,yMin,yMax}` 给出需要包含的图形范围；工具按画布比例补足视野，保持两轴等比例。`display:"graphics"`（默认）显示二维画布；`display:"algebra"` 显示完整原生 Algebra 视图，允许无自由点、无拖动样本，不强行执行图形缩放检查。
 

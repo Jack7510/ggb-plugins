@@ -16,7 +16,7 @@ import { parseRequest, type Request } from '../src/schema.js';
 import { root } from '../src/server.js';
 import { compareSnapshots, verify } from '../src/verify.js';
 
-const fixture = async (name: string) => parseRequest(JSON.parse(await readFile(join(root, `examples/${name}.json`), 'utf8')));
+const fixture = async (name: string) => parseRequest(JSON.parse(await readFile(join(root, `examples/v2-cases/${name}.json`), 'utf8')));
 const cli = join(root, 'dist/src/cli.js');
 
 test('text defaults survive reload and incompatible explicit styles remain rejected', { timeout: 30_000 }, async () => {

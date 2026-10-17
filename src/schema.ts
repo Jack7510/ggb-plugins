@@ -36,7 +36,27 @@ export const predicates: Record<string, { types: string[]; extra?: string; varia
   dependsOn: { types: ['any', 'any'], variadic: true },
   style: { types: ['any'], extra: 'properties' },
 };
-export interface Style { visible?: boolean; labelVisible?: boolean; color?: string; lineThickness?: number; lineStyle?: number; caption?: string; fixed?: boolean; }
+// GeoGebra parses these exact names as functions, commands or constants, so a
+// step that uses one as its object name fails at execution (`ln`) or shadows
+// the built-in (`Circle`). The list is curated, not exhaustive: it covers the
+// operators, the frequent commands and the reserved constants.
+export const reservedNames: ReadonlySet<string> = new Set([
+  'abs', 'and', 'asin', 'acos', 'atan', 'atan2', 'ceiling', 'cos', 'cosh',
+  'cot', 'csc', 'div', 'e', 'else', 'elseif', 'erf', 'exp', 'false', 'floor',
+  'gcd', 'i', 'if', 'in', 'lcm', 'lg', 'ln', 'log', 'log10', 'log2', 'max',
+  'min', 'mod', 'not', 'nroot', 'or', 'pi', 'random', 'round', 'sec', 'sgn',
+  'sin', 'sinh', 'sqrt', 'tan', 'tanh', 'then', 'true', 'xor',
+  'Angle', 'AngleBisector', 'Append', 'Area', 'BarChart', 'Center', 'Circle',
+  'Count', 'Derivative', 'Distance', 'Element', 'Ellipse', 'Expand', 'Factor',
+  'First', 'Hyperbola', 'If', 'Integral', 'Intersect', 'Last', 'Length',
+  'Limit', 'Line', 'Locus', 'Map', 'Midpoint', 'NSolve', 'Parabola',
+  'ParallelLine', 'Perimeter', 'PerpendicularBisector', 'PerpendicularLine',
+  'Point', 'Polygon', 'Polyline', 'Product', 'Radius', 'Random', 'Ray',
+  'Reflect', 'Rotate', 'Segment', 'Sequence', 'Simplify', 'Slider', 'Solve',
+  'Sort', 'Sum', 'Table', 'Take', 'Tangent', 'Text', 'Translate', 'Vector',
+  'Zip',
+]);
+export interface Style { visible?: boolean; labelVisible?: boolean; color?: string; lineThickness?: number; lineStyle?: number; filling?: number; caption?: string; fixed?: boolean; }
 export type Argument = number | { ref: string };
 export type MathValue = number | boolean | MathValue[];
 export type Interaction = { point: string; dx: number; dy: number } | { parameter: string; value: number };
@@ -75,13 +95,19 @@ function array(value: unknown, min: number, max: number): asserts value is any[]
   assert(Array.isArray(value) && value.length >= min && value.length <= max, 'Invalid array length');
 }
 function style(value: unknown) {
-  const p = record(value, ['visible', 'labelVisible', 'color', 'lineThickness', 'lineStyle', 'caption', 'fixed']);
+  const p = record(value, ['visible', 'labelVisible', 'color', 'lineThickness', 'lineStyle', 'filling', 'caption', 'fixed']);
   assert(Object.keys(p).length > 0, 'Empty style');
   for (const key of ['visible', 'labelVisible', 'fixed']) if (key in p) assert(typeof p[key] === 'boolean', 'Invalid visibility/fixed flag');
   if ('color' in p) assert(typeof p.color === 'string' && /^#[0-9a-f]{6}$/i.test(p.color), 'Invalid color');
   if ('caption' in p) text(p.caption, 100);
   for (const [key, min, max] of [['lineThickness', 1, 13], ['lineStyle', 0, 4]] as const) {
     if (key in p) assert(Number.isInteger(p[key]) && p[key] >= min && p[key] <= max, `Invalid ${key}`);
+  }
+  // Filling is an opacity, so fractions are valid; the other style fields are
+  // discrete integers.
+  if ('filling' in p) {
+    assert(typeof p.filling === 'number' && Number.isFinite(p.filling)
+      && p.filling >= 0 && p.filling <= 1, 'Invalid filling');
   }
 }
 
@@ -138,9 +164,17 @@ export function parseRequest(value: unknown): Request {
   for (const input of p.program) {
     const s = record(input, input?.op === 'native' ? ['id', 'op', 'source', 'mode', 'outputs', 'initial'] : input?.op === 'freePoint' ? ['id', 'op', 'x', 'y'] : ['id', 'op', 'name', 'args']);
     identifier(s.id);
+    assert(!reservedNames.has(s.id), `Reserved GeoGebra name: ${s.id}; rename the object`);
     if (s.op === 'native') {
       mathSource(s.source); assert(['algebra', 'cas'].includes(s.mode), 'Invalid native mode');
-      if ('outputs' in s) { array(s.outputs, 1, 16); s.outputs.forEach(identifier); assert(s.outputs.includes(s.id), 'Outputs must include step ID'); }
+      if ('outputs' in s) {
+        array(s.outputs, 1, 16);
+        s.outputs.forEach(identifier);
+        for (const output of s.outputs) {
+          assert(!reservedNames.has(output), `Reserved GeoGebra name: ${output}; rename the object`);
+        }
+        assert(s.outputs.includes(s.id), 'Outputs must include step ID');
+      }
       if ('initial' in s) { array(s.initial, 2, 2); s.initial.forEach((n: unknown) => finite(n)); }
       if (s.mode === 'cas') assert(!s.outputs || s.outputs.length === 1, 'CAS materializes one named result');
     } else if (s.op === 'freePoint') { finite(s.x); finite(s.y); }

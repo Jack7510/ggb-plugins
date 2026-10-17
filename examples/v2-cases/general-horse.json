@@ -1,0 +1,439 @@
+{
+ "protocolVersion": 2,
+ "prompt": "给将军饮马这个数学问题画一个几何体，说明它的原理",
+ "locale": "zh-CN",
+ "outputDir": "output/ggb",
+ "plan": {
+  "program": [
+   {
+    "id": "l",
+    "op": "native",
+    "mode": "algebra",
+    "source": "l: y=0"
+   },
+   {
+    "id": "A",
+    "op": "native",
+    "mode": "algebra",
+    "source": "A=(0,3)"
+   },
+   {
+    "id": "B",
+    "op": "native",
+    "mode": "algebra",
+    "source": "B=(6,4)"
+   },
+   {
+    "id": "Aprime",
+    "op": "native",
+    "mode": "algebra",
+    "source": "Aprime=Reflect(A,l)"
+   },
+   {
+    "id": "MP",
+    "op": "native",
+    "mode": "algebra",
+    "source": "MP=Midpoint(A,Aprime)"
+   },
+   {
+    "id": "lineAB",
+    "op": "native",
+    "mode": "algebra",
+    "source": "lineAB=Line(Aprime,B)"
+   },
+   {
+    "id": "P0",
+    "op": "native",
+    "mode": "algebra",
+    "source": "P0=Intersect(lineAB,l)"
+   },
+   {
+    "id": "P",
+    "op": "native",
+    "mode": "algebra",
+    "source": "P=Point(l)",
+    "initial": [
+     2,
+     0
+    ]
+   },
+   {
+    "id": "segAP",
+    "op": "native",
+    "mode": "algebra",
+    "source": "segAP=Segment(A,P)"
+   },
+   {
+    "id": "segPB",
+    "op": "native",
+    "mode": "algebra",
+    "source": "segPB=Segment(P,B)"
+   },
+   {
+    "id": "segAprimeP",
+    "op": "native",
+    "mode": "algebra",
+    "source": "segAprimeP=Segment(Aprime,P)"
+   },
+   {
+    "id": "segAP0",
+    "op": "native",
+    "mode": "algebra",
+    "source": "segAP0=Segment(A,P0)"
+   },
+   {
+    "id": "segP0B",
+    "op": "native",
+    "mode": "algebra",
+    "source": "segP0B=Segment(P0,B)"
+   },
+   {
+    "id": "curPath",
+    "op": "native",
+    "mode": "algebra",
+    "source": "curPath=Distance(A,P)+Distance(P,B)"
+   },
+   {
+    "id": "minPath",
+    "op": "native",
+    "mode": "algebra",
+    "source": "minPath=Distance(A,P0)+Distance(P0,B)"
+   },
+   {
+    "id": "t1",
+    "op": "native",
+    "mode": "algebra",
+    "source": "t1=Text(\"把 A 关于直线 l 翻折到 A'，则 AP = A'P\",(0.4,6.4))"
+   },
+   {
+    "id": "t2",
+    "op": "native",
+    "mode": "algebra",
+    "source": "t2=Text(\"所以 AP + PB = A'P + PB ≥ A'B\",(0.4,5.8))"
+   },
+   {
+    "id": "t3",
+    "op": "native",
+    "mode": "algebra",
+    "source": "t3=Text(\"当 P 取 A'B 与 l 的交点 P₀ 时取等号\",(0.4,5.2))"
+   }
+  ],
+  "requirements": [
+   {
+    "id": "fold",
+    "source": "将军饮马",
+    "checks": [
+     {
+      "kind": "pointOn",
+      "subjects": [
+       "P",
+       "l"
+      ],
+      "scope": "sampled"
+     },
+     {
+      "kind": "pointOn",
+      "subjects": [
+       "P0",
+       "l"
+      ],
+      "scope": "sampled"
+     },
+     {
+      "kind": "pointOn",
+      "subjects": [
+       "MP",
+       "l"
+      ],
+      "scope": "sampled"
+     },
+     {
+      "kind": "expression",
+      "subjects": [
+       "A",
+       "Aprime",
+       "MP"
+      ],
+      "scope": "sampled",
+      "expression": "Distance(A,MP)-Distance(Aprime,MP)",
+      "mode": "algebra",
+      "expected": 0
+     },
+     {
+      "kind": "expression",
+      "subjects": [
+       "A",
+       "Aprime"
+      ],
+      "scope": "sampled",
+      "expression": "AreCollinear(A,MP,Aprime)",
+      "mode": "algebra",
+      "expected": true
+     },
+     {
+      "kind": "expression",
+      "subjects": [
+       "A",
+       "Aprime",
+       "P"
+      ],
+      "scope": "sampled",
+      "expression": "Distance(A,P)-Distance(Aprime,P)",
+      "mode": "algebra",
+      "expected": 0
+     }
+    ]
+   },
+   {
+    "id": "straight",
+    "source": "说明它的原理",
+    "checks": [
+     {
+      "kind": "expression",
+      "subjects": [
+       "Aprime",
+       "P0",
+       "B"
+      ],
+      "scope": "sampled",
+      "expression": "AreCollinear(Aprime,P0,B)",
+      "mode": "algebra",
+      "expected": true
+     },
+     {
+      "kind": "expression",
+      "subjects": [
+       "minPath",
+       "Aprime",
+       "B"
+      ],
+      "scope": "sampled",
+      "expression": "minPath-Distance(Aprime,B)",
+      "mode": "algebra",
+      "expected": 0
+     },
+     {
+      "kind": "expression",
+      "subjects": [
+       "curPath",
+       "minPath"
+      ],
+      "scope": "sampled",
+      "expression": "curPath-minPath+10^(-9)>=0",
+      "mode": "algebra",
+      "expected": true
+     },
+     {
+      "kind": "expression",
+      "subjects": [
+       "A"
+      ],
+      "scope": "sampled",
+      "expression": "y(A)>0",
+      "mode": "algebra",
+      "expected": true
+     },
+     {
+      "kind": "expression",
+      "subjects": [
+       "B"
+      ],
+      "scope": "sampled",
+      "expression": "y(B)>0",
+      "mode": "algebra",
+      "expected": true
+     }
+    ]
+   },
+   {
+    "id": "explain",
+    "source": "画一个几何体",
+    "checks": [
+     {
+      "kind": "type",
+      "subjects": [
+       "t1"
+      ],
+      "scope": "initial",
+      "objectType": "text"
+     },
+     {
+      "kind": "type",
+      "subjects": [
+       "t2"
+      ],
+      "scope": "initial",
+      "objectType": "text"
+     },
+     {
+      "kind": "type",
+      "subjects": [
+       "t3"
+      ],
+      "scope": "initial",
+      "objectType": "text"
+     },
+     {
+      "kind": "style",
+      "subjects": [
+       "segAprimeP"
+      ],
+      "scope": "sampled",
+      "properties": {
+       "visible": true,
+       "lineStyle": 1
+      }
+     },
+     {
+      "kind": "style",
+      "subjects": [
+       "segAP0"
+      ],
+      "scope": "sampled",
+      "properties": {
+       "visible": true,
+       "color": "#FF0000"
+      }
+     },
+     {
+      "kind": "style",
+      "subjects": [
+       "segP0B"
+      ],
+      "scope": "sampled",
+      "properties": {
+       "visible": true,
+       "color": "#FF0000"
+      }
+     }
+    ]
+   }
+  ],
+  "styles": [
+   {
+    "object": "l",
+    "properties": {
+     "visible": true
+    }
+   },
+   {
+    "object": "A",
+    "properties": {
+     "visible": true
+    }
+   },
+   {
+    "object": "B",
+    "properties": {
+     "visible": true
+    }
+   },
+   {
+    "object": "Aprime",
+    "properties": {
+     "visible": true,
+     "caption": "A′",
+     "labelVisible": true
+    }
+   },
+   {
+    "object": "P0",
+    "properties": {
+     "visible": true
+    }
+   },
+   {
+    "object": "P",
+    "properties": {
+     "visible": true
+    }
+   },
+   {
+    "object": "segAP",
+    "properties": {
+     "visible": true,
+     "lineStyle": 1,
+     "color": "#6E6D73"
+    }
+   },
+   {
+    "object": "segPB",
+    "properties": {
+     "visible": true,
+     "lineStyle": 1,
+     "color": "#6E6D73"
+    }
+   },
+   {
+    "object": "segAprimeP",
+    "properties": {
+     "visible": true,
+     "lineStyle": 1
+    }
+   },
+   {
+    "object": "segAP0",
+    "properties": {
+     "visible": true,
+     "color": "#FF0000",
+     "lineThickness": 3
+    }
+   },
+   {
+    "object": "segP0B",
+    "properties": {
+     "visible": true,
+     "color": "#FF0000",
+     "lineThickness": 3
+    }
+   },
+   {
+    "object": "t1",
+    "properties": {
+     "visible": true
+    }
+   },
+   {
+    "object": "t2",
+    "properties": {
+     "visible": true
+    }
+   },
+   {
+    "object": "t3",
+    "properties": {
+     "visible": true
+    }
+   },
+   {
+    "object": "MP",
+    "properties": {
+     "visible": false
+    }
+   }
+  ],
+  "interactions": [
+   {
+    "point": "P",
+    "dx": 70,
+    "dy": 0
+   },
+   {
+    "point": "A",
+    "dx": -30,
+    "dy": 20
+   },
+   {
+    "point": "B",
+    "dx": 20,
+    "dy": 25
+   }
+  ],
+  "view": {
+   "xMin": -3,
+   "xMax": 9,
+   "yMin": -4,
+   "yMax": 7
+  }
+ }
+}

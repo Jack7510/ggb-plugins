@@ -122,7 +122,7 @@ mock.module('../src/browser.js', { namedExports: { ...browser,
 } });
 const { build, openPreview, openDefaultPreview } = await import('../src/delivery.js');
 const { doctor } = await import('../src/doctor.js');
-const fixture = JSON.parse(await fs.readFile(join(root, 'examples/triangle.json'), 'utf8'));
+const fixture = JSON.parse(await fs.readFile(join(root, 'examples/v2-cases/triangle.json'), 'utf8'));
 const defaults = { ...limits };
 async function released() {
   for (const session of sessions.splice(0)) {
@@ -208,7 +208,7 @@ test('native CAS waits and verification mutation obey the same cleanup gates', {
     for (const [name, code] of [['cas-ready', 'execution_failed'], ['cas-cancel', 'cancelled'], ['probe-mutation', 'execution_failed']]) await t.test(name!, async () => {
       fault = name!; cancellation = new AbortController();
       const input = JSON.parse(await fs.readFile(join(root, fault === 'probe-mutation'
-        ? 'examples/parabola.json' : 'tests/fixtures/algebra.json'), 'utf8'));
+        ? 'examples/v2-cases/parabola.json' : 'tests/fixtures/algebra.json'), 'utf8'));
       input.outputDir = join(directory, fault);
       await assert.rejects(build(input, cancellation.signal), (e: any) => e.code === code);
       await released();

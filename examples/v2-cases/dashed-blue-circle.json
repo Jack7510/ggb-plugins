@@ -1,0 +1,125 @@
+{
+ "protocolVersion": 2,
+ "prompt": "用虚线画一个圆，并用蓝色填充这个圆",
+ "locale": "zh-CN",
+ "outputDir": "output/ggb",
+ "plan": {
+  "program": [
+   {
+    "id": "O",
+    "op": "native",
+    "mode": "algebra",
+    "source": "O=(0,0)"
+   },
+   {
+    "id": "R",
+    "op": "native",
+    "mode": "algebra",
+    "source": "R=(3,0)"
+   },
+   {
+    "id": "circ",
+    "op": "native",
+    "mode": "algebra",
+    "source": "circ=Circle(O,R)"
+   }
+  ],
+  "requirements": [
+   {
+    "id": "circle",
+    "source": "画一个圆",
+    "checks": [
+     {
+      "kind": "center",
+      "subjects": [
+       "circ",
+       "O"
+      ],
+      "scope": "sampled"
+     },
+     {
+      "kind": "radius",
+      "subjects": [
+       "circ"
+      ],
+      "value": 3,
+      "scope": "initial"
+     }
+    ]
+   },
+   {
+    "id": "dashed",
+    "source": "用虚线",
+    "checks": [
+     {
+      "kind": "style",
+      "subjects": [
+       "circ"
+      ],
+      "properties": {
+       "visible": true,
+       "lineStyle": 1,
+       "lineThickness": 3
+      },
+      "scope": "sampled"
+     }
+    ]
+   },
+   {
+    "id": "blue",
+    "source": "并用蓝色填充这个圆",
+    "checks": [
+     {
+      "kind": "style",
+      "subjects": [
+       "circ"
+      ],
+      "properties": {
+       "visible": true,
+       "color": "#1F4EFF",
+       "filling": 0.5
+      },
+      "scope": "sampled"
+     }
+    ]
+   }
+  ],
+  "styles": [
+   {
+    "object": "O",
+    "properties": {
+     "visible": true
+    }
+   },
+   {
+    "object": "R",
+    "properties": {
+     "visible": false
+    }
+   },
+   {
+    "object": "circ",
+    "properties": {
+     "visible": true,
+     "color": "#1F4EFF",
+     "lineStyle": 1,
+     "lineThickness": 3,
+     "filling": 0.5
+    }
+   }
+  ],
+  "interactions": [
+   {
+    "point": "R",
+    "dx": 25,
+    "dy": 15
+   }
+  ],
+  "view": {
+   "xMin": -4,
+   "xMax": 4,
+   "yMin": -4,
+   "yMax": 4
+  }
+ }
+}

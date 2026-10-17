@@ -10,7 +10,7 @@ import { root } from '../src/server.js';
 import { equivalent, compareSnapshots, snapshotDifferences } from '../src/verify.js';
 import type { Snapshot } from '../src/browser.js';
 
-const fixture = JSON.parse(await readFile(join(root, 'examples/triangle.json'), 'utf8'));
+const fixture = JSON.parse(await readFile(join(root, 'examples/v2-cases/triangle.json'), 'utf8'));
 test('M6 value, assumption and interaction envelopes reject invalid extensions before execution', async () => {
   const original = JSON.parse(await readFile(join(root, 'tests/fixtures/statistics.json'), 'utf8'));
   const cases = [
@@ -23,6 +23,30 @@ test('M6 value, assumption and interaction envelopes reject invalid extensions b
     (r: any) => { r.plan.interactions = [{parameter:'matrixA',value:1},{parameter:'matrixA',value:1}]; },
   ];
   for (const change of cases) { const input = structuredClone(original); change(input); assert.throws(() => parseRequest(input)); }
+});
+test('reserved GeoGebra names are rejected before execution', () => {
+  for (const name of ['ln', 'sin', 'Circle', 'Text', 'true']) {
+    const input = structuredClone(fixture);
+    input.plan.program[0].id = name;
+    assert.throws(() => parseRequest(input),
+      new RegExp(`Reserved GeoGebra name: ${name}`));
+  }
+  const outputs = structuredClone(fixture);
+  outputs.plan.program.push({
+    id: 'helper', op: 'native', source: 'helper=1', mode: 'algebra',
+    outputs: ['helper', 'Segment'],
+  });
+  assert.throws(() => parseRequest(outputs), /Reserved GeoGebra name: Segment/);
+});
+test('filling accepts fractions and rejects out-of-range values', () => {
+  const sample = structuredClone(fixture);
+  sample.plan.styles = [{ object: 'A', properties: { filling: 0.5 } }];
+  assert.doesNotThrow(() => parseRequest(sample));
+  for (const filling of [-0.1, 1.5, Number.NaN]) {
+    const invalid = structuredClone(fixture);
+    invalid.plan.styles = [{ object: 'A', properties: { filling } }];
+    assert.throws(() => parseRequest(invalid), /Invalid filling/);
+  }
 });
 test('expression checks name the check and the missing subject', () => {
   const input = structuredClone(fixture);

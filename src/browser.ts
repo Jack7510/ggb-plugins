@@ -42,6 +42,8 @@ export interface GgbAPI {
   getViewProperties(view: number): string;
   getCaption(name: string, substitute: boolean): string;
   getLineStyle(name: string): number;
+  getFilling(name: string): number;
+  setFilling(name: string, filling: number): void;
   setCaption(name: string, caption: string): void;
   setLineStyle(name: string, style: number): void;
   setCoords(name: string, x: number, y: number): void;
@@ -242,6 +244,7 @@ export async function snapshot(page: Page) {
         color: api.getColor(name), visible: api.getVisible(name), labelVisible: api.getLabelVisible(name), labelStyle: api.getLabelStyle(name),
         lineThickness: api.getLineThickness(name),
         lineStyle: api.getLineStyle(name),
+        filling: finite(api.getFilling(name)),
         caption: api.getCaption(name, false),
         fixed: element?.querySelector('fixed')?.getAttribute('val') === 'true',
         slider: element?.querySelector('slider') ? {
@@ -301,6 +304,7 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
       if (p.labelVisible !== undefined) api.setLabelVisible(object, p.labelVisible);
       if (p.lineThickness !== undefined) api.setLineThickness(object, p.lineThickness);
       if (p.lineStyle !== undefined) api.setLineStyle(object, p.lineStyle);
+      if (p.filling !== undefined) api.setFilling(object, p.filling);
       if (p.caption !== undefined) { api.setCaption(object, p.caption); api.setLabelStyle(object, 3); }
     }
     api.setAxesVisible(native, native); api.setGridVisible(false);

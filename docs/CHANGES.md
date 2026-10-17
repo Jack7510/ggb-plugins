@@ -12,6 +12,10 @@
 
 - `check` 的表达式检查报错带出 requirement:index 与缺失的 subject 名；能力契约补充比较表达式（不包 `if`）、`ArePerpendicular` 判垂直、圆半径用 `radius` 谓词三条写法。DSH Desktop 的会话库 usage 路径已写入 [Desktop 验证约定](dsh-desktop-validation.md#4-日志契约与交回分析)。
 
+- `check` 拒绝与 GeoGebra 保留名冲突的对象名（函数、常量、常用命令，如 `ln`、`pi`、`Segment`），报 `Reserved GeoGebra name`；能力契约新增命名规则与"题干点名的图形必须画出并用检查覆盖"两节，并说明 `check` 是静态校验、对象存在性由 `build` 判定。测试夹具路径随 `examples/v2-cases` 移动同步修正。
+
+- 样式新增 `filling`（0–1 填充不透明度），用于"填充图形"类要求；样式比较对 `filling` 用容差，其余字段仍精确比较。`examples/v2-cases` 新增两个用例：`general-horse.json`（翻折原理说明图）与 `dashed-blue-circle.json`（虚线圆 + 半透明蓝色填充）。
+
 - 明确插件只分析题意与作图，不提供题目答案；宿主回复与可见产物遵循 [Skill 输出边界](../skills/ggb-construction/SKILL.md#分析与作图边界)，内部计算、证据和核验门禁保留。尚未打包更新已安装副本。
 
 - 支持由 Agent 选择中文或英文工作语言，最终预览跟随请求 locale。README.md 默认英文，README.zh-CN.md 提供中文；两种分发包携带双语入口和中文 INSTALL.md，其余文档保留中文。
