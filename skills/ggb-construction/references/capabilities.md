@@ -79,7 +79,7 @@ inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`byt
 1. 摘要一致：文件 `sha256` 等于 `base.sha256`，原件不被写回；归档条目、脚本、宏、图片/按钮/3D 材料静态拒绝。
 2. 基线可解释：XML 中每个对象都出现在加载后的事实里，加载后不得出现无法描述的对象类型。
 3. 逐字段读回：每个 setter 之后读回声明的字段；未生效返回 `edit_no_effect`，不把“调用被接受”当作成功。
-4. 差异白名单：edited 文件的字段级差异必须落在声明的 `object:field` 集合内，否则返回 `preservation_violation`。
+4. 差异白名单：edited 文件的字段级差异必须落在声明的 `object:field` 集合内，否则返回 `preservation_violation`。多边形与其边对象共享外观：改多边形颜色或描边时，GeoGebra 会把同一值同步到边对象；工具允许这类传播，条件是边对象在定义中引用被编辑对象且取到同一请求值，并把这些传播变化写入 `diff.json` 的 `changes`。
 5. 重载一致：导出文件在新 applet 中重载后，事实与编辑后状态完全一致，并重跑 requirement 检查。
 
 **交付**：除 result.ggb、request.json、verification.json、preview.png、manifest.json 外，另含 base.ggb（基线副本）、manifest 的 `base` 块与 diff.json（`baseSha256`、`allowed`、`changes`）。preview 会重新加载 base.ggb、重算差异，并核对报告中的 `changes`；报告中删改差异即预览失败。
