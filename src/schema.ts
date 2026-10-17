@@ -275,7 +275,8 @@ export function parseRequest(value: unknown): Request {
     array(r.clarifications, 0, 20);
     for (const input of r.clarifications) {
       const c = record(input, ['question', 'answer']); text(c.question); text(c.answer);
-      sources.push(c.question, c.answer);
+      // Questions propose conditions; only user material can supply them.
+      sources.push(c.answer);
     }
   }
   const p = record(r.plan, ['program', 'requirements', 'styles', 'interactions',

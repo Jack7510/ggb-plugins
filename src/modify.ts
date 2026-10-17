@@ -122,7 +122,7 @@ export function requireUpdateEffects(
 }
 
 const recomputedFields = new Set([
-  'x', 'y', 'value', 'line', 'circle', 'data', 'valueString',
+  'x', 'y', 'value', 'line', 'circle', 'conic', 'data', 'valueString',
 ]);
 
 /**

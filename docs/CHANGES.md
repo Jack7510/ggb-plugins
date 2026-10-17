@@ -4,6 +4,8 @@
 
 ## 未发布
 
+- 修复代码审查发现的六处边界问题：等长谓词只接受真实线段；编辑和续构的初次核验未通过时禁止导出；ZIP 解压在分配内存时限制单条目与剩余总量；外部 GGB 和实际快照拒绝 XML 三维类型，防止 API 类型别名隐藏维度；条件来源不再接受 Agent 的提问；允许沿已声明更新依赖重算圆锥系数。三种构图模式共用导出、重载与原子提交，提交和预览共用证据复验。新增离线、真实 applet 与故障回归，保留不相关字段变化的拒绝和原文件只读规则。
+
 - 将军饮马案例的可见文字改为构图和观察提示，保留全部数学检查与拖动样本。viewer 支持简单 LaTeX 标题的纯文本展示及长标题换行，未知语法保留原文。Codex 安装副本复跑结果见 [验证报告](codex-v2-validation.md)。
 
 - 新增 `capabilities.json` 与 `skills/ggb-construction/worker.md`：插件是 Worker 提示词与能力契约的唯一来源。`capabilities.json` 由 `src/schema.ts` 和 `worker.md` 生成，包含请求协议版本、`pointOn` 支持的圆锥曲线类型、检查谓词、限额与 `workerSkillSha256`；ggb-agent Worker 启动时校验该哈希与 profile 版本，不匹配即拒绝启动。ggb-dsh 不再保存第二份完整 Skill。

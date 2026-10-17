@@ -5,7 +5,7 @@
  * presentation. `loadBase` is the shared entry used by check and build so both
  * apply the same digest and the same audit.
  */
-import { auditGgb, opaqueTypes, readGgb } from './ggbfile.js';
+import { auditGgb, unsupportedType, readGgb } from './ggbfile.js';
 import type { GgbArchive, GgbSummary } from './ggbfile.js';
 import { loadGgb, openBrowser, snapshot } from './browser.js';
 import { ToolError, toolError } from './schema.js';
@@ -67,7 +67,7 @@ export async function inspectGgb(path: string, signal?: AbortSignal) {
         throw new ToolError('base_unsupported',
           'Base objects were dropped on load', missing);
       }
-      const opaque = facts.filter(fact => opaqueTypes.has(fact.type));
+      const opaque = facts.filter(fact => unsupportedType(fact.type));
       if (opaque.length) {
         throw new ToolError('base_unsupported', 'Unsupported base object',
           opaque.map(fact => ({ name: fact.name, type: fact.type })));

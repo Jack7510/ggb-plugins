@@ -46,8 +46,37 @@ function findEnd(data: Buffer): number {
     'Not a GGB ZIP archive (missing central directory)');
 }
 
-/** One central-directory record plus its inflated body. */
-function readEntry(data: Buffer, at: number) {
+/** Rejects opaque materials, including every dimensional XML type. */
+export function unsupportedType(type: string): boolean {
+  return opaqueTypes.has(type) || /3d/i.test(type);
+}
+
+/** Bounds allocation using both the declared size and remaining budget. */
+function expandEntry(body: Buffer, method: number, size: number,
+  remaining: number): Buffer {
+  const maximum = Math.min(maxEntryBytes, remaining);
+  if (size > maximum || (method === 0 && body.length > maximum)) {
+    throw new ToolError('limit_exceeded', 'GGB archive expands too far');
+  }
+  if (method === 0) return Buffer.from(body);
+  if (method !== 8) {
+    throw new ToolError('base_unsupported', 'Unsupported GGB compression');
+  }
+  try {
+    return inflateRawSync(body, {
+      maxOutputLength: Math.max(1, Math.min(size, maximum)),
+    });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error
+        && error.code === 'ERR_BUFFER_TOO_LARGE') {
+      throw new ToolError('limit_exceeded', 'GGB entry expands too far');
+    }
+    throw new ToolError('base_unsupported', 'Corrupt compressed GGB entry');
+  }
+}
+
+/** One central-directory record plus its bounded inflated body. */
+function readEntry(data: Buffer, at: number, remaining: number) {
   if (at + 46 > data.length || data.readUInt32LE(at) !== 0x02014b50) {
     throw new ToolError('base_unsupported', 'Invalid GGB central directory');
   }
@@ -69,12 +98,7 @@ function readEntry(data: Buffer, at: number) {
   const start = header + 30 + data.readUInt16LE(header + 26) +
     data.readUInt16LE(header + 28);
   const body = data.subarray(start, start + compressed);
-  const bytes = method === 0 ? Buffer.from(body) : method === 8
-    ? inflateRawSync(body) : undefined;
-  if (!bytes) {
-    throw new ToolError('base_unsupported',
-      `Unsupported compression in GGB entry: ${name}`);
-  }
+  const bytes = expandEntry(body, method, size, remaining);
   if (bytes.length !== size) {
     throw new ToolError('base_unsupported', `Corrupt GGB entry: ${name}`);
   }
@@ -98,7 +122,7 @@ function readZipEntries(data: Buffer): Map<string, Buffer> {
   let at = directory;
   let total = 0;
   for (let index = 0; index < count; index++) {
-    const entry = readEntry(data, at);
+    const entry = readEntry(data, at, maxTotalBytes - total);
     total += entry.bytes.length;
     if (total > maxTotalBytes) {
       throw new ToolError('limit_exceeded', 'GGB archive expands too far');
@@ -184,7 +208,7 @@ export function auditGgb(entries: Map<string, Buffer>): GgbSummary {
       name: decode(match[2]!), type: decode(match[1]!),
     }));
   for (const object of objects) {
-    if (opaqueTypes.has(object.type)) {
+    if (unsupportedType(object.type)) {
       throw new ToolError('base_unsupported',
         `Unsupported base object: ${object.name} (${object.type})`);
     }

@@ -1,3 +1,4 @@
+/** @fileoverview Pure mathematical verification and snapshot comparison. */
 import assert from 'node:assert/strict';
 import type { Snapshot, Observation } from './browser.js';
 import { commands, ToolError, type Check, type Request, type Style, type MathValue } from './schema.js';
@@ -82,6 +83,16 @@ export function compareSnapshots(a: Snapshot, b: Snapshot) {
   if (!equivalent(normalizeSnapshots(a), normalizeSnapshots(b))) {
     assert.fail(`Construction facts changed: ${JSON.stringify(snapshotDifferences(a, b))}`);
   }
+}
+
+/** Reads only a defined segment's finite native length. */
+function segmentLength(fact: Fact): number {
+  if (fact.type !== 'segment' || fact.value === null
+      || !Number.isFinite(fact.value)) {
+    throw new Error(`Expected a segment with finite length: `
+      + `${fact.name} (${fact.type})`);
+  }
+  return fact.value;
 }
 
 function styleStatus(fact: Fact, properties: Style): Status {
@@ -191,8 +202,9 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
     parallel: c => { const [a, b] = line(c.subjects[0]!), [x, y] = line(c.subjects[1]!); return numeric(a * y - b * x); },
     perpendicular: c => { const [a, b] = line(c.subjects[0]!), [x, y] = line(c.subjects[1]!); return numeric(a * x + b * y); },
     equalLength: c => {
-      const a = get(c.subjects[0]!).value, b = get(c.subjects[1]!).value;
-      return a === null || b === null ? 'unverified' : numeric(a - b, Math.max(a, b));
+      const a = segmentLength(get(c.subjects[0]!));
+      const b = segmentLength(get(c.subjects[1]!));
+      return numeric(a - b, Math.max(a, b));
     },
     distance: c => numeric(distance(c.subjects[0]!, c.subjects[1]!) - c.value!, c.value!),
     nonCollinear: c => {

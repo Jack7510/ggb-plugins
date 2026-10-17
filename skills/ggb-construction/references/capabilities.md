@@ -33,7 +33,7 @@
 
 工作语言由 Agent 选择中文或英文；新请求 locale 使用 zh-CN 或 en，最终预览据此显示说明与结束按钮。caption 和 Text 由 Agent 用所选语言编写。locale 不翻译来源、命令、协议字段或原始诊断；其他既有 locale 值仍可解析，预览以英文回退。
 
-保留用户原文、可选 `clarifications: [{question,answer}]`。每个 requirement 有唯一 ID、输入中的原文 source 和非空 checks。不得写入检查结果、容差或未知字段。图片由宿主读取并转述题意；把来源和歧义澄清保存在 prompt/clarifications，不把图片当脚本输入。
+保留用户原文、可选 `clarifications: [{question,answer}]`。每个 requirement 有唯一 ID、用户 prompt 或澄清 answer 中的原文 source 和非空 checks。Agent 的 question 保留为问答记录，但不能单独作为条件来源。不得写入检查结果、容差或未知字段。图片由宿主读取并转述题意；把来源和歧义澄清保存在 prompt/clarifications，不把图片当脚本输入。
 
 ## 编辑已有 GGB（P0）
 
@@ -132,7 +132,7 @@ CAS 物化的是当次计算结果，不是动态 CAS 单元；它不会自动�
 
 - Algebra 例：`Distance(T,p)` 期望 0；`AreEqual(Tangent(T,p),b)` 期望 true。
 - CAS 例：`Simplify(g(x)-(3x^2+2))` 期望 0。使用原生引擎比较符号关系，不比较格式化字符串来断言数学等价；保留定义域及必要假设。
-- CAS 检查可选 `assumptions:["x>0"]`。最多 8 条，每条必须在 prompt 或澄清原文中出现，只允许 mode:cas。工具调用原生 Assume，保存假设及结果；结论只在这些假设下成立，不自动证明假设或条件提取完整。
+- CAS 检查可选 `assumptions:["x>0"]`。最多 8 条，每条必须在用户 prompt 或澄清 answer 中出现，只允许 mode:cas。Agent 提问中的假设不构成前提；用户必须明确给出条件，Agent 不得把否定回答解释为确认。工具调用原生 Assume，保存假设及结果；结论只在这些假设下成立，不自动证明假设或条件提取完整。
 - 工具创建临时原生探针，检查类型和定义有效性，读取结果后删除，并审计原对象未改变。缺失、未定义、无法读取的元素、未决符号和不匹配的结果类型为 unverified，不能用 API 默认 0 冒充答案。数值对象必须具有有限值。
 - `initial` 只检查原构型和文件重载。`sampled` 还在交互副本中检查；至少声明一个交互样本。采样不是全域证明。
 

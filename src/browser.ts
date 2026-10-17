@@ -208,6 +208,10 @@ export async function snapshot(page: Page) {
       const nativeType = api.getObjectType(name);
       const type = ['triangle', 'quadrilateral', 'pentagon', 'hexagon', 'polygon'].includes(nativeType) ? 'polygon' : nativeType;
       const element = elements.get(name);
+      // The API aliases point3d to point; XML retains its actual dimension.
+      if (/3d/i.test(element?.getAttribute('type') ?? '')) {
+        throw new Error(`Unsupported spatial object: ${name}`);
+      }
       const expression = expressions.get(name) ?? '';
       // Canonical function declarations explicitly name their bound variables.
       // Nested commands with local binders remain ambiguous.

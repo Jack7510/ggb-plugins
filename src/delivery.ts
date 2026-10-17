@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { dragPoint, interact, execute, exportGgb, loadGgb, openBrowser, openDefaultBrowser, runtimeVersion, snapshot, observe, zoom, applyEdits, applyStyles, applyUpdates, type Snapshot } from './browser.js';
-import { opaqueTypes, type GgbSummary } from './ggbfile.js';
+import { unsupportedType, type GgbSummary } from './ggbfile.js';
 import { loadBase } from './inspect.js';
 import {
   commandTokens, diffViolations, editFields, requireEffects, validateTargets,
@@ -153,17 +153,8 @@ async function construct(context: BuildContext): Promise<{
   const construction = await collect(
     context, original, 'construction', 'initial',
   );
-  await save(join(context.run, 'verification.json'), construction);
-  requirePassed(construction);
-  context.stage = 'export_failed';
-  const bytes = Buffer.from(await context.timed('export',
-    () => exportGgb(original)), 'base64');
-  if (bytes.length > limits.ggbBytes) {
-    throw new ToolError('limit_exceeded', 'GGB file exceeds the size limit');
-  }
-  assert(bytes.subarray(0, 2).toString() === 'PK',
-    'Expected a GGB ZIP archive');
-  await writeFile(join(context.temp, 'result.ggb'), bytes);
+  await acceptConstruction(context, construction);
+  const bytes = await exportArtifact(context, original);
   return { original, construction, bytes };
 }
 
@@ -330,7 +321,7 @@ function checkBaseline(baseline: Snapshot, summary: GgbSummary): void {
     throw new ToolError('base_unsupported',
       'Base objects were dropped on load', missing);
   }
-  const opaque = baseline.filter(fact => opaqueTypes.has(fact.type));
+  const opaque = baseline.filter(fact => unsupportedType(fact.type));
   if (opaque.length) {
     throw new ToolError('base_unsupported', 'Unsupported base object',
       opaque.map(fact => ({ name: fact.name, type: fact.type })));
@@ -435,21 +426,16 @@ async function editGates(
   return { baseline, effects, differences, verification };
 }
 
-/** Builds an edited copy of a declared base; the base file stays untouched. */
-async function buildEdit(context: BuildContext): Promise<DeliveryResult> {
-  const { request } = context;
-  context.stage = 'base_invalid';
-  const { archive, summary } = await editArchive(context);
-  validateTargets(context.compiled.edits,
-    new Map(summary.objects.map(object => [object.name, object.type])));
-  context.stage = 'base_load_failed';
-  const session = await context.timed('browser.start',
-    () => openBrowser(false, context.running));
-  context.session = session;
-  const page = await context.timed('base.applet', () => session.page());
-  await context.timed('base.load', () => loadGgb(page,
-    archive.bytes.toString('base64'), request.prompt, request.plan.display));
-  const gates = await editGates(context, page, summary);
+/** Persists failed initial evidence before any file can be exported. */
+async function acceptConstruction(context: BuildContext,
+  result: Verification): Promise<void> {
+  await save(join(context.run, 'verification.json'), result);
+  requirePassed(result);
+}
+
+/** Exports one bounded GGB file to the uncommitted delivery directory. */
+async function exportArtifact(context: BuildContext,
+  page: Page): Promise<Buffer> {
   context.stage = 'export_failed';
   const bytes = Buffer.from(await context.timed('export',
     () => exportGgb(page)), 'base64');
@@ -459,29 +445,19 @@ async function buildEdit(context: BuildContext): Promise<DeliveryResult> {
   assert(bytes.subarray(0, 2).toString() === 'PK',
     'Expected a GGB ZIP archive');
   await writeFile(join(context.temp, 'result.ggb'), bytes);
-  context.stage = 'reload_failed';
-  const reloaded = await context.timed('reload.applet', () => session.page());
-  await context.timed('reload.load', () => loadGgb(reloaded,
-    bytes.toString('base64'), request.prompt, request.plan.display));
-  const reload = await context.timed('reload.verify',
-    () => collect(context, reloaded, 'reload', 'initial'));
-  requirePassed(reload);
-  compareSnapshots(reload.objects, gates.verification.objects);
-  context.stage = 'export_failed';
-  await context.timed('screenshot', () => reloaded.screenshot({
-    path: join(context.temp, 'preview.png'),
-  }));
-  return await commitEdit(context, {
-    archive, summary, bytes, gates, reload, page: reloaded,
-  });
+  return bytes;
 }
 
-/** Builds a modified copy of a declared base; the base stays untouched. */
-async function buildModify(context: BuildContext): Promise<DeliveryResult> {
-  const { request } = context;
+/** Edits and modifications share initial, export and reload gates. */
+async function buildBase(context: BuildContext): Promise<DeliveryResult> {
+  const { request, compiled } = context;
   context.stage = 'base_invalid';
   const { archive, summary } = await editArchive(context);
-  compile(request, summaryFacts(summary));
+  if (compiled.mode === 'edit') {
+    validateTargets(compiled.edits, summaryFacts(summary).types);
+  } else {
+    compile(request, summaryFacts(summary));
+  }
   context.stage = 'base_load_failed';
   const session = await context.timed('browser.start',
     () => openBrowser(false, context.running));
@@ -489,70 +465,83 @@ async function buildModify(context: BuildContext): Promise<DeliveryResult> {
   const page = await context.timed('base.applet', () => session.page());
   await context.timed('base.load', () => loadGgb(page,
     archive.bytes.toString('base64'), request.prompt, request.plan.display));
-  const gates = await modifyGates(context, page, summary);
+  const input = compiled.mode === 'edit'
+    ? { mode: 'edit' as const, gates: await editGates(context, page, summary) }
+    : { mode: 'modify' as const,
+      gates: await modifyGates(context, page, summary) };
+  await acceptConstruction(context, input.gates.verification);
+  const bytes = await exportArtifact(context, page);
+  const artifact = await reload(context, input.gates.verification);
   context.stage = 'export_failed';
-  const bytes = Buffer.from(await context.timed('export',
-    () => exportGgb(page)), 'base64');
-  if (bytes.length > limits.ggbBytes) {
-    throw new ToolError('limit_exceeded', 'GGB file exceeds the size limit');
-  }
-  assert(bytes.subarray(0, 2).toString() === 'PK',
-    'Expected a GGB ZIP archive');
-  await writeFile(join(context.temp, 'result.ggb'), bytes);
-  context.stage = 'reload_failed';
-  const reloaded = await context.timed('reload.applet', () => session.page());
-  await context.timed('reload.load', () => loadGgb(reloaded,
-    bytes.toString('base64'), request.prompt, request.plan.display));
-  const reload = await context.timed('reload.verify',
-    () => collect(context, reloaded, 'reload', 'initial'));
-  requirePassed(reload);
-  compareSnapshots(reload.objects, gates.verification.objects);
-  context.stage = 'export_failed';
-  await context.timed('screenshot', () => reloaded.screenshot({
+  await context.timed('screenshot', () => artifact.reloaded.screenshot({
     path: join(context.temp, 'preview.png'),
   }));
-  return await commitModify(context, {
-    archive, summary, bytes, gates, reload, page: reloaded,
-  });
+  const shared = { archive, summary, bytes, reload: artifact.reload,
+    page: artifact.reloaded };
+  return input.mode === 'edit'
+    ? await commitEdit(context, { ...shared, gates: input.gates })
+    : await commitModify(context, { ...shared, gates: input.gates });
 }
 
-/** Writes the shared base delivery files and commits the directory. */
-async function finishBaseDelivery(
-  context: BuildContext,
-  input: {
-    bytes: Buffer; archive: { bytes: Buffer }; objects: Snapshot; page: Page;
-  },
-): Promise<DeliveryResult> {
-  const base = context.request.base!;
+interface DeliveryEvidence {
+  construction: Verification;
+  reload: Verification;
+  interaction: {
+    status: string;
+    samples: SampleEvidence[];
+    zoom: Awaited<ReturnType<typeof zoomEvidence>>;
+  };
+}
+
+/** All modes use the same evidence and atomic directory commit. */
+async function finishDelivery(context: BuildContext, input: {
+  bytes: Buffer; objects: Snapshot; page: Page; report: DeliveryEvidence;
+  archive?: { bytes: Buffer };
+}): Promise<DeliveryResult> {
   const session = context.session;
   assert(session);
+  context.stage = 'export_failed';
+  validateDeliveryEvidence(context.request, input.report, input.objects);
+  if (Buffer.byteLength(json(input.report)) > limits.reportBytes) {
+    throw new ToolError('limit_exceeded',
+      'Verification report exceeds the size limit');
+  }
+  await save(join(context.temp, 'verification.json'), input.report);
   await writeFile(join(context.temp, 'request.json'), context.requestBytes);
-  await writeFile(join(context.temp, 'base.ggb'), input.archive.bytes);
+  if (input.archive) {
+    await writeFile(join(context.temp, 'base.ggb'), input.archive.bytes);
+  }
+  const base = input.archive ? { base: {
+    file: 'base.ggb', sha256: sha256(input.archive.bytes),
+    bytes: input.archive.bytes.length,
+  } } : {};
   await save(join(context.temp, 'manifest.json'), {
     protocolVersion: 2, milestone: 'M6',
     runtimeVersion: await runtimeVersion(input.page), file: 'result.ggb',
     sha256: sha256(input.bytes), requestSha256: context.requestSha256,
-    base: {
-      file: 'base.ggb', sha256: base.sha256, bytes: input.archive.bytes.length,
-    },
-    objects: input.objects,
+    ...base, objects: input.objects,
   });
   await context.timed('cleanup', () => session.close());
   context.session = undefined;
   context.running.throwIfAborted();
   const delivery = join(context.run, 'delivery');
   await rename(context.temp, delivery);
+  return await deliveryResult(context, delivery);
+}
+
+/** A late journal error cannot revoke the committed delivery. */
+async function deliveryResult(context: BuildContext,
+  delivery: string): Promise<DeliveryResult> {
   const warnings: string[] = [];
   try {
     await saveRun(context, 'delivered');
   } catch (error) {
-    warnings.push('Delivery committed; run.json update failed: ' + String(error));
+    warnings.push(
+      'Delivery committed; run.json update failed: ' + String(error));
   }
-  return {
-    delivery, file: join(delivery, 'result.ggb'),
+  return { delivery, file: join(delivery, 'result.ggb'),
     report: join(delivery, 'verification.json'),
-    ...(warnings.length ? { warnings } : {}),
-  };
+    ...(warnings.length ? { warnings } : {}) };
 }
 
 /** Writes the edit delivery, including the base copy and the diff evidence. */
@@ -588,14 +577,8 @@ async function commitEdit(
     reload: input.reload,
     interaction: { status: 'passed', samples: [], zoom: zoomResult },
   };
-  context.stage = 'export_failed';
-  if (Buffer.byteLength(json(report)) > limits.reportBytes) {
-    throw new ToolError('limit_exceeded',
-      'Verification report exceeds the size limit');
-  }
-  await save(join(context.temp, 'verification.json'), report);
-  return await finishBaseDelivery(context, {
-    bytes: input.bytes, archive: input.archive,
+  return await finishDelivery(context, {
+    bytes: input.bytes, archive: input.archive, report,
     objects: input.gates.verification.objects, page: input.page,
   });
 }
@@ -640,14 +623,8 @@ async function commitModify(
     reload: input.reload,
     interaction: { status: 'passed', samples: [], zoom: zoomResult },
   };
-  context.stage = 'export_failed';
-  if (Buffer.byteLength(json(report)) > limits.reportBytes) {
-    throw new ToolError('limit_exceeded',
-      'Verification report exceeds the size limit');
-  }
-  await save(join(context.temp, 'verification.json'), report);
-  return await finishBaseDelivery(context, {
-    bytes: input.bytes, archive: input.archive,
+  return await finishDelivery(context, {
+    bytes: input.bytes, archive: input.archive, report,
     objects: input.gates.verification.objects, page: input.page,
   });
 }
@@ -669,36 +646,9 @@ async function commitDelivery(
     interaction: { status: 'passed', samples, zoom: zoomResult },
     ...(guaranteed.length ? { tautology: guaranteed } : {}),
   };
-  context.stage = 'export_failed';
-  if (Buffer.byteLength(json(report)) > limits.reportBytes) {
-    throw new ToolError('limit_exceeded',
-      'Verification report exceeds the size limit');
-  }
-  await save(join(context.temp, 'verification.json'), report);
-  await writeFile(join(context.temp, 'request.json'), context.requestBytes);
-  await save(join(context.temp, 'manifest.json'), {
-    protocolVersion: 2, milestone: 'M6',
-    runtimeVersion: await runtimeVersion(original), file: 'result.ggb',
-    sha256: sha256(bytes), requestSha256: context.requestSha256,
-    objects: construction.objects,
+  return await finishDelivery(context, {
+    bytes, objects: construction.objects, page: original, report,
   });
-  await context.timed('cleanup', () => session.close());
-  context.session = undefined;
-  context.running.throwIfAborted();
-  const delivery = join(context.run, 'delivery');
-  await rename(context.temp, delivery);
-  const warnings: string[] = [];
-  try {
-    await saveRun(context, 'delivered');
-  } catch (error) {
-    warnings.push(
-      'Delivery committed; run.json update failed: ' + String(error));
-  }
-  return {
-    delivery, file: join(delivery, 'result.ggb'),
-    report: join(delivery, 'verification.json'),
-    ...(warnings.length ? { warnings } : {}),
-  };
 }
 
 async function saveRun(
@@ -754,8 +704,7 @@ export async function build(
   const context = buildContext(input, signal);
   try {
     if (!context.request.base) return await buildCreate(context);
-    return context.compiled.mode === 'modify' ? await buildModify(context) :
-      await buildEdit(context);
+    return await buildBase(context);
   } catch (error) {
     return await failBuild(context, error);
   }
@@ -765,6 +714,31 @@ function validatePhase(request: Request, input: any, phase: 'initial' | 'sampled
   assert(input?.status === 'passed' && Array.isArray(input.objects) && input.objects.length > 0, 'Missing or failed verification evidence');
   const actual = verify(request, input.objects as Snapshot, phase, input.observations); requirePassed(actual);
   assert(equivalent(actual.results, input.results), 'Verification results do not match their observations');
+}
+
+/** Re-derives completion from evidence, both at commit and preview. */
+function validateDeliveryEvidence(request: Request,
+  report: DeliveryEvidence, objects: Snapshot): void {
+  validatePhase(request, report.construction, 'initial');
+  validatePhase(request, report.reload, 'initial');
+  compareSnapshots(report.construction.objects, objects);
+  compareSnapshots(report.reload.objects, objects);
+  assert(report.interaction?.status === 'passed'
+    && Array.isArray(report.interaction.samples),
+  'Missing or failed interaction evidence');
+  assert.equal(report.interaction.samples.length,
+    request.plan.interactions.length, 'Incomplete interaction coverage');
+  validateSamples(request, report.interaction.samples, report.reload.objects);
+  const z = report.interaction.zoom;
+  if (request.plan.display === 'algebra') {
+    assert(z?.method === 'not_applicable' && 'reason' in z
+      && z.reason === 'algebra-only view', 'Invalid algebra view evidence');
+  } else {
+    assert(z?.method === 'button' && 'before' in z && 'after' in z
+      && Number.isFinite(z.before) && Number.isFinite(z.after)
+      && z.before > 0 && z.after > 0 && z.before !== z.after,
+    'Missing zoom evidence');
+  }
 }
 
 /** Replays interaction decisions from stored facts before loading the file. */
@@ -984,14 +958,7 @@ async function preview(deliveryDir: string, headed: boolean, signal?: AbortSigna
   const compiled = compile(request,
     request.base && Array.isArray(baseline) ? snapshotFacts(baseline) : undefined);
   assert.equal(report?.milestone, 'M6'); assert.equal(report.requestSha256, manifest.requestSha256);
-  validatePhase(request, report.construction, 'initial'); validatePhase(request, report.reload, 'initial');
-  compareSnapshots(report.construction.objects, manifest.objects); compareSnapshots(report.reload.objects, manifest.objects);
-  assert(report.interaction?.status === 'passed' && Array.isArray(report.interaction.samples), 'Missing or failed interaction evidence');
-  assert.equal(report.interaction.samples.length, request.plan.interactions.length, 'Incomplete interaction coverage');
-  validateSamples(request, report.interaction.samples, report.reload.objects);
-  const z = report.interaction.zoom;
-  if (request.plan.display === 'algebra') assert(z?.method === 'not_applicable' && z.reason === 'algebra-only view', 'Invalid algebra view evidence');
-  else assert(z?.method === 'button' && Number.isFinite(z.before) && Number.isFinite(z.after) && z.before > 0 && z.after > 0 && z.before !== z.after, 'Missing zoom evidence');
+  validateDeliveryEvidence(request, report, manifest.objects);
   const info = await stat(join(delivery, 'result.ggb'));
   assert(info.isFile() && info.size > 0 && info.size <= limits.ggbBytes, 'Invalid GGB file size');
   const bytes = await readFile(join(delivery, 'result.ggb')); assert.equal(sha256(bytes), manifest.sha256, 'GGB checksum mismatch');

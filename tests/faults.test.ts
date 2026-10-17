@@ -1,3 +1,4 @@
+/** @fileoverview Real-browser faults exercise cleanup and commit gates. */
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import * as fs from 'node:fs/promises';
@@ -5,11 +6,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test, { mock } from 'node:test';
 import { promisify } from 'node:util';
-import { limits } from '../src/schema.js';
+import { limits, ToolError, type Request } from '../src/schema.js';
 import { compareSnapshots } from '../src/verify.js';
 
 // Fault injection stays in tests. Every successful launch still uses real GeoGebra.
 let fault = '', output = '', cancellation: AbortController | undefined;
+let constructionObservations = 0;
+let constructionExports = 0;
 const sessions: Awaited<ReturnType<typeof browser.openBrowser>>[] = [];
 const exports = Object.fromEntries(Object.entries(fs).filter(([name]) => name !== 'default'));
 mock.module('node:fs/promises', { namedExports: { ...exports,
@@ -44,7 +47,21 @@ const { root } = await import('../src/server.js');
 const browser = await import('../src/browser.js');
 mock.module('../src/browser.js', { namedExports: { ...browser,
   async openDefaultBrowser() { throw new Error('Injected system URL opener failure'); },
+  async observe(...args: Parameters<typeof browser.observe>) {
+    const facts = await browser.observe(...args);
+    if (fault.startsWith('initial-') && ++constructionObservations === 1) {
+      for (const observation of facts.observations) {
+        if (fault === 'initial-unverified') {
+          observation.error = 'Injected transient missing observation';
+        } else {
+          observation.value = 4;
+        }
+      }
+    }
+    return facts;
+  },
   async exportGgb(page: Parameters<typeof browser.exportGgb>[0]) {
+    if (fault.startsWith('initial-')) constructionExports++;
     if (!fault.startsWith('export-equation:')) return browser.exportGgb(page);
     const [original, changed] = fault.slice('export-equation:'.length).split('|');
     await page.evaluate(source => { if (!window.ggb.evalCommand(source!)) throw new Error('Cannot inject equation'); }, changed);
@@ -120,7 +137,8 @@ mock.module('../src/browser.js', { namedExports: { ...browser,
     }
   },
 } });
-const { build, openPreview, openDefaultPreview } = await import('../src/delivery.js');
+const { build, openPreview, openDefaultPreview, sha256 } =
+  await import('../src/delivery.js');
 const { doctor } = await import('../src/doctor.js');
 const fixture = JSON.parse(await fs.readFile(join(root, 'examples/v2-cases/triangle.json'), 'utf8'));
 const defaults = { ...limits };
@@ -447,3 +465,60 @@ test('doctor CLI rejects missing runtime, version mismatch and missing Chromium'
     });
   });
 });
+
+
+/** All modes must fail before export when their initial evidence is missing. */
+async function initialGateFailure(directory: string, mode: string,
+  status: 'failed' | 'unverified'): Promise<void> {
+  fault = 'initial-' + status;
+  constructionObservations = 0;
+  constructionExports = 0;
+  const path = join(root, 'tests/fixtures/edit-base.ggb');
+  const base = { path, sha256: sha256(await fs.readFile(path)) };
+  const request: Request = {
+    protocolVersion: 2, prompt: 'Check', locale: 'en', outputDir: directory,
+    plan: {
+      program: [{ id: 'n', op: 'native', source: 'n=3', mode: 'algebra' }],
+      requirements: [{ id: 'value', source: 'Check', checks: [{
+        kind: 'expression', subjects: ['n'], expression: 'n',
+        mode: 'algebra', expected: 3, scope: 'initial',
+      }] }], interactions: [],
+    },
+  };
+  if (mode !== 'create') request.base = base;
+  if (mode === 'edit') {
+    request.plan.program = [];
+    request.plan.edits = [{ object: 'circ',
+      properties: { color: '#FF0000' } }];
+    const check = request.plan.requirements[0]?.checks[0];
+    assert(check);
+    check.subjects = ['circ'];
+    check.expression = 'Radius(circ)';
+  }
+  await assert.rejects(build(request), (error: unknown) =>
+    error instanceof ToolError && error.code === 'verification_' + status);
+  assert.equal(constructionExports, 0, 'Initial failure must block export');
+  await released();
+  for (const run of await fs.readdir(directory)) {
+    const evidence = JSON.parse(await fs.readFile(
+      join(directory, run, 'verification.json'), 'utf8'));
+    assert.equal(evidence.status, status);
+    await assert.rejects(fs.stat(join(directory, run, 'delivery')), /ENOENT/);
+  }
+}
+
+test('create, edit and modify share the initial evidence gate',
+  { timeout: 45_000 }, async () => {
+    const directory = await fs.mkdtemp(join(tmpdir(), 'ggb-initial-gate-'));
+    try {
+      for (const mode of ['create', 'edit', 'modify']) {
+        for (const status of ['failed', 'unverified'] as const) {
+          await initialGateFailure(join(directory, mode + status),
+            mode, status);
+        }
+      }
+    } finally {
+      fault = '';
+      await fs.rm(directory, { recursive: true, force: true });
+    }
+  });
