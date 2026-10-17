@@ -291,8 +291,12 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
         Boolean(labels?.length) : api.evalCommand(source);
       const missing = outputs.filter(id => !api.isDefined(id));
       if (!executed || missing.length > 0) {
+        // A created label can still be undefined, for example an intersection
+        // that does not exist. Telling those cases apart shortens a repair.
+        const state = (id: string) => labels?.includes(id) ?
+          `${id} (undefined)` : `${id} (not created)`;
         const detail = `actual labels: ${labels?.join(',') ?? 'none'}`
-          + `; missing: ${missing.join(',') || 'none'}`;
+          + `; missing: ${missing.map(state).join(', ') || 'none'}`;
         throw new Error(
           `Execution failed or output undefined: ${step.id}; ${detail}`);
       }
