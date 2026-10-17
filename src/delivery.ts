@@ -5,14 +5,18 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { dragPoint, interact, execute, exportGgb, loadGgb, openBrowser, openDefaultBrowser, runtimeVersion, snapshot, observe, zoom, applyEdits, type Snapshot } from './browser.js';
+import { dragPoint, interact, execute, exportGgb, loadGgb, openBrowser, openDefaultBrowser, runtimeVersion, snapshot, observe, zoom, applyEdits, applyStyles, applyUpdates, type Snapshot } from './browser.js';
 import { opaqueTypes, type GgbSummary } from './ggbfile.js';
 import { loadBase } from './inspect.js';
 import {
   commandTokens, diffViolations, editFields, requireEffects, validateTargets,
 } from './edit.js';
-import { compile } from './compile.js';
-import { limits, parseRequest, ToolError, toolError, type Request } from './schema.js';
+import { compile, type BaseFacts } from './compile.js';
+import {
+  modifyViolations, requireUpdateEffects, updateFields, valueMatches,
+  validateModifyStyles, validateUpdates, type BaseFact,
+} from './modify.js';
+import { limits, parseRequest, ToolError, toolError, type Request, type Style } from './schema.js';
 import { compareSnapshots, snapshotDifferences, equivalent, verify, type Verification } from './verify.js';
 
 export const sha256 = (data: Buffer) => createHash('sha256').update(data).digest('hex');
@@ -26,6 +30,13 @@ export async function readJson(path: string, max = limits.requestBytes): Promise
 }
 function requirePassed(result: Verification) {
   if (result.status !== 'passed') throw new ToolError(result.status === 'failed' ? 'verification_failed' : 'verification_unverified', 'Required checks did not pass', result.results.filter(r => r.status !== 'passed'));
+}
+
+/** Zoom evidence is not applicable to an algebra-only view. */
+async function zoomEvidence(context: BuildContext, page: Page) {
+  return context.request.plan.display === 'algebra'
+    ? { method: 'not_applicable', reason: 'algebra-only view' }
+    : await zoom(page);
 }
 
 interface PhaseTiming { phase: string; startMs: number; durationMs: number; }
@@ -334,6 +345,71 @@ function editLinks(facts: Snapshot) {
   }));
 }
 
+/** Base labels and types from the bounded archive summary. */
+function summaryFacts(summary: GgbSummary): BaseFacts {
+  return {
+    labels: new Set(summary.objects.map(object => object.name)),
+    types: new Map(summary.objects.map(object => [object.name, object.type])),
+  };
+}
+
+/** Base labels and types from live facts. */
+function snapshotFacts(facts: Snapshot): BaseFacts {
+  return {
+    labels: new Set(facts.map(fact => fact.name)),
+    types: new Map(facts.map(fact => [fact.name, fact.type])),
+  };
+}
+
+function updateFacts(facts: Snapshot): Map<string, BaseFact> {
+  return new Map(facts.map(fact => [fact.name, {
+    name: fact.name, type: fact.type, independent: fact.independent,
+    moveable: fact.moveable, fixed: fact.fixed, slider: fact.slider,
+  }]));
+}
+
+/** Applies additions, updates and styles, then enforces the modify gates. */
+async function modifyGates(
+  context: BuildContext, page: Page, summary: GgbSummary,
+) {
+  const baseline = await context.timed('base.observe', () => snapshot(page));
+  checkBaseline(baseline, summary);
+  const facts = snapshotFacts(baseline);
+  // Live facts are authoritative for base labels and types.
+  context.compiled = compile(context.request, facts);
+  const compiled = context.compiled;
+  validateModifyStyles(compiled.styles, facts.labels);
+  validateUpdates(compiled.updates, updateFacts(baseline));
+  const baseTypes = new Map(baseline.map(fact => [fact.name, fact.type]));
+  validateTargets(compiled.styles.filter(style =>
+    facts.labels.has(style.object)), baseTypes);
+  context.stage = 'modify_failed';
+  await context.timed('modify.execute',
+    () => execute(page, compiled, context.request.prompt));
+  const updateEffects = await context.timed('modify.update',
+    () => applyUpdates(page, compiled.updates));
+  requireUpdateEffects(compiled.updates, updateEffects);
+  const styleEffects = await context.timed('modify.style',
+    () => applyStyles(page, compiled.styles));
+  requireEffects(compiled.styles, styleEffects);
+  const verification = await context.timed('modify.verify',
+    () => collect(context, page, 'construction', 'initial'));
+  const differences = snapshotDifferences(verification.objects, baseline);
+  const declared = new Set(compiled.program.flatMap(step => step.outputs));
+  const violations = modifyViolations({
+    styles: compiled.styles, updates: compiled.updates, differences,
+    links: editLinks(verification.objects), declared,
+    baseLabels: facts.labels,
+  });
+  if (violations.length) {
+    throw new ToolError('preservation_violation',
+      'Modification changed fields it did not declare', violations);
+  }
+  return {
+    baseline, updateEffects, styleEffects, differences, verification,
+  };
+}
+
 /** Applies edits, then enforces effect, preservation and requirement gates. */
 async function editGates(
   context: BuildContext, page: Page, summary: GgbSummary,
@@ -399,6 +475,85 @@ async function buildEdit(context: BuildContext): Promise<DeliveryResult> {
   });
 }
 
+/** Builds a modified copy of a declared base; the base stays untouched. */
+async function buildModify(context: BuildContext): Promise<DeliveryResult> {
+  const { request } = context;
+  context.stage = 'base_invalid';
+  const { archive, summary } = await editArchive(context);
+  compile(request, summaryFacts(summary));
+  context.stage = 'base_load_failed';
+  const session = await context.timed('browser.start',
+    () => openBrowser(false, context.running));
+  context.session = session;
+  const page = await context.timed('base.applet', () => session.page());
+  await context.timed('base.load', () => loadGgb(page,
+    archive.bytes.toString('base64'), request.prompt, request.plan.display));
+  const gates = await modifyGates(context, page, summary);
+  context.stage = 'export_failed';
+  const bytes = Buffer.from(await context.timed('export',
+    () => exportGgb(page)), 'base64');
+  if (bytes.length > limits.ggbBytes) {
+    throw new ToolError('limit_exceeded', 'GGB file exceeds the size limit');
+  }
+  assert(bytes.subarray(0, 2).toString() === 'PK',
+    'Expected a GGB ZIP archive');
+  await writeFile(join(context.temp, 'result.ggb'), bytes);
+  context.stage = 'reload_failed';
+  const reloaded = await context.timed('reload.applet', () => session.page());
+  await context.timed('reload.load', () => loadGgb(reloaded,
+    bytes.toString('base64'), request.prompt, request.plan.display));
+  const reload = await context.timed('reload.verify',
+    () => collect(context, reloaded, 'reload', 'initial'));
+  requirePassed(reload);
+  compareSnapshots(reload.objects, gates.verification.objects);
+  context.stage = 'export_failed';
+  await context.timed('screenshot', () => reloaded.screenshot({
+    path: join(context.temp, 'preview.png'),
+  }));
+  return await commitModify(context, {
+    archive, summary, bytes, gates, reload, page: reloaded,
+  });
+}
+
+/** Writes the shared base delivery files and commits the directory. */
+async function finishBaseDelivery(
+  context: BuildContext,
+  input: {
+    bytes: Buffer; archive: { bytes: Buffer }; objects: Snapshot; page: Page;
+  },
+): Promise<DeliveryResult> {
+  const base = context.request.base!;
+  const session = context.session;
+  assert(session);
+  await writeFile(join(context.temp, 'request.json'), context.requestBytes);
+  await writeFile(join(context.temp, 'base.ggb'), input.archive.bytes);
+  await save(join(context.temp, 'manifest.json'), {
+    protocolVersion: 2, milestone: 'M6',
+    runtimeVersion: await runtimeVersion(input.page), file: 'result.ggb',
+    sha256: sha256(input.bytes), requestSha256: context.requestSha256,
+    base: {
+      file: 'base.ggb', sha256: base.sha256, bytes: input.archive.bytes.length,
+    },
+    objects: input.objects,
+  });
+  await context.timed('cleanup', () => session.close());
+  context.session = undefined;
+  context.running.throwIfAborted();
+  const delivery = join(context.run, 'delivery');
+  await rename(context.temp, delivery);
+  const warnings: string[] = [];
+  try {
+    await saveRun(context, 'delivered');
+  } catch (error) {
+    warnings.push('Delivery committed; run.json update failed: ' + String(error));
+  }
+  return {
+    delivery, file: join(delivery, 'result.ggb'),
+    report: join(delivery, 'verification.json'),
+    ...(warnings.length ? { warnings } : {}),
+  };
+}
+
 /** Writes the edit delivery, including the base copy and the diff evidence. */
 async function commitEdit(
   context: BuildContext,
@@ -409,12 +564,8 @@ async function commitEdit(
   },
 ): Promise<DeliveryResult> {
   const { request } = context;
-  const session = context.session;
-  assert(session);
   const base = request.base!;
-  const zoomResult = request.plan.display === 'algebra' ?
-    { method: 'not_applicable', reason: 'algebra-only view' } :
-    await zoom(input.page);
+  const zoomResult = await zoomEvidence(context, input.page);
   const allowed = [...editFields(context.compiled.edits)].map(key => {
     const [object, field] = key.split('\u0000');
     return { object, field };
@@ -442,33 +593,62 @@ async function commitEdit(
       'Verification report exceeds the size limit');
   }
   await save(join(context.temp, 'verification.json'), report);
-  await writeFile(join(context.temp, 'request.json'), context.requestBytes);
-  await writeFile(join(context.temp, 'base.ggb'), input.archive.bytes);
-  await save(join(context.temp, 'manifest.json'), {
-    protocolVersion: 2, milestone: 'M6',
-    runtimeVersion: await runtimeVersion(input.page), file: 'result.ggb',
-    sha256: sha256(input.bytes), requestSha256: context.requestSha256,
-    base: {
-      file: 'base.ggb', sha256: base.sha256, bytes: input.archive.bytes.length,
-    },
-    objects: input.gates.verification.objects,
+  return await finishBaseDelivery(context, {
+    bytes: input.bytes, archive: input.archive,
+    objects: input.gates.verification.objects, page: input.page,
   });
-  await context.timed('cleanup', () => session.close());
-  context.session = undefined;
-  context.running.throwIfAborted();
-  const delivery = join(context.run, 'delivery');
-  await rename(context.temp, delivery);
-  const warnings: string[] = [];
-  try {
-    await saveRun(context, 'delivered');
-  } catch (error) {
-    warnings.push('Delivery committed; run.json update failed: ' + String(error));
-  }
-  return {
-    delivery, file: join(delivery, 'result.ggb'),
-    report: join(delivery, 'verification.json'),
-    ...(warnings.length ? { warnings } : {}),
+}
+
+/** Writes the modify delivery, including the base copy and the diff evidence. */
+async function commitModify(
+  context: BuildContext,
+  input: {
+    archive: { bytes: Buffer }; summary: GgbSummary; bytes: Buffer;
+    gates: Awaited<ReturnType<typeof modifyGates>>;
+    reload: Verification; page: Page;
+  },
+): Promise<DeliveryResult> {
+  const { request } = context;
+  const base = request.base!;
+  const compiled = context.compiled;
+  const zoomResult = await zoomEvidence(context, input.page);
+  const allowed = [
+    ...editFields(compiled.styles), ...updateFields(compiled.updates),
+  ].map(key => {
+    const [object, field] = key.split('\u0000');
+    return { object, field };
+  });
+  const added = compiled.program.flatMap(step => step.outputs);
+  await save(join(context.temp, 'diff.json'), {
+    mode: 'modify', baseSha256: base.sha256, allowed, added,
+    changes: input.gates.differences,
+  });
+  const report = {
+    milestone: 'M6', requestSha256: context.requestSha256,
+    modify: {
+      base: {
+        sha256: base.sha256, bytes: input.archive.bytes.length,
+        view: input.summary.view,
+      },
+      allowed, added, baseline: input.gates.baseline,
+      updates: compiled.updates, updateEffects: input.gates.updateEffects,
+      styles: compiled.styles, styleEffects: input.gates.styleEffects,
+      changes: input.gates.differences,
+    },
+    construction: input.gates.verification,
+    reload: input.reload,
+    interaction: { status: 'passed', samples: [], zoom: zoomResult },
   };
+  context.stage = 'export_failed';
+  if (Buffer.byteLength(json(report)) > limits.reportBytes) {
+    throw new ToolError('limit_exceeded',
+      'Verification report exceeds the size limit');
+  }
+  await save(join(context.temp, 'verification.json'), report);
+  return await finishBaseDelivery(context, {
+    bytes: input.bytes, archive: input.archive,
+    objects: input.gates.verification.objects, page: input.page,
+  });
 }
 
 async function commitDelivery(
@@ -478,9 +658,7 @@ async function commitDelivery(
 ): Promise<DeliveryResult> {
   const session = context.session;
   assert(session);
-  const zoomResult = context.request.plan.display === 'algebra' ?
-    { method: 'not_applicable', reason: 'algebra-only view' } :
-    await zoom(artifact.reloaded);
+  const zoomResult = await zoomEvidence(context, artifact.reloaded);
   compareSnapshots(await snapshot(original), construction.objects);
   const report = {
     milestone: 'M6', requestSha256: context.requestSha256,
@@ -571,8 +749,9 @@ export async function build(
 ): Promise<DeliveryResult> {
   const context = buildContext(input, signal);
   try {
-    return context.request.base ? await buildEdit(context) :
-      await buildCreate(context);
+    if (!context.request.base) return await buildCreate(context);
+    return context.compiled.mode === 'modify' ? await buildModify(context) :
+      await buildEdit(context);
   } catch (error) {
     return await failBuild(context, error);
   }
@@ -708,17 +887,98 @@ async function recheckEdits(
   }
 }
 
+/** One declared style field as observed on a final object. */
+function styleFieldMatches(fact: any, field: string,
+  requested: unknown): boolean {
+  const actual = fact[field];
+  if (field === 'color') {
+    return typeof actual === 'string'
+      && actual.toUpperCase() === String(requested).toUpperCase();
+  }
+  if (field === 'filling') {
+    return typeof actual === 'number'
+      && Math.abs(actual - Number(requested)) <= 1e-8;
+  }
+  if (field === 'caption') return actual === requested && fact.labelStyle === 3;
+  return actual === requested;
+}
+
+/** Every declared style and update must survive into the final figure. */
+function verifyDeclaredChanges(
+  compiled: ReturnType<typeof compile>, objects: Snapshot,
+) {
+  const facts = new Map(objects.map(fact => [fact.name, fact]));
+  for (const style of compiled.styles) {
+    const fact = facts.get(style.object);
+    assert(fact, `Missing style target: ${style.object}`);
+    for (const [field, value] of Object.entries(style.properties)) {
+      assert(styleFieldMatches(fact, field, value),
+        `Style not retained: ${style.object}.${field}`);
+    }
+  }
+  for (const update of compiled.updates) {
+    const fact = facts.get(update.object);
+    assert(fact, `Missing update target: ${update.object}`);
+    if (update.value !== undefined) {
+      assert(valueMatches(fact.value, update.value),
+        `Value not retained: ${update.object}`);
+    }
+    if (update.coords !== undefined) {
+      assert(valueMatches(fact.x, update.coords[0])
+        && valueMatches(fact.y, update.coords[1]),
+      `Coordinates not retained: ${update.object}`);
+    }
+  }
+}
+
+/** Re-derives a modify diff and its preservation gate from the base copy. */
+async function recheckModify(
+  request: Request, compiled: ReturnType<typeof compile>, report: any,
+  base: any, delivery: string, session: Engine, objects: Snapshot,
+): Promise<void> {
+  assert(base?.file === 'base.ggb' && /^[a-f0-9]{64}$/.test(base.sha256),
+    'Missing base evidence');
+  const bytes = await readFile(join(delivery, base.file));
+  assert.equal(sha256(bytes), base.sha256, 'Base checksum mismatch');
+  assert.equal(report.modify?.base?.sha256, base.sha256,
+    'Base evidence changed');
+  const page = await session.page();
+  try {
+    await loadGgb(page, bytes.toString('base64'), request.prompt,
+      request.plan.display);
+    const baseline = await snapshot(page);
+    compareSnapshots(baseline, report.modify.baseline);
+    const differences = snapshotDifferences(objects, baseline);
+    assert(equivalent(differences, report.modify.changes),
+      'Recorded modify diff does not match the files');
+    const baseLabels = new Set(baseline.map(fact => fact.name));
+    const declared = new Set(compiled.program.flatMap(step => step.outputs));
+    const violations = modifyViolations({
+      styles: compiled.styles, updates: compiled.updates, differences,
+      links: editLinks(objects), declared, baseLabels,
+    });
+    assert.equal(violations.length, 0,
+      `Undeclared changes: ${JSON.stringify(violations)}`);
+    verifyDeclaredChanges(compiled, objects);
+  } finally {
+    await page.close();
+  }
+}
+
 async function preview(deliveryDir: string, headed: boolean, signal?: AbortSignal) {
   signal?.throwIfAborted();
   const delivery = resolve(deliveryDir);
   const manifest = await readJson(join(delivery, 'manifest.json'), 2 * 1024 * 1024) as any;
   assert(manifest?.protocolVersion === 2 && manifest.milestone === 'M6' && manifest.file === 'result.ggb', 'Unsupported delivery format; regenerate with build');
   assert.match(manifest.sha256, /^[a-f0-9]{64}$/); assert.match(manifest.requestSha256, /^[a-f0-9]{64}$/);
-  const request = parseRequest(await readJson(join(delivery, 'request.json'))); compile(request);
+  const request = parseRequest(await readJson(join(delivery, 'request.json')));
   assert.equal(sha256(await readFile(join(delivery, 'request.json'))), manifest.requestSha256, 'Request checksum mismatch');
   const picture = await stat(join(delivery, 'preview.png'));
   assert(picture.isFile() && picture.size > 0 && picture.size <= limits.ggbBytes, 'preview.png must be a bounded nonempty file');
   const report = await readJson(join(delivery, 'verification.json'), limits.reportBytes) as any;
+  const baseline = report?.modify?.baseline ?? report?.edit?.baseline;
+  const compiled = compile(request,
+    request.base && Array.isArray(baseline) ? snapshotFacts(baseline) : undefined);
   assert.equal(report?.milestone, 'M6'); assert.equal(report.requestSha256, manifest.requestSha256);
   validatePhase(request, report.construction, 'initial'); validatePhase(request, report.reload, 'initial');
   compareSnapshots(report.construction.objects, manifest.objects); compareSnapshots(report.reload.objects, manifest.objects);
@@ -738,7 +998,10 @@ async function preview(deliveryDir: string, headed: boolean, signal?: AbortSigna
     const actual = verify(request, actualFacts.objects, 'initial', actualFacts.observations); requirePassed(actual);
     compareSnapshots(actual.objects, manifest.objects);
     assert.equal(await runtimeVersion(page), manifest.runtimeVersion);
-    if (request.base) {
+    if (request.base && compiled.mode === 'modify') {
+      await recheckModify(request, compiled, report, manifest.base, delivery,
+        session, actual.objects);
+    } else if (request.base) {
       await recheckEdits(request, report, manifest.base, delivery, session,
         actual.objects);
     } else assert(!manifest.base, 'Unexpected base evidence');

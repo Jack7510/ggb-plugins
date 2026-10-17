@@ -71,6 +71,8 @@ export type EditStyle = {
   filling?: number; labelVisible?: boolean; visible?: boolean;
 };
 export interface Edit { object: string; properties: EditStyle }
+/** A controlled value change on one independent base object. */
+export interface Update { object: string; value?: number; coords?: [number, number] }
 export interface Request {
   protocolVersion: 2; prompt: string; locale: string; outputDir: string;
   base?: { path: string; sha256: string };
@@ -78,6 +80,7 @@ export interface Request {
   plan: {
     program: Step[];
     edits?: Edit[];
+    updates?: Update[];
     requirements: { id: string; source: string; checks: Check[] }[];
     styles?: { object: string; properties: Style }[];
     interactions: Interaction[];
@@ -199,6 +202,19 @@ function editStyle(value: unknown) {
   }
 }
 
+/** One controlled update: a numeric value or point coordinates. */
+function update(value: unknown) {
+  const u = record(value, ['object', 'value', 'coords']);
+  baseName(u.object);
+  assert(('value' in u) !== ('coords' in u),
+    'An update declares either value or coords');
+  if ('value' in u) finite(u.value);
+  if ('coords' in u) {
+    array(u.coords, 2, 2);
+    u.coords.forEach((n: unknown) => finite(n));
+  }
+}
+
 /** Check subjects may also be base labels such as `A'`, `θ1` or `B_{1}`. */
 function subject(value: unknown): asserts value is string {
   if (typeof value === 'string' && baseLabelPattern.test(value)) return;
@@ -230,26 +246,52 @@ export function parseRequest(value: unknown): Request {
     }
   }
   const p = record(r.plan, ['program', 'requirements', 'styles', 'interactions',
-    'view', 'display', 'edits']);
+    'view', 'display', 'edits', 'updates']);
   if ('display' in p) assert(['graphics', 'algebra'].includes(p.display), 'Invalid display');
   if (base) {
-    // A base and a program are two different modes; mixing them would let a
-    // request rebuild the figure while claiming to edit it.
-    assert(!('program' in p) || p.program.length === 0,
-      'An edit request declares edits, not a program');
-    assert(!('styles' in p), 'Express edit presentation through edits');
-    assert(!('view' in p), 'The base keeps its own view; view edits are unsupported');
-    array(p.edits, 1, limits.steps);
-    const targets = new Set<string>();
-    for (const input of p.edits) {
-      const edit = record(input, ['object', 'properties']);
-      baseName(edit.object);
-      assert(!targets.has(edit.object), 'Duplicate edit target');
-      targets.add(edit.object);
-      editStyle(edit.properties);
+    // A base request is either a presentation edit or a construction
+    // modification. Mixing the two modes would make the reported diff
+    // ambiguous, so the request must choose one.
+    const presentation = 'edits' in p;
+    const construction = ('program' in p && p.program.length > 0)
+      || 'updates' in p || 'styles' in p;
+    assert(!(presentation && construction),
+      'An edit request declares edits, not a program or other construction changes');
+    assert(presentation || construction,
+      'A base request needs edits or construction changes');
+    assert(!('view' in p),
+      'The base keeps its own view; view edits are unsupported');
+    if (presentation) {
+      array(p.edits, 1, limits.steps);
+      const targets = new Set<string>();
+      for (const input of p.edits) {
+        const edit = record(input, ['object', 'properties']);
+        baseName(edit.object);
+        assert(!targets.has(edit.object), 'Duplicate edit target');
+        targets.add(edit.object);
+        editStyle(edit.properties);
+      }
+    } else {
+      if ('program' in p) {
+        array(p.program, 0, limits.steps);
+        for (const step of p.program) {
+          assert(step?.op === 'native',
+            'Base modifications declare native program steps');
+        }
+      }
+      if ('updates' in p) {
+        array(p.updates, 1, limits.steps);
+        const targets = new Set<string>();
+        for (const input of p.updates) {
+          update(input);
+          assert(!targets.has(input.object), 'Duplicate update target');
+          targets.add(input.object);
+        }
+      }
     }
   } else {
     assert(!('edits' in p), 'A creation request declares a program, not edits');
+    assert(!('updates' in p), 'Updates apply only to a base');
     array(p.program, 1, limits.steps);
   }
   for (const input of p.program ?? []) {
@@ -308,7 +350,9 @@ export function parseRequest(value: unknown): Request {
     array(p.styles, 0, limits.steps);
     const targets = new Set<string>();
     for (const input of p.styles) {
-      const s = record(input, ['object', 'properties']); identifier(s.object); style(s.properties);
+      const s = record(input, ['object', 'properties']);
+      if (base) baseName(s.object); else identifier(s.object);
+      style(s.properties);
       assert(!targets.has(s.object), 'Duplicate style target'); targets.add(s.object);
     }
   }

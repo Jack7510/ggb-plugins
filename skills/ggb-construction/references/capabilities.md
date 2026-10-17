@@ -37,13 +37,13 @@
 
 ## 编辑已有 GGB（P0）
 
-编辑模式的输入是“已有 GGB + 文字指令”，输出是新的 GGB 文件；原文件只读。当前只支持显示属性，不支持增删对象、改值、改结构或改视图。
+编辑模式的输入是“已有 GGB + 文字指令”，输出是新的 GGB 文件；原文件只读。本节只支持显示属性；增加对象与受控改值见[构造修改](#构造修改已有-ggb)，删除、重命名与视图修改不开放。
 
 ```sh
 node <plugin>/dist/src/cli.js inspect --ggb /absolute/base.ggb
 ```
 
-inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`bytes`、`version`、`entries`、`view` 和 `objects`（每个对象的 `name`、`type`、`defined`、`dependent`、`moveable`、`fixed`、`visible`、`color`、`lineThickness`、`lineStyle`、`filling`、`labelVisible`、`caption`、`definition`）。请求中的 `base.sha256` 必须等于该值；文件改动后必须重新 inspect。
+inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`bytes`、`version`、`entries`、`view` 和 `objects`（每个对象的 `name`、`type`、`defined`、`dependent`、`moveable`、`fixed`、`visible`、`color`、`lineThickness`、`lineStyle`、`filling`、`labelVisible`、`caption`、`definition`、`value`、`x`、`y`、`slider`）。请求中的 `base.sha256` 必须等于该值；文件改动后必须重新 inspect。
 
 ```json
 {
@@ -86,7 +86,26 @@ inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`byt
 
 **错误码**：`base_invalid`（摘要不符）、`base_unsupported`（归档/脚本/宏/材料/对象不支持）、`unknown_edit_target`（对象不存在）、`invalid_edit`（属性与该类型不符）、`edit_no_effect`（读回未生效）、`preservation_violation`（出现未声明的变化）。
 
-**不支持**（返回错误，不静默降质）：增删或重定义对象、修改坐标或数值、重命名、视图/坐标轴调整、拖动样本、脚本、自定义工具、图片、按钮、输入框、三维材料，以及把旧图形“翻译成程序重画”。这些需求按新建构图处理，原文件另存。
+**不支持**（返回错误，不静默降质）：在显示属性编辑中增删或重定义对象、修改坐标或数值、重命名、视图/坐标轴调整、拖动样本、脚本、自定义工具、图片、按钮、输入框、三维材料，以及把旧图形“翻译成程序重画”。增加对象和受控改值走构造修改；其余需求按新建构图处理，原文件另存。
+
+## 构造修改已有 GGB
+
+构造修改与显示属性编辑使用同一 `base`，但一个请求只能二选一：有 `plan.edits` 时不得同时有 `plan.program`／`plan.updates`／`plan.styles`。删除、重命名和视图修改不开放。
+
+- `plan.program`：只写新增的 native 步骤。参数可引用基线标签；新输出不得与基线重名，并声明引擎实际返回的全部标签。
+- `plan.updates`：每个对象一条。独立数值对象用 `value`；独立可移动点用 `coords: [x, y]`。滑块值必须在 `slider` 区间内。依赖对象不能更新。
+- `plan.styles`：可同时引用基线与新对象；基线对象不接受 `fixed`。
+- `plan.interactions` 为 `[]`；不写 `view`、`edits`。检查覆盖每个新增对象、更新和样式。
+- 更新用 GeoGebra 受控 API 执行；模型不写 `SetValue`、`SetCoords` 或 `SetColor`。
+
+**门禁**：除沿用摘要、归档、可解释、读回与重载门禁外，差异白名单还要求：
+
+1. 新增对象必须在 `program` 输出中声明；删除、重命名或未声明新增失败。
+2. 基线对象只允许声明的样式／更新字段、样式传播，或由更新对象传递重算的几何与数值字段（`x`、`y`、`value`、`line`、`circle`、`data`、`valueString`）。
+3. 基线对象不得变为 `defined=false`；依赖对象因更新产生的合法重算照常写入 `changes`。
+4. `diff.json` 记录 `mode:"modify"`、`baseSha256`、`allowed`、`added`、`changes`；preview 重载 `base.ggb` 并重算同一门禁。
+
+**错误码**：`invalid_update`（更新目标不独立、类型不符或超出滑块范围）、`unknown_update_target`、`invalid_style`（基线对象 `fixed`）、`update_no_effect`、`modify_failed`、`preservation_violation`。
 
 ## 原生构图程序
 

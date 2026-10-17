@@ -1,8 +1,18 @@
 import assert from 'node:assert/strict';
-import { commands, predicates, type Edit, type Request, type Step } from './schema.js';
+import {
+  commands, predicates, type Edit, type Request, type Step, type Update,
+} from './schema.js';
+import { outlined } from './edit.js';
+
+/** Base labels and types learned from the archive or from live facts. */
+export interface BaseFacts {
+  labels: ReadonlySet<string>;
+  types: ReadonlyMap<string, string>;
+}
 
 export interface Compiled {
-  mode: 'create' | 'edit'; edits: Edit[];
+  mode: 'create' | 'edit' | 'modify'; edits: Edit[];
+  updates: Update[];
   program: { step: Step; type: string; command: string; mode: 'algebra' | 'cas'; outputs: string[]; initial?: [number, number] }[];
   view: Request['plan']['view']; styles: NonNullable<Request['plan']['styles']>;
   native: boolean; display: 'graphics' | 'algebra';
@@ -23,16 +33,113 @@ function numberLiteral(value: number): string {
     : digits.slice(0, point) + '.' + digits.slice(point));
 }
 
-export function compile(request: Request): Compiled {
-  if (request.base) {
-    const edits = request.plan.edits ?? [];
-    assert(edits.length > 0, 'An edit request needs at least one edit');
-    assert(request.plan.interactions.length === 0,
-      'Edit requests take no interaction samples yet');
+/** A base request that adds objects, styles them, or updates values. */
+function compileModify(request: Request, base?: BaseFacts): Compiled {
+  assert(request.plan.interactions.length === 0,
+    'Base modifications take no interaction samples yet');
+  const program = request.plan.program.map(step => {
+    assert(step.op === 'native',
+      'Base modifications declare native program steps');
     return {
-      mode: 'edit', edits, program: [], view: undefined, styles: [],
-      native: true, display: request.plan.display ?? 'graphics',
+      step, type: 'native', command: step.source, mode: step.mode,
+      outputs: step.outputs ?? [step.id], initial: step.initial,
     };
+  });
+  const outputs = program.flatMap(step => step.outputs);
+  assert(new Set(outputs).size === outputs.length, 'Duplicate output object');
+  const updates = request.plan.updates ?? [];
+  const styles = request.plan.styles ?? [];
+  if (base) validateModifyBase(base, outputs, updates, styles, request);
+  return {
+    mode: 'modify', edits: [], updates, program, view: undefined, styles,
+    native: true, display: request.plan.display ?? 'graphics',
+  };
+}
+
+type StyleList = NonNullable<Request['plan']['styles']>;
+
+function validateModifyBase(
+  base: BaseFacts, outputs: string[], updates: Update[], styles: StyleList,
+  request: Request,
+): void {
+  for (const id of outputs) {
+    assert(!base.labels.has(id), `Output collides with base object: ${id}`);
+  }
+  const known = new Set([...base.labels, ...outputs]);
+  const has = (id: string) => assert(known.has(id),
+    `Unknown object reference: ${id}`);
+  for (const style of styles) has(style.object);
+  validateModifyUpdates(base, updates);
+  checkModifyStyleTypes(base, styles);
+  validateModifyChecks(base, request, has);
+}
+
+function validateModifyUpdates(base: BaseFacts, updates: Update[]) {
+  for (const update of updates) {
+    assert(base.labels.has(update.object),
+      `Update target is not a base object: ${update.object}`);
+    const type = base.types.get(update.object);
+    assert(update.value === undefined || type === 'numeric',
+      `Value update needs a numeric base object: ${update.object}`);
+    assert(update.coords === undefined || type === 'point',
+      `Coordinate update needs a point base object: ${update.object}`);
+  }
+}
+
+function checkModifyStyleTypes(base: BaseFacts, styles: StyleList) {
+  for (const style of styles) {
+    if (!base.labels.has(style.object)
+      || !styleNeedsOutline(style.properties)) continue;
+    const type = base.types.get(style.object);
+    assert(type !== undefined && outlined.has(type),
+      `Line style needs an outline object: ${style.object} (${type})`);
+  }
+}
+
+function validateModifyChecks(
+  base: BaseFacts, request: Request, has: (id: string) => void,
+) {
+  for (const requirement of request.plan.requirements) {
+    for (const check of requirement.checks) {
+      const spec = predicates[check.kind]!;
+      check.subjects.forEach((id, index) => {
+        has(id);
+        // Native output types are unknown before execution; the runtime
+        // check still rejects a wrong subject.
+        if (!base.labels.has(id)) return;
+        // The archive calls every conic `conic`; the live applet later
+        // distinguishes circle, ellipse, parabola and hyperbola.
+        const type = base.types.get(id) === 'conic' ? 'circle'
+          : base.types.get(id)!;
+        assert(matches(type,
+          spec.types[Math.min(index, spec.types.length - 1)]!),
+        `Invalid ${check.kind} subject: ${id}`);
+      });
+    }
+  }
+}
+
+function styleNeedsOutline(properties?: {
+  lineThickness?: unknown; lineStyle?: unknown;
+}): boolean {
+  return properties?.lineThickness !== undefined
+    || properties?.lineStyle !== undefined;
+}
+
+export function compile(request: Request, base?: BaseFacts): Compiled {
+  if (request.base) {
+    if (request.plan.edits !== undefined) {
+      const edits = request.plan.edits ?? [];
+      assert(edits.length > 0, 'An edit request needs at least one edit');
+      assert(request.plan.interactions.length === 0,
+        'Edit requests take no interaction samples yet');
+      return {
+        mode: 'edit', edits, updates: [], program: [], view: undefined,
+        styles: [], native: true,
+        display: request.plan.display ?? 'graphics',
+      };
+    }
+    return compileModify(request, base);
   }
   if (request.plan.program.some(step => step.op === 'native')) {
     if (request.plan.display === 'algebra') assert(request.plan.interactions.every(sample => 'parameter' in sample), 'Algebra-only view cannot provide canvas drag evidence');
@@ -49,7 +156,7 @@ export function compile(request: Request): Compiled {
     for (const requirement of request.plan.requirements) for (const check of requirement.checks) {
       if (check.scope === 'sampled') assert(request.plan.interactions.length > 0, 'Sampled checks need interaction evidence');
     }
-    return { mode: 'create', edits: [], program, view: request.plan.view, styles: request.plan.styles ?? [], native: true, display: request.plan.display ?? 'graphics' };
+    return { mode: 'create', edits: [], updates: [], program, view: request.plan.view, styles: request.plan.styles ?? [], native: true, display: request.plan.display ?? 'graphics' };
   }
   const byId = new Map(request.plan.program.map(step => [step.id, step]));
   assert.equal(byId.size, request.plan.program.length, 'Duplicate object ID');
@@ -110,5 +217,5 @@ export function compile(request: Request): Compiled {
   });
   const points = ordered.filter(step => step.op === 'freePoint');
   assert(points.length > 0, 'A construction needs free points');
-  return { mode: 'create', edits: [], program, view: request.plan.view, styles: request.plan.styles ?? [], native: false, display: request.plan.display ?? 'graphics' };
+  return { mode: 'create', edits: [], updates: [], program, view: request.plan.view, styles: request.plan.styles ?? [], native: false, display: request.plan.display ?? 'graphics' };
 }

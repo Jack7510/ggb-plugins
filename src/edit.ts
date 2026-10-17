@@ -60,6 +60,10 @@ export interface Difference {
 export interface EditEffect {
   object: string; field: string; before: unknown; after: unknown;
 }
+export interface UpdateEffect {
+  object: string; field: 'value' | 'x' | 'y';
+  before: unknown; after: unknown;
+}
 
 function matches(field: string, actual: unknown, requested: unknown): boolean {
   // GeoGebra reports colors in upper case and fillings as floats.
@@ -112,18 +116,34 @@ export function dependents(
 export function diffViolations(
   edits: Edit[], differences: Difference[], links: FactLink[] = [],
 ): Difference[] {
+  const accepted = allowedStyleChanges(edits, differences, links);
+  return differences.filter(difference =>
+    !accepted.has(`${difference.object}\u0000${difference.field}`));
+}
+
+/** Declared style pairs plus presentation propagation, as difference keys. */
+export function allowedStyleChanges(
+  edits: Edit[], differences: Difference[], links: FactLink[] = [],
+): Set<string> {
   const allowed = editFields(edits);
   const closure = new Map(edits.map(edit =>
     [edit.object, dependents(links, [edit.object])] as const));
-  const propagated = (difference: Difference) => edits.some(({ object,
-    properties }) => object !== difference.object &&
-    Object.hasOwn(properties, difference.field) &&
-    closure.get(object)?.has(difference.object) === true &&
-    matches(difference.field, difference.actual,
-      (properties as Record<string, unknown>)[difference.field]));
-  return differences.filter(difference =>
-    !allowed.has(`${difference.object}\u0000${difference.field}`) &&
-    !propagated(difference));
+  const accepted = new Set<string>();
+  for (const difference of differences) {
+    const key = `${difference.object}\u0000${difference.field}`;
+    if (allowed.has(key)) {
+      accepted.add(key);
+      continue;
+    }
+    const propagated = edits.some(({ object, properties }) =>
+      object !== difference.object &&
+      Object.hasOwn(properties, difference.field) &&
+      closure.get(object)?.has(difference.object) === true &&
+      matches(difference.field, difference.actual,
+        (properties as Record<string, unknown>)[difference.field]));
+    if (propagated) accepted.add(key);
+  }
+  return accepted;
 }
 
 /** Every declared field must be observable, not merely accepted. */

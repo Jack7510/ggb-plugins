@@ -29,6 +29,8 @@ export interface InspectedObject {
   moveable: boolean; fixed: boolean; visible: boolean; color: string;
   lineThickness: number; lineStyle: number; filling: number | null;
   labelVisible: boolean; caption: string; definition: string;
+  value: number | null; x: number | null; y: number | null;
+  slider: { min: number; max: number } | null;
 }
 
 function describe(facts: Awaited<ReturnType<typeof snapshot>>) {
@@ -39,6 +41,7 @@ function describe(facts: Awaited<ReturnType<typeof snapshot>>) {
     lineThickness: fact.lineThickness, lineStyle: fact.lineStyle,
     filling: fact.filling, labelVisible: fact.labelVisible,
     caption: fact.caption, definition: fact.command,
+    value: fact.value, x: fact.x, y: fact.y, slider: fact.slider,
   }));
 }
 

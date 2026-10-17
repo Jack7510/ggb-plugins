@@ -7,8 +7,8 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { resolve } from 'node:path';
 import { root, serve } from './server.js';
-import type { EditEffect } from './edit.js';
-import { limits, ToolError, toolError, type Edit, type Request, type MathValue, type Interaction } from './schema.js';
+import type { EditEffect, UpdateEffect } from './edit.js';
+import { limits, ToolError, toolError, type Edit, type Request, type MathValue, type Interaction, type Style, type Update } from './schema.js';
 
 export async function openDefaultBrowser(url: string, signal?: AbortSignal) {
   const command = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'rundll32.exe' : 'xdg-open';
@@ -30,6 +30,7 @@ export interface GgbAPI {
   isDefined(name: string): boolean;
   isIndependent(name: string): boolean;
   isMoveable(name: string): boolean;
+  isFixed(name: string): boolean;
   getXcoord(name: string): number;
   getYcoord(name: string): number;
   getValue(name: string): number;
@@ -264,14 +265,16 @@ export type Snapshot = Awaited<ReturnType<typeof snapshot>>;
 /** Execute only compiler-produced data, never model-authored JavaScript. */
 export async function execute(page: Page, compiled: import('./compile.js').Compiled, prompt: string) {
   if (compiled.program.some(step => step.mode === 'cas')) await waitForCAS(page);
-  await page.evaluate(async ({ program, styles, view, prompt, display, native }) => {
+  const expectEmpty = compiled.mode === 'create';
+  await page.evaluate(async ({ program, styles, view, prompt, display, native, expectEmpty }) => {
     const api = window.ggb;
     document.querySelector('h1')!.textContent = prompt;
     document.querySelector('h1')!.title = prompt;
     document.title = 'GeoGebra · ' + prompt.slice(0, 60);
     document.querySelector('#status')!.textContent = display === 'algebra' ? '原生代数结果已显示。' : '拖动点或改变滑块观察联动；使用右下角按钮缩放。';
-    if (api.getAllObjectNames().length) throw new Error('Expected an empty canvas');
-    api.setPerspective(display === 'algebra' ? 'A' : 'G');
+    if (expectEmpty && api.getAllObjectNames().length) throw new Error('Expected an empty canvas');
+    if (!expectEmpty && api.getAllObjectNames().length === 0) throw new Error('Expected the declared base');
+    if (expectEmpty) api.setPerspective(display === 'algebra' ? 'A' : 'G');
     for (const { step, command, mode, outputs, initial } of program) {
       const before = api.getAllObjectNames();
       if (outputs.some(id => before.includes(id))) throw new Error(`Object name collision: ${step.id}`);
@@ -308,27 +311,29 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
       if ([...xml.querySelectorAll('element')].some(e => /3d|plane|quadric|surface|image|button|textfield/i.test(e.getAttribute('type') ?? ''))
         || [...xml.querySelectorAll('javascript, ggbscript')].some(e => e.textContent?.trim() || [...e.attributes].some(a => a.value.trim()))) throw new Error('Unsupported spatial, external or scripted material');
     }
-    for (const { object, properties: p } of styles) {
-      if (p.color !== undefined) api.setColor(object, ...[1, 3, 5].map(i => parseInt(p.color!.slice(i, i + 2), 16)) as [number, number, number]);
-      if (p.fixed !== undefined) api.setFixed(object, p.fixed);
-      if (p.visible !== undefined) api.setVisible(object, p.visible);
-      if (p.labelVisible !== undefined) api.setLabelVisible(object, p.labelVisible);
-      if (p.lineThickness !== undefined) api.setLineThickness(object, p.lineThickness);
-      if (p.lineStyle !== undefined) api.setLineStyle(object, p.lineStyle);
-      if (p.filling !== undefined) api.setFilling(object, p.filling);
-      if (p.caption !== undefined) { api.setCaption(object, p.caption); api.setLabelStyle(object, 3); }
+    if (expectEmpty) {
+      for (const { object, properties: p } of styles) {
+        if (p.color !== undefined) api.setColor(object, ...[1, 3, 5].map(i => parseInt(p.color!.slice(i, i + 2), 16)) as [number, number, number]);
+        if (p.fixed !== undefined) api.setFixed(object, p.fixed);
+        if (p.visible !== undefined) api.setVisible(object, p.visible);
+        if (p.labelVisible !== undefined) api.setLabelVisible(object, p.labelVisible);
+        if (p.lineThickness !== undefined) api.setLineThickness(object, p.lineThickness);
+        if (p.lineStyle !== undefined) api.setLineStyle(object, p.lineStyle);
+        if (p.filling !== undefined) api.setFilling(object, p.filling);
+        if (p.caption !== undefined) { api.setCaption(object, p.caption); api.setLabelStyle(object, 3); }
+      }
+      api.setAxesVisible(native, native); api.setGridVisible(false);
+      if (view) {
+        const size = JSON.parse(api.getViewProperties(1));
+        const ratio = size.width / size.height;
+        const height = Math.max(view.yMax - view.yMin, (view.xMax - view.xMin) / ratio), width = height * ratio;
+        const x = (view.xMin + view.xMax) / 2, y = (view.yMin + view.yMax) / 2;
+        api.setCoordSystem(x - width / 2, x + width / 2, y - height / 2, y + height / 2);
+      }
+      api.setMode(0);
     }
-    api.setAxesVisible(native, native); api.setGridVisible(false);
-    if (view) {
-      const size = JSON.parse(api.getViewProperties(1));
-      const ratio = size.width / size.height;
-      const height = Math.max(view.yMax - view.yMin, (view.xMax - view.xMin) / ratio), width = height * ratio;
-      const x = (view.xMin + view.xMax) / 2, y = (view.yMin + view.yMax) / 2;
-      api.setCoordSystem(x - width / 2, x + width / 2, y - height / 2, y + height / 2);
-    }
-    api.setMode(0);
-  }, { ...compiled, prompt });
-  if (!compiled.view && compiled.display === 'graphics') {
+  }, { ...compiled, prompt, expectEmpty });
+  if (expectEmpty && !compiled.view && compiled.display === 'graphics') {
     const objects = await snapshot(page);
     const bounds = objects.flatMap(f => f.type === 'point' && f.x !== null && f.y !== null ? [[f.x, f.y]]
       : f.circle ? [[f.circle.x - f.circle.radius, f.circle.y - f.circle.radius], [f.circle.x + f.circle.radius, f.circle.y + f.circle.radius]] : []);
@@ -345,9 +350,11 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
   }
 }
 
-/** Applies declared presentation edits and reports the observed values. */
-export async function applyEdits(page: Page, edits: Edit[]): Promise<EditEffect[]> {
-  return await page.evaluate(edits => {
+/** Applies declared presentation fields and reports the observed values. */
+export async function applyStyles(
+  page: Page, styles: { object: string; properties: Style }[],
+): Promise<EditEffect[]> {
+  return await page.evaluate(styles => {
     const api = window.ggb;
     const read = (name: string, field: string): unknown => {
       if (field === 'color') return api.getColor(name);
@@ -356,7 +363,9 @@ export async function applyEdits(page: Page, edits: Edit[]): Promise<EditEffect[
       if (field === 'filling') return api.getFilling(name);
       if (field === 'labelVisible') return api.getLabelVisible(name);
       if (field === 'visible') return api.getVisible(name);
-      throw new Error('Unsupported edit field: ' + field);
+      if (field === 'caption') return api.getCaption(name, false);
+      if (field === 'fixed') return api.isFixed(name);
+      throw new Error('Unsupported style field: ' + field);
     };
     const write = (name: string, field: string, value: unknown) => {
       if (field === 'color') {
@@ -375,12 +384,17 @@ export async function applyEdits(page: Page, edits: Edit[]): Promise<EditEffect[
         api.setLabelVisible(name, Boolean(value));
       } else if (field === 'visible') {
         api.setVisible(name, Boolean(value));
-      } else throw new Error('Unsupported edit field: ' + field);
+      } else if (field === 'caption') {
+        api.setCaption(name, String(value));
+        api.setLabelStyle(name, 3);
+      } else if (field === 'fixed') {
+        api.setFixed(name, Boolean(value));
+      } else throw new Error('Unsupported style field: ' + field);
     };
     const effects: EditEffect[] = [];
-    for (const { object, properties } of edits) {
+    for (const { object, properties } of styles) {
       if (!api.getAllObjectNames().includes(object) || !api.isDefined(object)) {
-        throw new Error('Edit target is missing or undefined: ' + object);
+        throw new Error('Style target is missing or undefined: ' + object);
       }
       for (const [field, value] of Object.entries(properties)) {
         const before = read(object, field);
@@ -389,7 +403,57 @@ export async function applyEdits(page: Page, edits: Edit[]): Promise<EditEffect[
       }
     }
     return effects;
-  }, edits);
+  }, styles);
+}
+
+/** Applies presentation edits limited to the edit-mode field set. */
+export async function applyEdits(page: Page, edits: Edit[]): Promise<EditEffect[]> {
+  return await applyStyles(page, edits);
+}
+
+/** Applies declared value or coordinate updates to independent base objects. */
+export async function applyUpdates(
+  page: Page, updates: Update[],
+): Promise<UpdateEffect[]> {
+  return await page.evaluate(updates => {
+    const api = window.ggb;
+    const effects: UpdateEffect[] = [];
+    for (const update of updates) {
+      const name = update.object;
+      if (!api.getAllObjectNames().includes(name) || !api.isDefined(name)) {
+        throw new Error('Update target is missing or undefined: ' + name);
+      }
+      if (!api.isIndependent(name)) {
+        throw new Error('Update target is not independent: ' + name);
+      }
+      if (update.value !== undefined) {
+        if (api.getObjectType(name) !== 'numeric') {
+          throw new Error('Value update needs a numeric object: ' + name);
+        }
+        const before = api.getValue(name);
+        api.setValue(name, update.value);
+        effects.push({
+          object: name, field: 'value', before, after: api.getValue(name),
+        });
+      }
+      if (update.coords !== undefined) {
+        if (api.getObjectType(name) !== 'point' || !api.isMoveable(name)) {
+          throw new Error('Coordinate update needs a movable point: ' + name);
+        }
+        const before = { x: api.getXcoord(name), y: api.getYcoord(name) };
+        api.setCoords(name, update.coords[0], update.coords[1]);
+        effects.push({
+          object: name, field: 'x',
+          before: before.x, after: api.getXcoord(name),
+        });
+        effects.push({
+          object: name, field: 'y',
+          before: before.y, after: api.getYcoord(name),
+        });
+      }
+    }
+    return effects;
+  }, updates);
 }
 
 /** Waits for drawing before real mouse input. */
