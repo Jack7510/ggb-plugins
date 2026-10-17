@@ -218,8 +218,17 @@ export async function snapshot(page: Page) {
       const norm = coefficients ? Math.hypot(coefficients[0]!, coefficients[1]!) * (coefficients[0] === 0 ? Math.sign(coefficients[1]!) : Math.sign(coefficients[0]!)) : 0;
       const line = coefficients && norm ? coefficients.map(n => finite(n / norm)) : null;
       let circle: { x: number; y: number; radius: number } | null = null;
+      // GeoGebra stores a conic as a homogeneous 3x3 matrix
+      // (A0..A5 = a11, a22, a33, a12, a13, a23), so the implicit form
+      // A0x^2 + 2A3xy + A1y^2 + 2A4x + 2A5y + A2 = 0 is available for every
+      // conic, not only for circles.
+      const conic = m && ['conic', 'ellipse', 'hyperbola', 'parabola']
+        .includes(type) ?
+        Array.from({ length: 6 }, (_, i) => Number(m.getAttribute('A' + i))) :
+        null;
       if (type === 'circle' && m) {
-        const a = Array.from({ length: 6 }, (_, i) => Number(m.getAttribute('A' + i)));
+        const a = conic ?? Array.from({ length: 6 },
+          (_, i) => Number(m.getAttribute('A' + i)));
         const x = -a[4]! / a[0]!, y = -a[5]! / a[1]!;
         const radius = api.getValue(`Radius(${name})`);
         if ([x, y, radius].every(Number.isFinite)) circle = { x, y, radius };
@@ -243,6 +252,7 @@ export async function snapshot(page: Page) {
         x: type === 'point' ? finite(api.getXcoord(name)) : null,
         y: type === 'point' ? finite(api.getYcoord(name)) : null,
         value: finite(api.getValue(name)), line, circle,
+        conic: conic?.every(Number.isFinite) ? conic : null,
         color: api.getColor(name), visible: api.getVisible(name), labelVisible: api.getLabelVisible(name), labelStyle: api.getLabelStyle(name),
         lineThickness: api.getLineThickness(name),
         lineStyle: api.getLineStyle(name),

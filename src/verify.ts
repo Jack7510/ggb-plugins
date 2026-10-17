@@ -101,6 +101,26 @@ function styleStatus(fact: Fact, properties: Style): Status {
 }
 
 /** Pure verification: only actual observations and frozen requirements enter this function. */
+/**
+ * First-order distance from a point to the conic `a11x^2 + 2a12xy + a22y^2 +
+ * 2a13x + 2a23y + a33 = 0`. Dividing by the gradient keeps the tolerance
+ * comparable to the other geometric predicates instead of scaling with the
+ * conic coefficients.
+ */
+function conicResidual(x: number, y: number, a: number[]): Status {
+  const [a0, a1, a2, a3, a4, a5] = a as
+    [number, number, number, number, number, number];
+  const value = a0 * x * x + 2 * a3 * x * y + a1 * y * y
+    + 2 * a4 * x + 2 * a5 * y + a2;
+  const gx = 2 * (a0 * x + a3 * y + a4);
+  const gy = 2 * (a3 * x + a1 * y + a5);
+  const gradient = Math.hypot(gx, gy);
+  if (!Number.isFinite(value) || !Number.isFinite(gradient)) return 'unverified';
+  const scale = Math.max(1, Math.hypot(x, y));
+  return gradient === 0 ? numeric(value, scale) :
+    numeric(value / gradient, scale);
+}
+
 export function verify(request: Request, objects: Snapshot, phase: 'initial' | 'sampled', observations: Observation[] = []) {
   const facts = new Map(objects.map(fact => [fact.name, fact]));
   const get = (id: string) => {
@@ -146,10 +166,12 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
     pointOn: c => {
       const p = point(c.subjects[0]!), path = get(c.subjects[1]!);
       if (path.type === 'line') { const [a, b, d] = line(path.name); return numeric(a * p.x + b * p.y + d, Math.max(Math.abs(p.x), Math.abs(p.y), Math.abs(d))); }
-      if (!path.circle) {
-        throw new Error(`Expected a circle or conic: ${path.name} (${path.type})`);
+      if (path.circle) {
+        return numeric(Math.hypot(p.x - path.circle.x,
+          p.y - path.circle.y) - path.circle.radius, path.circle.radius);
       }
-      return numeric(Math.hypot(p.x - path.circle.x, p.y - path.circle.y) - path.circle.radius, path.circle.radius);
+      if (path.conic) return conicResidual(p.x, p.y, path.conic);
+      throw new Error(`Expected a line or conic: ${path.name} (${path.type})`);
     },
     center: c => {
       const target = get(c.subjects[0]!), p = point(c.subjects[1]!);
