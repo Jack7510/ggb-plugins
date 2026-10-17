@@ -71,7 +71,7 @@ inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`byt
 
 - `edits` 每项的 `properties` 只允许 `color`、`lineThickness`、`lineStyle`、`filling`、`labelVisible`、`visible`；同一对象只能出现一次。`filling` 只适用于封闭图形（圆、圆锥曲线、多边形、扇形、弧、不等式区域），`lineThickness`／`lineStyle` 只适用于有轮廓的对象。
 - 编辑请求不含 `program`、`styles`、`view` 与 `interactions`。基线自身带视图，重建或平移视图会破坏“只改声明字段”。
-- 对象名来自文件，可含撇号或下标（如 `A'`、`B_{1}`）；`check` 的 subjects 接受这类名字。含撇号的名称不参与 expression 检查的 token 匹配。
+- 对象名来自文件，可含撇号、下标或非 ASCII 字符（如 `A'`、`B_{1}`、`θ1`）；归档 XML 里的 `&apos;` 等实体在读取时解码。`check` 的 subjects 接受这类名字；它们只作查找键，不参与 expression 检查的 token 匹配。
 - 每个声明的字段都有一条 requirement 检查，`source` 取自本次指令原文。
 
 **门禁**（前四条由工具判定，不能由模型豁免）：

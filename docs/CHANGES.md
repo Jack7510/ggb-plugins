@@ -6,7 +6,7 @@
 
 - `check` 允许原生步骤的 `outputs` 声明 GeoGebra 自动生成、看起来像保留名的实际标签（例如多边形自动边 `i`）；步骤 `id` 仍拒绝保留名。此前多边形等命令无法完整声明自动输出标签。
 
-- 新增已有 GGB 的显示属性编辑：`inspect --ggb` 列出对象清单与摘要，请求用 `base` + `edits` 声明颜色、线宽、线型、填充、可见性与标签可见性。交付额外保存 `base.ggb` 和 `diff.json`；门禁依次检查摘要、归档与脚本、对象可解释、逐字段读回、差异白名单与重载一致，preview 会重载内嵌基线并重算差异；多边形颜色/描边到其边对象的同步作为受控传播计入 `changes`，其它未声明差异仍失败。增删对象、改值、改视图、脚本、自定义工具、图片／按钮／三维材料不在支持范围，见[设计 4.4](ggb-plugins-design.md#44-ggb-属性编辑p0) 与[能力契约](../skills/ggb-construction/references/capabilities.md#编辑已有-ggb-p0)。已用 10 对象与 30 对象基线完成真实浏览器编辑与重载验收。
+- 新增已有 GGB 的显示属性编辑：`inspect --ggb` 列出对象清单与摘要，请求用 `base` + `edits` 声明颜色、线宽、线型、填充、可见性与标签可见性。交付额外保存 `base.ggb` 和 `diff.json`；门禁依次检查摘要、归档与脚本、对象可解释、逐字段读回、差异白名单与重载一致，preview 会重载内嵌基线并重算差异；多边形颜色/描边到其边对象的同步作为受控传播计入 `changes`，其它未声明差异仍失败。增删对象、改值、改视图、脚本、自定义工具、图片／按钮／三维材料不在支持范围，见[设计 4.4](ggb-plugins-design.md#44-ggb-属性编辑p0) 与[能力契约](../skills/ggb-construction/references/capabilities.md#编辑已有-ggb-p0)。已用 10 对象、22 对象（外部 5.4.916.2 文件，含撇号与希腊字母标签）与 30 对象基线完成真实浏览器编辑与重载验收；归档 XML 实体在读取时解码，非 ASCII 标签可直接作为编辑目标。
 
 - 增加无浏览器的请求 check、参数同副本往返核验及预览证据门禁，headless 预览可用 --once 自动收束；真实拖动提前诊断重叠点与同址固定点（`fixed:true`）并保留失败截图。采用 DSH 独立安装包进行主要端到端验收，见 [验证记录](dsh-primary-validation.md) 与 [求解稳定性 pilot](dsh-solve-stability-pilot.md)。
 

@@ -158,13 +158,31 @@ function readXml(entries: Map<string, Buffer>): string {
   return text;
 }
 
+/** XML attribute values arrive entity-escaped in the archive. */
+function decode(value: string): string {
+  return value.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, code: string) => {
+    if (code.startsWith('#')) {
+      const point = code[1] === 'x' || code[1] === 'X'
+        ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+      return Number.isFinite(point) && point > 0 && point <= 0x10ffff
+        ? String.fromCodePoint(point) : match;
+    }
+    const named: Record<string, string> = {
+      amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
+    };
+    return named[code.toLowerCase()] ?? match;
+  });
+}
+
 /** Static prefilter: archive hygiene, scripts, describable objects. */
 export function auditGgb(entries: Map<string, Buffer>): GgbSummary {
   const text = readXml(entries);
   const version = /<geogebra\b[^>]*\bversion="([^"]+)"/.exec(text)?.[1] ?? '';
   const objects = [...text.matchAll(
     /<element\s+type="([^"]+)"\s+label="([^"]+)"/g)]
-    .map(match => ({ name: match[2]!, type: match[1]! }));
+    .map(match => ({
+      name: decode(match[2]!), type: decode(match[1]!),
+    }));
   for (const object of objects) {
     if (opaqueTypes.has(object.type)) {
       throw new ToolError('base_unsupported',

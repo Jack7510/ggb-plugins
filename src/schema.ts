@@ -97,19 +97,21 @@ function text(value: unknown, max = 2048): asserts value is string {
 const labelPattern = /^[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?$/;
 function identifier(value: unknown): asserts value is string {
   assert(typeof value === 'string' && value.length <= 32 && labelPattern.test(value)
-    && !['e', 'i', 'x', 'y', 'z', 'pi'].includes(value) && !value.startsWith('GgbProbe'), 'Invalid or reserved object identifier');
+    && !['e', 'i', 'x', 'y', 'z', 'pi'].includes(value) && !value.startsWith('GgbProbe'),
+  `Invalid or reserved object identifier: ${JSON.stringify(value)}`);
 }
 /** Native outputs are engine labels, so reserved-looking names are allowed. */
 
 function outputIdentifier(value: unknown): asserts value is string {
   assert(typeof value === 'string' && value.length <= 32 && labelPattern.test(value)
-    && !value.startsWith('GgbProbe'), 'Invalid output identifier');
+    && !value.startsWith('GgbProbe'), `Invalid output identifier: ${JSON.stringify(value)}`);
 }
 function finite(value: unknown, max = limits.coordinate): asserts value is number {
   assert(typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= max, 'Invalid finite number');
 }
 function array(value: unknown, min: number, max: number): asserts value is any[] {
-  assert(Array.isArray(value) && value.length >= min && value.length <= max, 'Invalid array length');
+  assert(Array.isArray(value) && value.length >= min && value.length <= max,
+    `Invalid array length: ${Array.isArray(value) ? String(value.length) : 'not an array'} (expected ${String(min)}..${String(max)})`);
 }
 function style(value: unknown) {
   const p = record(value, ['visible', 'labelVisible', 'color', 'lineThickness', 'lineStyle', 'filling', 'caption', 'fixed']);
@@ -162,10 +164,14 @@ function expressionCheck(check: any, requirementId: string, index: number,
     + `must reference every declared subject; missing ${missing.join(', ')}`);
 }
 
-/** Base names come from the file, so they follow GeoGebra label syntax. */
+// Base labels come from the file: they may be non-ASCII (`θ1`), primed
+// (`L_2'`) or subscripted (`B_{1,2}`). They are only used as lookup keys, never
+// spliced into expressions, so this grammar stays permissive on purpose.
+const baseLabelPattern = /^[^\s"<>&\u0000-\u001f]{1,64}$/;
+
+/** Accepts any label an existing file may hold. */
 function baseName(value: unknown): asserts value is string {
-  assert(typeof value === 'string' && value.length > 0 && value.length <= 64
-    && /^[A-Za-z][A-Za-z0-9_']*(?:\{[A-Za-z0-9,]+\})?$/.test(value),
+  assert(typeof value === 'string' && baseLabelPattern.test(value),
     'Invalid base object name');
 }
 
@@ -193,10 +199,9 @@ function editStyle(value: unknown) {
   }
 }
 
-/** Check subjects may also be base labels such as `A'` or `B_{1}`. */
+/** Check subjects may also be base labels such as `A'`, `θ1` or `B_{1}`. */
 function subject(value: unknown): asserts value is string {
-  if (typeof value === 'string' && value.length <= 64
-    && /^[A-Za-z][A-Za-z0-9_']*(?:\{[A-Za-z0-9,]+\})?$/.test(value)) return;
+  if (typeof value === 'string' && baseLabelPattern.test(value)) return;
   identifier(value);
 }
 
