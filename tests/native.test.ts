@@ -98,7 +98,27 @@ test('native failures and unresolved probes never commit delivery', { timeout: 1
       await assert.rejects(build(input), (error: any) => {
         assert.equal(error.code, 'execution_failed');
         assert.match(String(error.message), /actual labels: other/);
-        assert.match(String(error.message), /missing: factored/);
+        assert.match(String(error.message), /missing: factored \(not created\)/);
+        return true;
+      });
+    });
+    await t.test('undefined outputs say so instead of missing', async () => {
+      const input = await fixture('algebra');
+      input.outputDir = join(directory, 'undefined-output');
+      input.plan.program = [
+        { id: 'c1', op: 'native', mode: 'algebra', source: 'c1: x^2+y^2=1' },
+        { id: 'c2', op: 'native', mode: 'algebra',
+          source: 'c2: (x-5)^2+y^2=1' },
+        // Disjoint circles: the intersection label is created without a value.
+        { id: 'hit', op: 'native', mode: 'algebra',
+          source: 'hit=Intersect(c1,c2)', outputs: ['hit'] },
+      ];
+      input.plan.interactions = [];
+      input.plan.requirements = [{ id: 'hit', source: input.prompt,
+        checks: [{ kind: 'exists', subjects: ['hit'], scope: 'initial' }] }];
+      await assert.rejects(build(input), (error: any) => {
+        assert.equal(error.code, 'execution_failed');
+        assert.match(String(error.message), /missing: hit \(undefined\)/);
         return true;
       });
     });
