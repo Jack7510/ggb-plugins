@@ -27,7 +27,7 @@ export const predicates: Record<string, { types: string[]; extra?: string; varia
   type: { types: ['any'], extra: 'objectType' },
   coordinate: { types: ['point'], extra: 'coordinates' },
   midpoint: { types: ['point', 'point', 'point'] },
-  pointOn: { types: ['point', 'line|circle'] },
+  pointOn: { types: ['point', 'line|circle|conic|ellipse|hyperbola|parabola'] },
   center: { types: ['circle', 'point'] },
   radius: { types: ['circle'], extra: 'value' },
   parallel: { types: ['line', 'line'] },
@@ -165,7 +165,8 @@ function expressionCheck(check: any, requirementId: string, index: number,
       return;
     }
     assert(typeof value === 'boolean' || typeof value === 'number',
-      'Expected boolean, number or nested list');
+      'Expected boolean, number or nested list, got '
+      + `${String(JSON.stringify(value) ?? value).slice(0, 80)}`);
     if (typeof value === 'number') finite(value, Number.MAX_VALUE);
   };
   expected(check.expected);
@@ -369,7 +370,12 @@ export function parseRequest(value: unknown): Request {
       assert(['initial', 'sampled'].includes(c.scope), 'Check scope must be initial or sampled');
       if (c.kind === 'expression') {
         expressionCheck(c, r.id, r.checks.indexOf(input), sources);
-      } else for (const key of ['expression', 'expected', 'mode', 'assumptions']) assert(!(key in c), 'Unexpected expression field');
+      } else {
+        const stray = ['expression', 'expected', 'mode', 'assumptions']
+          .filter(key => key in c);
+        assert(stray.length === 0,
+          `Unexpected expression field in ${c.kind}: ${stray.join(', ')}`);
+      }
       for (const key of ['value', 'coordinates', 'properties', 'objectType']) assert((key in c) === (spec.extra === key), `Unexpected or missing ${key}`);
       if (spec.extra === 'value') { finite(c.value); assert(c.value >= 0); }
       if (spec.extra === 'coordinates') { array(c.coordinates, 2, 2); c.coordinates.forEach((n: unknown) => finite(n)); }

@@ -71,6 +71,51 @@ test('subject-count errors name the requirement and the predicate', () => {
     /Check ".*" midpoint: expected 3 subjects, got 2/);
 });
 
+test('pointOn verifies conics through their implicit equation', () => {
+  // x^2/9 + y^2/5 = 1 stored as the homogeneous matrix scaled by 8.
+  const conic = [8 / 9, 8 / 5, -8, 0, 0, 0];
+  const facts = [
+    { name: 'P', type: 'point', defined: true, independent: true,
+      x: 0, y: Math.sqrt(5), value: null, line: null, circle: null,
+      conic: null, inputs: [] },
+    { name: 'Q', type: 'point', defined: true, independent: true,
+      x: 1, y: 1, value: null, line: null, circle: null, conic: null,
+      inputs: [] },
+    { name: 'el', type: 'ellipse', defined: true, independent: false,
+      x: null, y: null, value: null, line: null, circle: null, conic,
+      inputs: [] },
+  ] as unknown as Snapshot;
+  const request = {
+    protocolVersion: 2, prompt: 'x', locale: 'zh', outputDir: 'x',
+    plan: { program: [], interactions: [], requirements: [
+      { id: 'on', source: 'x', checks: [
+        { kind: 'pointOn', subjects: ['P', 'el'], scope: 'initial' }] },
+      { id: 'off', source: 'x', checks: [
+        { kind: 'pointOn', subjects: ['Q', 'el'], scope: 'initial' }] },
+    ] },
+  } as unknown as Request;
+  const status = new Map(verify(request, facts, 'initial').results
+    .map(result => [result.checkId, result.status]));
+  assert.equal(status.get('on:0'), 'passed');
+  assert.equal(status.get('off:0'), 'failed');
+});
+
+test('stray expression fields and bad expected values are named', () => {
+  const stray = structuredClone(fixture);
+  stray.plan.requirements[0].checks[0] = {
+    kind: 'exists', subjects: ['A'], scope: 'initial', expected: 1,
+  };
+  assert.throws(() => parseRequest(stray),
+    /Unexpected expression field in exists: expected/);
+  const bad = structuredClone(fixture);
+  bad.plan.requirements[0].checks[0] = {
+    kind: 'expression', subjects: ['A'], scope: 'initial',
+    expression: 'x(A)', mode: 'algebra', expected: 'x',
+  };
+  assert.throws(() => parseRequest(bad),
+    /Expected boolean, number or nested list, got "x"/);
+});
+
 test('predicate errors name the expected type and the actual one', () => {
   const facts = [
     { name: 'A', type: 'point', defined: true, independent: true, moveable: true,
@@ -95,7 +140,7 @@ test('predicate errors name the expected type and the actual one', () => {
   const result = verify(request, facts, 'initial');
   const messages = JSON.stringify(result.results);
   assert.match(messages, /Expected a line: s \(segment\)/);
-  assert.match(messages, /Expected a circle or conic: s \(segment\)/);
+  assert.match(messages, /Expected a line or conic: s \(segment\)/);
 });
 
 test('filling accepts fractions and rejects out-of-range values', () => {

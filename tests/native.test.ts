@@ -76,6 +76,39 @@ test('M5 uses the same delivery pipeline for conics, CAS, M1 and an independent 
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
+test('pointOn verifies a point on an ellipse in the real engine',
+  { timeout: 60_000 }, async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'ggb-conic-pointon-'));
+    try {
+      const request: any = {
+        protocolVersion: 2, prompt: '椭圆 x^2/9 + y^2/5 = 1 上取一点 P。',
+        locale: 'zh-CN', outputDir: join(directory, 'on'),
+        plan: {
+          program: [
+            { id: 'el', op: 'native', mode: 'algebra',
+              source: 'el: x^2/9 + y^2/5 = 1' },
+            { id: 'P', op: 'native', mode: 'algebra', source: 'P=(0,sqrt(5))' },
+          ],
+          requirements: [{ id: 'on', source: '上取一点 P', checks: [
+            { kind: 'pointOn', subjects: ['P', 'el'], scope: 'initial' }] }],
+          interactions: [],
+        },
+      };
+      const result = await build(request);
+      const report = JSON.parse(await readFile(result.report, 'utf8'));
+      assert.equal(report.construction.status, 'passed');
+      const off = structuredClone(request);
+      off.outputDir = join(directory, 'off');
+      off.plan.program[1] = {
+        id: 'P', op: 'native', mode: 'algebra', source: 'P=(1,1)',
+      };
+      await assert.rejects(build(off),
+        (error: any) => error.code === 'verification_failed');
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
 test('native failures and unresolved probes never commit delivery', { timeout: 120_000 }, async t => {
   const directory = await mkdtemp(join(tmpdir(), 'ggb-native-failure-'));
   try {
