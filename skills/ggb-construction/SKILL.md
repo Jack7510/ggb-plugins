@@ -32,6 +32,7 @@ description: 分析中英文文字或图片中的二维数学与代数题，生�
 - 拖动初态避开与其它可见点同址，包括可移动点和 `fixed:true` 的固定点。工具报告歧义目标时，按证据调整自行选择的初态或相关样本；不能把鼠标拖动改成坐标赋值后宣称通过。
 - 数学关系用原生 expression 检查：布尔期望 true/false，数值或 CAS 恒等差期望具体数值；列表／矩阵用嵌套 expected。比较直接用表达式（`a-b>=0` 配 expected true），不包 `if`；垂直用 `ArePerpendicular`；圆半径用 `radius` 谓词或两点距离。CAS 假设必须来自原文，并在 assumptions 中显式声明。检查必须引用相关实际对象，不能用常量、自我复述或只看截图代替条件核验。
 - 期望值先算后写：坐标、距离、面积、角度等 `expected` 要按题目条件和本次构造独立算出再写进请求，不从 `build` 的失败证据或上一轮观测里抄数值——抄观测会让检查变成自复述。观测与推导不一致时，先按证据判断是构造错了还是算错了，再落笔。
+- 由构造命令直接保证的关系（路径点→`pointOn`、`Midpoint`→`midpoint`、`Circle` 圆心→`center`、`Line`／`ParallelLine`→`parallel`、`OrthogonalLine`→`perpendicular`、`Intersect`→`pointOn`）只是引擎核对，不能算题设条件的证据；`check` 会用 `warnings` 提示。题设条件要另加独立关系，例如椭圆的 `Distance(P,F1)+Distance(P,F2)=2a`。
 - 明确初始范围、定义域、条件解和有限样本。纯代数使用 display:algebra，可无自由点及交互；几何按需声明真实拖动样本，滑块用 parameter/value 采样；报告区分原生参数设置和鼠标拖动。超出实际核验范围的必需要求不能删除后宣称通过。
 
 ## 编辑已有 GGB

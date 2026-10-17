@@ -6,6 +6,7 @@ import { ToolError, parseRequest, type Request } from './schema.js';
 import { compile } from './compile.js';
 import { inspectGgb, loadBase } from './inspect.js';
 import { validateTargets } from './edit.js';
+import { tautologies } from './tautology.js';
 import { validateModifyStyles } from './modify.js';
 import { root } from './server.js';
 import { doctor } from './doctor.js';
@@ -76,11 +77,14 @@ try {
 async function checkRequest(request: Request) {
   if (!request.base) {
     compile(request);
+    const warnings = tautologies(request.plan.program,
+      request.plan.requirements);
     return {
       validation: 'structural', mode: 'create',
       programSteps: request.plan.program.length,
       requirements: request.plan.requirements.length,
       samples: request.plan.interactions.length,
+      ...(warnings.length ? { warnings } : {}),
     };
   }
   const { archive, summary } = await loadBase(request.base);

@@ -4,6 +4,7 @@
 
 ## 未发布
 
+- `check` 与构造交付报告新增同义反复提示：路径点、`Midpoint`、`Circle` 圆心、`Line`／`ParallelLine`、`OrthogonalLine`／`PerpendicularLine`、`Intersect` 已经保证的关系再写成 `pointOn`／`midpoint`／`center`／`parallel`／`perpendicular` 只核对引擎行为，不能算题设条件的证据；这类检查以 `warnings`（`check`）与 `tautology`（报告）列出，不改变通过状态。Skill 与能力契约要求另加独立关系检查。
 - `pointOn` 支持圆锥曲线（椭圆、双曲线、抛物线）：从归档的齐次矩阵取隐式方程，按点到曲线的距离核验；此前只支持直线与圆，椭圆上取点只能用参数表达式绕开。另把「非 expression 检查出现 expression 字段」和「expected 类型错误」的报错改成点名具体字段与实际值。
 - Skill 与能力契约增加期望值规则：坐标、距离、面积、角度等 `expected` 必须按题目条件独立算出，不从失败证据、`inspect` 结果或上一轮观测里抄数值；失败后只改证据指出的那一项。评测中「将军饮马」连续三次构建都因自选期望值出错而耗尽构建次数。
 - 执行失败区分「引擎未创建该标签」与「标签已创建但未定义」：`Execution failed or output undefined: hit; actual labels: ...; missing: hit (undefined)`，不再把未定义的几何结果（如不相交的圆求交点）笼统报成缺失。
