@@ -1,4 +1,6 @@
+/** @fileoverview Request envelope validation and shared vocabulary. */
 import assert from 'node:assert/strict';
+import { isAbsolute } from 'node:path';
 
 export class ToolError extends Error {
   constructor(public code: string, message: string, public details?: unknown) { super(message); }
@@ -63,11 +65,19 @@ export type Interaction = { point: string; dx: number; dy: number } | { paramete
 export type Step = { id: string; op: 'freePoint'; x: number; y: number } | { id: string; op: 'command'; name: string; args: Argument[] }
   | { id: string; op: 'native'; source: string; mode: 'algebra' | 'cas'; outputs?: string[]; initial?: [number, number] };
 export interface Check { kind: string; subjects: string[]; scope: 'initial' | 'sampled'; coordinates?: [number, number]; value?: number; properties?: Style; objectType?: string; expression?: string; mode?: 'algebra' | 'cas'; expected?: MathValue; assumptions?: string[]; }
+/** P0 edits change presentation only; structure and values stay untouched. */
+export type EditStyle = {
+  color?: string; lineThickness?: number; lineStyle?: number;
+  filling?: number; labelVisible?: boolean; visible?: boolean;
+};
+export interface Edit { object: string; properties: EditStyle }
 export interface Request {
   protocolVersion: 2; prompt: string; locale: string; outputDir: string;
+  base?: { path: string; sha256: string };
   clarifications?: { question: string; answer: string }[];
   plan: {
     program: Step[];
+    edits?: Edit[];
     requirements: { id: string; source: string; checks: Check[] }[];
     styles?: { object: string; properties: Style }[];
     interactions: Interaction[];
@@ -145,11 +155,60 @@ function expressionCheck(check: any, requirementId: string, index: number,
     + `must reference every declared subject; missing ${missing.join(', ')}`);
 }
 
+/** Base names come from the file, so they follow GeoGebra label syntax. */
+function baseName(value: unknown): asserts value is string {
+  assert(typeof value === 'string' && value.length > 0 && value.length <= 64
+    && /^[A-Za-z][A-Za-z0-9_']*(?:\{[A-Za-z0-9,]+\})?$/.test(value),
+    'Invalid base object name');
+}
+
+function editStyle(value: unknown) {
+  const p = record(value, ['color', 'lineThickness', 'lineStyle', 'filling',
+    'labelVisible', 'visible']);
+  assert(Object.keys(p).length > 0, 'Empty edit');
+  if ('color' in p) {
+    assert(typeof p.color === 'string' && /^#[0-9a-f]{6}$/i.test(p.color),
+      'Invalid color');
+  }
+  for (const key of ['labelVisible', 'visible']) {
+    if (key in p) assert(typeof p[key] === 'boolean', 'Invalid flag');
+  }
+  for (const [key, min, max] of [['lineThickness', 1, 13],
+    ['lineStyle', 0, 4]] as const) {
+    if (key in p) {
+      assert(Number.isInteger(p[key]) && p[key] >= min && p[key] <= max,
+        `Invalid ${key}`);
+    }
+  }
+  if ('filling' in p) {
+    assert(typeof p.filling === 'number' && Number.isFinite(p.filling)
+      && p.filling >= 0 && p.filling <= 1, 'Invalid filling');
+  }
+}
+
+/** Check subjects may also be base labels such as `A'` or `B_{1}`. */
+function subject(value: unknown): asserts value is string {
+  if (typeof value === 'string' && value.length <= 64
+    && /^[A-Za-z][A-Za-z0-9_']*(?:\{[A-Za-z0-9,]+\})?$/.test(value)) return;
+  identifier(value);
+}
+
+function baseInput(value: unknown): { path: string; sha256: string } {
+  const base = record(value, ['path', 'sha256']);
+  text(base.path, 4096);
+  assert(isAbsolute(base.path), 'Base path must be absolute');
+  assert(typeof base.sha256 === 'string' && /^[a-f0-9]{64}$/.test(base.sha256),
+    'Invalid base sha256');
+  return { path: base.path, sha256: base.sha256 };
+}
+
 /** Validate the complete envelope before starting any browser or writing output. */
 export function parseRequest(value: unknown): Request {
-  const r = record(value, ['protocolVersion', 'prompt', 'locale', 'outputDir', 'clarifications', 'plan']);
+  const r = record(value, ['protocolVersion', 'prompt', 'locale', 'outputDir',
+    'clarifications', 'plan', 'base']);
   assert.equal(r.protocolVersion, 2, 'Unsupported request protocol; regenerate with protocolVersion 2');
   text(r.prompt, limits.promptChars); text(r.locale, 32); text(r.outputDir);
+  const base = 'base' in r ? baseInput(r.base) : undefined;
   const sources = [r.prompt];
   if ('clarifications' in r) {
     array(r.clarifications, 0, 20);
@@ -158,10 +217,30 @@ export function parseRequest(value: unknown): Request {
       sources.push(c.question, c.answer);
     }
   }
-  const p = record(r.plan, ['program', 'requirements', 'styles', 'interactions', 'view', 'display']);
+  const p = record(r.plan, ['program', 'requirements', 'styles', 'interactions',
+    'view', 'display', 'edits']);
   if ('display' in p) assert(['graphics', 'algebra'].includes(p.display), 'Invalid display');
-  array(p.program, 1, limits.steps);
-  for (const input of p.program) {
+  if (base) {
+    // A base and a program are two different modes; mixing them would let a
+    // request rebuild the figure while claiming to edit it.
+    assert(!('program' in p) || p.program.length === 0,
+      'An edit request declares edits, not a program');
+    assert(!('styles' in p), 'Express edit presentation through edits');
+    assert(!('view' in p), 'The base keeps its own view; view edits are unsupported');
+    array(p.edits, 1, limits.steps);
+    const targets = new Set<string>();
+    for (const input of p.edits) {
+      const edit = record(input, ['object', 'properties']);
+      baseName(edit.object);
+      assert(!targets.has(edit.object), 'Duplicate edit target');
+      targets.add(edit.object);
+      editStyle(edit.properties);
+    }
+  } else {
+    assert(!('edits' in p), 'A creation request declares a program, not edits');
+    array(p.program, 1, limits.steps);
+  }
+  for (const input of p.program ?? []) {
     const s = record(input, input?.op === 'native' ? ['id', 'op', 'source', 'mode', 'outputs', 'initial'] : input?.op === 'freePoint' ? ['id', 'op', 'x', 'y'] : ['id', 'op', 'name', 'args']);
     identifier(s.id);
     assert(!reservedNames.has(s.id), `Reserved GeoGebra name: ${s.id}; rename the object`);
@@ -202,7 +281,7 @@ export function parseRequest(value: unknown): Request {
       if (typeof c.kind !== 'string' || !Object.hasOwn(predicates, c.kind)) throw new ToolError('unsupported_operation', 'Unsupported verification method');
       const spec = predicates[c.kind]!;
       array(c.subjects, spec.types.length, spec.variadic ? 16 : spec.types.length);
-      c.subjects.forEach(identifier);
+      c.subjects.forEach(subject);
       assert(['initial', 'sampled'].includes(c.scope), 'Check scope must be initial or sampled');
       if (c.kind === 'expression') {
         expressionCheck(c, r.id, r.checks.indexOf(input), sources);
@@ -225,6 +304,8 @@ export function parseRequest(value: unknown): Request {
     }
   }
   array(p.interactions, 0, limits.samples);
+  assert(!base || p.interactions.length === 0,
+    'Edit requests take no interaction samples yet');
   const points = new Set<string>();
   for (const input of p.interactions) {
     const sample = record(input, input && 'parameter' in input ? ['parameter', 'value'] : ['point', 'dx', 'dy']);
@@ -240,7 +321,11 @@ export function parseRequest(value: unknown): Request {
     for (const key of ['xMin', 'xMax', 'yMin', 'yMax']) finite(v[key], limits.coordinate * 2);
     assert(v.xMax > v.xMin && v.yMax > v.yMin, 'Invalid view bounds');
   }
-  return structuredClone(value) as Request;
+  // Creation requests always carry a list; edit requests carry none.
+  const request = structuredClone(value) as Request;
+  request.plan.program = request.plan.program ?? [];
+  if (base) request.base = base;
+  return request;
 }
 
 // Mathematical syntax belongs to GeoGebra. This scan only restricts host/script

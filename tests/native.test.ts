@@ -9,7 +9,7 @@ import { parseRequest } from '../src/schema.js';
 import { compile } from '../src/compile.js';
 
 const fixture = async (name: string) => {
-  const directory = name === 'algebra' ? 'tests/fixtures' : 'examples';
+  const directory = name === 'algebra' ? 'tests/fixtures' : 'examples/v2-cases';
   return JSON.parse(await readFile(join(root, directory, `${name}.json`), 'utf8'));
 };
 

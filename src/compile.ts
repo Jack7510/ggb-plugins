@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import { commands, predicates, type Request, type Step } from './schema.js';
+import { commands, predicates, type Edit, type Request, type Step } from './schema.js';
 
 export interface Compiled {
+  mode: 'create' | 'edit'; edits: Edit[];
   program: { step: Step; type: string; command: string; mode: 'algebra' | 'cas'; outputs: string[]; initial?: [number, number] }[];
   view: Request['plan']['view']; styles: NonNullable<Request['plan']['styles']>;
   native: boolean; display: 'graphics' | 'algebra';
@@ -23,6 +24,16 @@ function numberLiteral(value: number): string {
 }
 
 export function compile(request: Request): Compiled {
+  if (request.base) {
+    const edits = request.plan.edits ?? [];
+    assert(edits.length > 0, 'An edit request needs at least one edit');
+    assert(request.plan.interactions.length === 0,
+      'Edit requests take no interaction samples yet');
+    return {
+      mode: 'edit', edits, program: [], view: undefined, styles: [],
+      native: true, display: request.plan.display ?? 'graphics',
+    };
+  }
   if (request.plan.program.some(step => step.op === 'native')) {
     if (request.plan.display === 'algebra') assert(request.plan.interactions.every(sample => 'parameter' in sample), 'Algebra-only view cannot provide canvas drag evidence');
     const program = request.plan.program.map(step => {
@@ -38,7 +49,7 @@ export function compile(request: Request): Compiled {
     for (const requirement of request.plan.requirements) for (const check of requirement.checks) {
       if (check.scope === 'sampled') assert(request.plan.interactions.length > 0, 'Sampled checks need interaction evidence');
     }
-    return { program, view: request.plan.view, styles: request.plan.styles ?? [], native: true, display: request.plan.display ?? 'graphics' };
+    return { mode: 'create', edits: [], program, view: request.plan.view, styles: request.plan.styles ?? [], native: true, display: request.plan.display ?? 'graphics' };
   }
   const byId = new Map(request.plan.program.map(step => [step.id, step]));
   assert.equal(byId.size, request.plan.program.length, 'Duplicate object ID');
@@ -99,5 +110,5 @@ export function compile(request: Request): Compiled {
   });
   const points = ordered.filter(step => step.op === 'freePoint');
   assert(points.length > 0, 'A construction needs free points');
-  return { program, view: request.plan.view, styles: request.plan.styles ?? [], native: false, display: request.plan.display ?? 'graphics' };
+  return { mode: 'create', edits: [], program, view: request.plan.view, styles: request.plan.styles ?? [], native: false, display: request.plan.display ?? 'graphics' };
 }

@@ -21,6 +21,9 @@ const mathStatus = (actual: MathValue | null | undefined, expected: MathValue): 
 };
 
 export function definition(fact: Fact) {
+  // An undefined object has no definition to compare; its `defined` flag is
+  // itself part of the facts.
+  if (!fact.defined) return null;
   // These objects already have complete numeric facts, compared with tolerance.
   // Other independent objects still need their native mathematical definition.
   if (fact.independent && ((fact.type === 'point' && fact.x !== null && fact.y !== null)
@@ -167,7 +170,11 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
     catch (error) { status = 'unverified'; evidence = { message: error instanceof Error ? error.message : String(error) }; }
     results.push({ requirementId, checkId: `${requirementId}:${index}`, subjects, method, scope, status, evidence });
   };
-  add('$canvas', 0, objects.map(o => o.name), 'objects_defined', () => truth(objects.length > 0 && objects.every(o => o.defined && (o.type !== 'numeric' || o.value !== null))));
+  // A base may legitimately hold undefined objects. Their survival is enforced
+  // by the edit's preservation gate instead of requiring every object to resolve.
+  add('$canvas', 0, objects.map(o => o.name), 'objects_defined', () => truth(
+    objects.length > 0 && (request.base ? true : objects.every(o =>
+      o.defined && (o.type !== 'numeric' || o.value !== null)))));
   for (const step of request.plan.program) {
     const outputs = step.op === 'native' ? step.outputs ?? [step.id] : [step.id];
     add('$program:' + step.id, 0, outputs, 'construction', () => {

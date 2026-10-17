@@ -7,7 +7,8 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { resolve } from 'node:path';
 import { root, serve } from './server.js';
-import { limits, ToolError, toolError, type Request, type MathValue, type Interaction } from './schema.js';
+import type { EditEffect } from './edit.js';
+import { limits, ToolError, toolError, type Edit, type Request, type MathValue, type Interaction } from './schema.js';
 
 export async function openDefaultBrowser(url: string, signal?: AbortSignal) {
   const command = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'rundll32.exe' : 'xdg-open';
@@ -332,6 +333,53 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
       window.ggb.setCoordSystem(x - width / 2, x + width / 2, y - height / 2, y + height / 2);
     }, box);
   }
+}
+
+/** Applies declared presentation edits and reports the observed values. */
+export async function applyEdits(page: Page, edits: Edit[]): Promise<EditEffect[]> {
+  return await page.evaluate(edits => {
+    const api = window.ggb;
+    const read = (name: string, field: string): unknown => {
+      if (field === 'color') return api.getColor(name);
+      if (field === 'lineThickness') return api.getLineThickness(name);
+      if (field === 'lineStyle') return api.getLineStyle(name);
+      if (field === 'filling') return api.getFilling(name);
+      if (field === 'labelVisible') return api.getLabelVisible(name);
+      if (field === 'visible') return api.getVisible(name);
+      throw new Error('Unsupported edit field: ' + field);
+    };
+    const write = (name: string, field: string, value: unknown) => {
+      if (field === 'color') {
+        const hex = String(value).replace('#', '');
+        const channels = [0, 2, 4].map(
+          offset => parseInt(hex.slice(offset, offset + 2), 16)) as
+          [number, number, number];
+        api.setColor(name, ...channels);
+      } else if (field === 'lineThickness') {
+        api.setLineThickness(name, Number(value));
+      } else if (field === 'lineStyle') {
+        api.setLineStyle(name, Number(value));
+      } else if (field === 'filling') {
+        api.setFilling(name, Number(value));
+      } else if (field === 'labelVisible') {
+        api.setLabelVisible(name, Boolean(value));
+      } else if (field === 'visible') {
+        api.setVisible(name, Boolean(value));
+      } else throw new Error('Unsupported edit field: ' + field);
+    };
+    const effects: EditEffect[] = [];
+    for (const { object, properties } of edits) {
+      if (!api.getAllObjectNames().includes(object) || !api.isDefined(object)) {
+        throw new Error('Edit target is missing or undefined: ' + object);
+      }
+      for (const [field, value] of Object.entries(properties)) {
+        const before = read(object, field);
+        write(object, field, value);
+        effects.push({ object, field, before, after: read(object, field) });
+      }
+    }
+    return effects;
+  }, edits);
 }
 
 /** Waits for drawing before real mouse input. */
