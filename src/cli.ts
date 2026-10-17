@@ -6,6 +6,7 @@ import { ToolError, parseRequest, type Request } from './schema.js';
 import { compile } from './compile.js';
 import { inspectGgb, loadBase } from './inspect.js';
 import { validateTargets } from './edit.js';
+import { validateModifyStyles } from './modify.js';
 import { root } from './server.js';
 import { doctor } from './doctor.js';
 
@@ -37,7 +38,6 @@ try {
   } else if (command === 'check' && values.request &&
     !values.delivery && !values.output) {
     const request = parseRequest(await readJson(resolve(values.request)));
-    compile(request);
     emit(await checkRequest(request));
   } else if (command === 'build' && values.request && !values.delivery && !values.output) {
     emit(await build(await readJson(resolve(values.request)), cancellation.signal));
@@ -72,25 +72,37 @@ try {
   process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop);
 }
 
-/** Static preflight: program shape, or base digest plus editable targets. */
+/** Static preflight: program shape, or base digest plus declared changes. */
 async function checkRequest(request: Request) {
   if (!request.base) {
+    compile(request);
     return {
-      validation: 'structural', programSteps: request.plan.program.length,
+      validation: 'structural', mode: 'create',
+      programSteps: request.plan.program.length,
       requirements: request.plan.requirements.length,
       samples: request.plan.interactions.length,
     };
   }
   const { archive, summary } = await loadBase(request.base);
-  validateTargets(request.plan.edits ?? [],
-    new Map(summary.objects.map(object => [object.name, object.type])));
+  const labels = new Set(summary.objects.map(object => object.name));
+  const types = new Map(summary.objects.map(object => [object.name, object.type]));
+  const compiled = compile(request, { labels, types });
+  if (compiled.mode === 'edit') {
+    validateTargets(compiled.edits, types);
+  } else {
+    validateModifyStyles(compiled.styles, labels);
+  }
   return {
     validation: 'structural',
+    mode: compiled.mode,
     base: {
       sha256: archive.sha256, bytes: archive.bytes.length,
       version: summary.version, objects: summary.objects.length,
     },
-    edits: (request.plan.edits ?? []).length,
+    programSteps: compiled.program.length,
+    edits: compiled.edits.length,
+    updates: compiled.updates.length,
+    styles: compiled.styles.length,
     requirements: request.plan.requirements.length, samples: 0,
   };
 }

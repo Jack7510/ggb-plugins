@@ -47,7 +47,7 @@ node <installed-plugin>/dist/src/cli.js build --request /absolute/request.json
 node <installed-plugin>/dist/src/cli.js preview --delivery /absolute/delivery
 ```
 
-已有 GGB 需要改颜色、线型、填充或可见性时，在请求中声明 `base`；`inspect` 列出对象清单与请求必须写入的摘要。请求编写方式见 [Skill 能力契约](skills/ggb-construction/references/capabilities.md)。自动复核预览加 `--headless`。预览需要持续运行的调用方保留进程；一次性宿主退出后，窗口不保证继续可用。
+已有 GGB 需要改颜色、线型、填充、可见性，或继续构造（增加对象、修改独立数值或坐标）时，在请求中声明 `base`；`inspect` 列出对象清单、当前值与请求必须写入的摘要。删除、重命名和视图修改不支持。请求编写方式见 [Skill 能力契约](skills/ggb-construction/references/capabilities.md)。自动复核预览加 `--headless`。预览需要持续运行的调用方保留进程；一次性宿主退出后，窗口不保证继续可用。
 
 保持预览进程，按 Ctrl+C 可结束会话。浏览器选择和关页退出行为以所用版本为准，发布版本与未发布预览改动的区别只在 [修改记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)维护。
 
