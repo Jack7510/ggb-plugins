@@ -79,8 +79,8 @@ async function describePlugin(loaded) {
     }
   };
   const files = {};
-  for (const name of ['package.json', 'dist/src/delivery.js',
-    'skills/ggb-construction/SKILL.md',
+  for (const name of ['package.json', 'capabilities.json', 'dist/src/delivery.js',
+    'skills/ggb-construction/SKILL.md', 'skills/ggb-construction/worker.md',
     'skills/ggb-construction/references/capabilities.md']) {
     files[name] = { installed: await digest(join(installed, name)),
       workspace: await digest(join(root, name)) };

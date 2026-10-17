@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "toolVersion": "0.8.0",
+  "requestProtocolVersion": 2,
+  "workerProfileVersion": "plugin-core-v1",
+  "workerSkillSha256": "a6803e3a6e8adb4f898e055272ccaa6cf5dcde1b412418812466cc4d417e5e5a",
+  "modelFacingTools": [
+    "ggb_inspect",
+    "ggb_check",
+    "ggb_build"
+  ],
+  "limits": {
+    "requestBytes": 131072,
+    "reportBytes": 16777216,
+    "promptChars": 12000,
+    "steps": 64,
+    "requirements": 64,
+    "checks": 256,
+    "samples": 12,
+    "coordinate": 10000,
+    "ggbBytes": 10485760,
+    "operationMs": 30000,
+    "buildMs": 120000,
+    "doctorMs": 45000
+  },
+  "commands": {
+    "Segment": {
+      "signatures": [
+        [
+          "point",
+          "point"
+        ]
+      ],
+      "output": "segment"
+    },
+    "Line": {
+      "signatures": [
+        [
+          "point",
+          "point"
+        ],
+        [
+          "point",
+          "line"
+        ]
+      ],
+      "output": "line"
+    },
+    "Midpoint": {
+      "signatures": [
+        [
+          "point",
+          "point"
+        ]
+      ],
+      "output": "point"
+    },
+    "PerpendicularLine": {
+      "signatures": [
+        [
+          "point",
+          "line"
+        ]
+      ],
+      "output": "line",
+      "native": "OrthogonalLine"
+    },
+    "Intersect": {
+      "signatures": [
+        [
+          "line",
+          "line"
+        ]
+      ],
+      "output": "point"
+    },
+    "Circle": {
+      "signatures": [
+        [
+          "point",
+          "point"
+        ],
+        [
+          "point",
+          "number"
+        ]
+      ],
+      "output": "circle"
+    },
+    "Polygon": {
+      "signatures": [
+        [
+          "point",
+          "point",
+          "point"
+        ]
+      ],
+      "output": "polygon",
+      "variadic": true
+    }
+  },
+  "predicates": {
+    "expression": {
+      "types": [
+        "any"
+      ],
+      "variadic": true
+    },
+    "exists": {
+      "types": [
+        "any"
+      ]
+    },
+    "type": {
+      "types": [
+        "any"
+      ],
+      "extra": "objectType"
+    },
+    "coordinate": {
+      "types": [
+        "point"
+      ],
+      "extra": "coordinates"
+    },
+    "midpoint": {
+      "types": [
+        "point",
+        "point",
+        "point"
+      ]
+    },
+    "pointOn": {
+      "types": [
+        "point",
+        "line|circle|conic|ellipse|hyperbola|parabola"
+      ]
+    },
+    "center": {
+      "types": [
+        "circle",
+        "point"
+      ]
+    },
+    "radius": {
+      "types": [
+        "circle"
+      ],
+      "extra": "value"
+    },
+    "parallel": {
+      "types": [
+        "line",
+        "line"
+      ]
+    },
+    "perpendicular": {
+      "types": [
+        "line",
+        "line"
+      ]
+    },
+    "equalLength": {
+      "types": [
+        "segment",
+        "segment"
+      ]
+    },
+    "distance": {
+      "types": [
+        "point",
+        "point"
+      ],
+      "extra": "value"
+    },
+    "nonCollinear": {
+      "types": [
+        "point",
+        "point",
+        "point"
+      ]
+    },
+    "dependsOn": {
+      "types": [
+        "any",
+        "any"
+      ],
+      "variadic": true
+    },
+    "style": {
+      "types": [
+        "any"
+      ],
+      "extra": "properties"
+    }
+  }
+}
