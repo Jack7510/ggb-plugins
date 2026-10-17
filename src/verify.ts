@@ -109,12 +109,19 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
     return fact;
   };
   const point = (id: string) => {
-    const p = get(id); if (p.type !== 'point' || p.x === null || p.y === null || !Number.isFinite(p.x) || !Number.isFinite(p.y)) throw new Error(`Missing point coordinates: ${id}`);
+    const p = get(id);
+    if (p.type !== 'point' || p.x === null || p.y === null ||
+      !Number.isFinite(p.x) || !Number.isFinite(p.y)) {
+      throw new Error(`Expected a point: ${id} (${p.type})`);
+    }
     return { x: p.x, y: p.y };
   };
   const line = (id: string) => {
-    const l = get(id).line;
-    if (!l || l.length !== 3 || !l.every(n => typeof n === 'number' && Number.isFinite(n))) throw new Error(`Missing line coefficients: ${id}`);
+    const fact = get(id), l = fact.line;
+    if (!l || l.length !== 3 ||
+      !l.every(n => typeof n === 'number' && Number.isFinite(n))) {
+      throw new Error(`Expected a line: ${id} (${fact.type})`);
+    }
     return l as [number, number, number];
   };
   const distance = (a: string, b: string) => { const p = point(a), q = point(b); return Math.hypot(p.x - q.x, p.y - q.y); };
@@ -139,14 +146,26 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
     pointOn: c => {
       const p = point(c.subjects[0]!), path = get(c.subjects[1]!);
       if (path.type === 'line') { const [a, b, d] = line(path.name); return numeric(a * p.x + b * p.y + d, Math.max(Math.abs(p.x), Math.abs(p.y), Math.abs(d))); }
-      if (!path.circle) throw new Error('Missing circle parameters');
+      if (!path.circle) {
+        throw new Error(`Expected a circle or conic: ${path.name} (${path.type})`);
+      }
       return numeric(Math.hypot(p.x - path.circle.x, p.y - path.circle.y) - path.circle.radius, path.circle.radius);
     },
     center: c => {
-      const circle = get(c.subjects[0]!).circle, p = point(c.subjects[1]!);
-      return circle ? all([numeric(circle.x - p.x, p.x), numeric(circle.y - p.y, p.y)]) : 'unverified';
+      const target = get(c.subjects[0]!), p = point(c.subjects[1]!);
+      if (!target.circle) {
+        throw new Error(`Expected a circle: ${target.name} (${target.type})`);
+      }
+      return all([numeric(target.circle.x - p.x, p.x),
+        numeric(target.circle.y - p.y, p.y)]);
     },
-    radius: c => { const circle = get(c.subjects[0]!).circle; return circle ? numeric(circle.radius - c.value!, c.value!) : 'unverified'; },
+    radius: c => {
+      const target = get(c.subjects[0]!);
+      if (!target.circle) {
+        throw new Error(`Expected a circle: ${target.name} (${target.type})`);
+      }
+      return numeric(target.circle.radius - c.value!, c.value!);
+    },
     parallel: c => { const [a, b] = line(c.subjects[0]!), [x, y] = line(c.subjects[1]!); return numeric(a * y - b * x); },
     perpendicular: c => { const [a, b] = line(c.subjects[0]!), [x, y] = line(c.subjects[1]!); return numeric(a * x + b * y); },
     equalLength: c => {

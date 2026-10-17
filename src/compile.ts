@@ -192,7 +192,13 @@ export function compile(request: Request, base?: BaseFacts): Compiled {
   }
   for (const requirement of request.plan.requirements) for (const check of requirement.checks) {
     const spec = predicates[check.kind]!;
-    check.subjects.forEach((id, i) => assert(types.has(id) && matches(types.get(id)!, spec.types[Math.min(i, spec.types.length - 1)]!), `Invalid ${check.kind} subject: ${id}`));
+    check.subjects.forEach((id, i) => {
+      const expected = spec.types[Math.min(i, spec.types.length - 1)]!;
+      const actual = types.get(id);
+      assert(actual !== undefined && matches(actual, expected),
+        `Invalid ${check.kind} subject: ${id} (${actual ?? 'unknown'}, `
+        + `expected ${expected})`);
+    });
   }
   for (const sample of request.plan.interactions) assert('point' in sample && byId.get(sample.point)?.op === 'freePoint', 'Only declared free points can be dragged');
   const rootCache = new Map<string, string[]>();
