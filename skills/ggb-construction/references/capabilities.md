@@ -94,7 +94,7 @@ inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`byt
 
 - `mode:"algebra"`：source 是一条完整英文 GeoGebra 数学语句，包括命名、方程、函数、嵌套命令、列表、矩阵等。例如 `p: y^2=4x`、`A=Point(d)`、`g=Derivative(f)`。
 - `mode:"cas"`：source 是 CAS 数学表达式，例如 `Factor(x^4-1)`、`Expand((x+2)^3)`、`Solutions(x^2-1,x)`。工具等待 CAS 就绪，执行计算，并把结果赋给 id，成为可重载的原生对象。
-- 可选 `outputs:[ID,...]` 包含 id，缺省为 `[id]`。必须完整匹配原生返回标签，遗漏输出即失败；未返回标签的附属对象也会采集。可声明原生下标名，例如 id 为 `B_{1}`、source 为 `B=Intersect(c,l)`、outputs 为 `["B_{1}","B_{2}"]`。CAS 只物化一个命名结果。输出已存在、缺失或未定义均失败；不允许隐式新增未声明的独立参数。
+- 可选 `outputs:[ID,...]` 包含 id，缺省为 `[id]`。必须完整匹配原生返回标签，遗漏输出即失败；未返回标签的附属对象也会采集。可声明原生下标名，例如 id 为 `B_{1}`、source 为 `B=Intersect(c,l)`、outputs 为 `["B_{1}","B_{2}"]`。`outputs` 允许与保留名同形（多边形自动边可能是 `i`、`j`），因为它记录引擎标签，不是自命名。CAS 只物化一个命名结果。输出已存在、缺失或未定义均失败；不允许隐式新增未声明的独立参数。
 - 可选 `initial:[x,y]` 只初始化该步可移动点，适用于准线等路径上的点。原生约束仍生效，不把初始化坐标当作题目给定条件。
 
 ID 最长 32 字符，首位为 ASCII 字母，后续为字母、数字或下划线，可包含原生末尾下标花括号，如 `B_{1}`。e/i/x/y/z/pi 和 GgbProbe 前缀保留。中文显示名用 caption。源文本不会拼接到 shell，也不会作为 JavaScript 执行。小数写普通十进制或 `10^(-7)`；不要写会被解释为欧拉常数表达式的 `1e-7`。
@@ -125,7 +125,7 @@ expression 检查的写法限制（本项目实测）：直接用比较表达式
 
 ## 命名规则
 
-对象名（步骤 id 与 `outputs`）不能与 GeoGebra 的保留名相同，否则该步执行失败或覆盖内建含义：函数与算符（`ln`、`log`、`sin`、`cos`、`tan`、`sqrt`、`abs`、`exp`、`floor`、`round`、`if`、`and`、`or`、`not`、`mod`、`min`、`max`）、常量（`pi`、`e`、`i`、`true`、`false`）、常用命令（`Segment`、`Line`、`Circle`、`Point`、`Midpoint`、`Intersect`、`Distance`、`Angle`、`Polygon`、`Text`、`Slider`、`Locus` 等）。`check` 会以 `Reserved GeoGebra name` 拒绝这类名字，覆盖范围见源码中的 `reservedNames`。实测把 `ln` 用作对象名会得到 `Execution failed or output undefined: ln`。
+步骤 id 与自行命名的对象不能与 GeoGebra 的保留名相同，否则该步执行失败或覆盖内建含义：函数与算符（`ln`、`log`、`sin`、`cos`、`tan`、`sqrt`、`abs`、`exp`、`floor`、`round`、`if`、`and`、`or`、`not`、`mod`、`min`、`max`）、常量（`pi`、`e`、`i`、`true`、`false`）、常用命令（`Segment`、`Line`、`Circle`、`Point`、`Midpoint`、`Intersect`、`Distance`、`Angle`、`Polygon`、`Text`、`Slider`、`Locus` 等）。`check` 会以 `Reserved GeoGebra name` 拒绝这类名字，覆盖范围见源码中的 `reservedNames`。实测把 `ln` 用作对象名会得到 `Execution failed or output undefined: ln`。`outputs` 是引擎返回的标签而不是自命名：必须照抄实际返回值，即使形如 `i`、`Segment` 也照抄，`check` 只校验标签语法。
 
 其他命名注意：单字母 `x`、`y`、`z` 是坐标变量，`x=2` 会被解析为直线；几何点用大写开头（`P`、`NotePos`），小写开头多字母名只用于数值、向量和线段。避免与已有标签重名，引擎自动生成附属标签时也要按实际返回值声明。
 

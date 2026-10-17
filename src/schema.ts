@@ -94,9 +94,16 @@ function record(value: unknown, keys: string[]): Record<string, any> {
 function text(value: unknown, max = 2048): asserts value is string {
   assert(typeof value === 'string' && value.trim().length > 0 && value.length <= max, 'Invalid text');
 }
+const labelPattern = /^[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?$/;
 function identifier(value: unknown): asserts value is string {
-  assert(typeof value === 'string' && value.length <= 32 && /^[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?$/.test(value)
+  assert(typeof value === 'string' && value.length <= 32 && labelPattern.test(value)
     && !['e', 'i', 'x', 'y', 'z', 'pi'].includes(value) && !value.startsWith('GgbProbe'), 'Invalid or reserved object identifier');
+}
+/** Native outputs are engine labels, so reserved-looking names are allowed. */
+
+function outputIdentifier(value: unknown): asserts value is string {
+  assert(typeof value === 'string' && value.length <= 32 && labelPattern.test(value)
+    && !value.startsWith('GgbProbe'), 'Invalid output identifier');
 }
 function finite(value: unknown, max = limits.coordinate): asserts value is number {
   assert(typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= max, 'Invalid finite number');
@@ -248,10 +255,7 @@ export function parseRequest(value: unknown): Request {
       mathSource(s.source); assert(['algebra', 'cas'].includes(s.mode), 'Invalid native mode');
       if ('outputs' in s) {
         array(s.outputs, 1, 16);
-        s.outputs.forEach(identifier);
-        for (const output of s.outputs) {
-          assert(!reservedNames.has(output), `Reserved GeoGebra name: ${output}; rename the object`);
-        }
+        s.outputs.forEach(outputIdentifier);
         assert(s.outputs.includes(s.id), 'Outputs must include step ID');
       }
       if ('initial' in s) { array(s.initial, 2, 2); s.initial.forEach((n: unknown) => finite(n)); }
