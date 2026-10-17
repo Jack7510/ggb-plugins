@@ -23,7 +23,7 @@ After enabling the plugin, start a new host session and describe the problem. Yo
 
 > Use GeoGebra to construct triangle ABC, mark the midpoint M of AB, and connect CM. Color the median red. Drag A to verify that the midpoint and median update, save the file, and open the interactive preview.
 
-For algebra, ask: “Find the real solutions of x²−5x+6=0 and save the native results and verification report.” The agent asks when necessary conditions are missing or ambiguous. If you do not specify coordinates, it explains the initial configuration it chooses.
+The plugin analyzes given conditions and construction methods without providing answers to the problem. For example, ask: “Plot y=x²−5x+6 for exploration without giving the roots.” The agent asks when necessary conditions are missing or ambiguous. If you do not specify coordinates, it explains the initial configuration it chooses. See the [Skill output boundary](skills/ggb-construction/SKILL.md).
 
 Construction, reloading, and automated checks run headless, without intermediate windows. Failures retain diagnostics. A required condition that fails or remains unverified blocks delivery. Successful reports state the checks performed and the scope of finite interaction samples.
 

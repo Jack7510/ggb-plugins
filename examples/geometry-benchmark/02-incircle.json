@@ -1,0 +1,381 @@
+{
+  "protocolVersion": 2,
+  "prompt": "画一个任意三角形 ABC，构造三条内角平分线及内心 I，作内切圆，并标出三个切点。允许拖动顶点。初始坐标由 Agent 选择，三角形不退化。",
+  "locale": "zh-CN",
+  "outputDir": "output/geometry-benchmark",
+  "plan": {
+    "program": [
+      {
+        "id": "A",
+        "op": "native",
+        "mode": "algebra",
+        "source": "A=(0,0)"
+      },
+      {
+        "id": "B",
+        "op": "native",
+        "mode": "algebra",
+        "source": "B=(6,0)"
+      },
+      {
+        "id": "C",
+        "op": "native",
+        "mode": "algebra",
+        "source": "C=(2,4)"
+      },
+      {
+        "id": "triangle",
+        "op": "native",
+        "mode": "algebra",
+        "source": "triangle=Polygon(A,B,C)",
+        "outputs": [
+          "triangle",
+          "a",
+          "b",
+          "c"
+        ]
+      },
+      {
+        "id": "sideA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "sideA=Line(B,C)"
+      },
+      {
+        "id": "sideB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "sideB=Line(C,A)"
+      },
+      {
+        "id": "sideC",
+        "op": "native",
+        "mode": "algebra",
+        "source": "sideC=Line(A,B)"
+      },
+      {
+        "id": "bisA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "bisA=AngleBisector(B,A,C)"
+      },
+      {
+        "id": "bisB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "bisB=AngleBisector(A,B,C)"
+      },
+      {
+        "id": "bisC",
+        "op": "native",
+        "mode": "algebra",
+        "source": "bisC=AngleBisector(A,C,B)"
+      },
+      {
+        "id": "I",
+        "op": "native",
+        "mode": "algebra",
+        "source": "I=Intersect(bisA,bisB)"
+      },
+      {
+        "id": "T",
+        "op": "native",
+        "mode": "algebra",
+        "source": "T=ClosestPoint(sideA,I)"
+      },
+      {
+        "id": "U",
+        "op": "native",
+        "mode": "algebra",
+        "source": "U=ClosestPoint(sideB,I)"
+      },
+      {
+        "id": "V",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V=ClosestPoint(sideC,I)"
+      },
+      {
+        "id": "circle",
+        "op": "native",
+        "mode": "algebra",
+        "source": "circle=Circle(I,T)"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "geometry",
+        "source": "画一个任意三角形 ABC，构造三条内角平分线及内心 I，作内切圆，并标出三个切点。允许拖动顶点。初始坐标由 Agent 选择，三角形不退化。",
+        "checks": [
+          {
+            "kind": "nonCollinear",
+            "subjects": [
+              "A",
+              "B",
+              "C"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "I",
+              "bisC"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "I",
+              "sideA",
+              "sideB"
+            ],
+            "expression": "Distance(I,sideA)-Distance(I,sideB)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "I",
+              "sideA",
+              "sideC"
+            ],
+            "expression": "Distance(I,sideA)-Distance(I,sideC)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "I",
+              "T",
+              "B",
+              "C"
+            ],
+            "expression": "(x(T)-x(I))*(x(C)-x(B))+(y(T)-y(I))*(y(C)-y(B))",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "U",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "V",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "I",
+              "A",
+              "B",
+              "C"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "triangle"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "bisA"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "bisB"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "bisC"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "I"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "T"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "U"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "V"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "circle"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          }
+        ]
+      }
+    ],
+    "styles": [
+      {
+        "object": "triangle",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "bisA",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "bisB",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "bisC",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "I",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "T",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "U",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "V",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "circle",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "sideA",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "sideB",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "sideC",
+        "properties": {
+          "visible": false
+        }
+      }
+    ],
+    "interactions": [
+      {
+        "point": "A",
+        "dx": -40,
+        "dy": 30
+      },
+      {
+        "point": "B",
+        "dx": 40,
+        "dy": 20
+      },
+      {
+        "point": "C",
+        "dx": -40,
+        "dy": -35
+      }
+    ],
+    "view": {
+      "xMin": -6,
+      "xMax": 10,
+      "yMin": -5,
+      "yMax": 9
+    }
+  }
+}

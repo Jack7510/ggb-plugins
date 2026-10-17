@@ -1,0 +1,320 @@
+{
+  "protocolVersion": 2,
+  "prompt": "画一个圆和圆上一点 A，在圆上取可拖动点 B。构造弦 AB 的中点 M，画出 B 沿圆移动时 M 的轨迹，并展示该轨迹对应的圆。初始圆心 O=(0,0)，R=(0,-3)，A、B 在圆上。A、B 重合时中点仍定义，弦退化。",
+  "locale": "zh-CN",
+  "outputDir": "output/geometry-benchmark",
+  "plan": {
+    "program": [
+      {
+        "id": "O",
+        "op": "native",
+        "mode": "algebra",
+        "source": "O=(0,0)"
+      },
+      {
+        "id": "R",
+        "op": "native",
+        "mode": "algebra",
+        "source": "R=(0,-3)"
+      },
+      {
+        "id": "circle",
+        "op": "native",
+        "mode": "algebra",
+        "source": "circle=Circle(O,R)"
+      },
+      {
+        "id": "A",
+        "op": "native",
+        "mode": "algebra",
+        "source": "A=Point(circle)",
+        "initial": [
+          3,
+          0
+        ]
+      },
+      {
+        "id": "B",
+        "op": "native",
+        "mode": "algebra",
+        "source": "B=Point(circle)",
+        "initial": [
+          -1.5,
+          2.598076211
+        ]
+      },
+      {
+        "id": "chord",
+        "op": "native",
+        "mode": "algebra",
+        "source": "chord=Segment(A,B)"
+      },
+      {
+        "id": "M",
+        "op": "native",
+        "mode": "algebra",
+        "source": "M=Midpoint(A,B)"
+      },
+      {
+        "id": "trail",
+        "op": "native",
+        "mode": "algebra",
+        "source": "trail=Locus(M,B)"
+      },
+      {
+        "id": "K",
+        "op": "native",
+        "mode": "algebra",
+        "source": "K=Midpoint(A,O)"
+      },
+      {
+        "id": "locusCircle",
+        "op": "native",
+        "mode": "algebra",
+        "source": "locusCircle=Circle(K,A)"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "geometry",
+        "source": "画一个圆和圆上一点 A，在圆上取可拖动点 B。构造弦 AB 的中点 M，画出 B 沿圆移动时 M 的轨迹，并展示该轨迹对应的圆。初始圆心 O=(0,0)，R=(0,-3)，A、B 在圆上。A、B 重合时中点仍定义，弦退化。",
+        "checks": [
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "A",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "B",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "midpoint",
+            "subjects": [
+              "M",
+              "A",
+              "B"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "midpoint",
+            "subjects": [
+              "K",
+              "A",
+              "O"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "M",
+              "locusCircle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "locusCircle",
+              "A",
+              "O"
+            ],
+            "expression": "2Radius(locusCircle)-Distance(A,O)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "M",
+              "A",
+              "B"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "trail",
+              "M",
+              "B"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "locusCircle",
+              "A",
+              "O"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "circle"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "A"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "B"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "M"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "K"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "chord"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "trail"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "locusCircle"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          }
+        ]
+      }
+    ],
+    "styles": [
+      {
+        "object": "circle",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "A",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "B",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "M",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "K",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "chord",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "trail",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "locusCircle",
+        "properties": {
+          "visible": true
+        }
+      }
+    ],
+    "interactions": [
+      {
+        "point": "B",
+        "dx": -40,
+        "dy": 20
+      },
+      {
+        "point": "A",
+        "dx": -20,
+        "dy": -40
+      },
+      {
+        "point": "R",
+        "dx": 25,
+        "dy": 25
+      }
+    ],
+    "view": {
+      "xMin": -5,
+      "xMax": 5,
+      "yMin": -5,
+      "yMax": 5
+    }
+  }
+}

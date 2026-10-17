@@ -1,29 +1,32 @@
 # 原生二维程序与核验契约（M6 / 0.6.0）
 
-统一入口为 `build --request <file>`。请求协议是 2，CLI 结果信封仍是 1。M1/M5 的协议 2 请求仍可执行；旧交付须重新构造以补齐 M6 证据。GeoGebra 负责解析数学语法，不按题型或数学命令白名单选择实现。
+执行入口为 `build --request <file>`；先用 `check --request <file>` 进行无浏览器的结构预检。check 复用 schema 和 compile，检查来源及声明引用；返回 validation:structural，不核验引擎语法、实际输出标签或数学关系。请求协议是 2，CLI 结果信封仍是 1。M1/M5 的协议 2 请求仍可执行；旧交付须重新构造以补齐 M6 证据。GeoGebra 负责解析数学语法，不按题型或数学命令白名单选择实现。
+
+请求编写及交付展示遵循 [分析与作图边界](../SKILL.md#分析与作图边界)。下列示例绘制给定函数，不输出零点答案；底层 CAS 和核验数据能力仍保留。
 
 ## 请求
 
 ```json
 {
   "protocolVersion": 2,
-  "prompt": "求 x²-5x+6=0 的实数解。",
+  "prompt": "绘制函数 y=x²-5x+6 的图像，用于观察与探索，不给出零点答案。",
   "locale": "zh-CN",
   "outputDir": "/absolute/output",
   "plan": {
     "program": [
-      {"id":"roots","op":"native","mode":"cas","source":"Solutions(x^2-5x+6=0,x)"}
+      {"id":"f","op":"native","mode":"algebra","source":"f(x)=x^2-5x+6"}
     ],
     "requirements": [{
-      "id":"solutions", "source":"求 x²-5x+6=0 的实数解",
+      "id":"graph", "source":"绘制函数 y=x²-5x+6 的图像",
       "checks":[
-        {"kind":"expression","subjects":["roots"],"expression":"Length(roots)","mode":"algebra","expected":2,"scope":"initial"},
-        {"kind":"expression","subjects":["roots"],"expression":"Sum(roots)","mode":"algebra","expected":5,"scope":"initial"},
-        {"kind":"expression","subjects":["roots"],"expression":"Product(roots)","mode":"algebra","expected":6,"scope":"initial"}
+        {"kind":"type","subjects":["f"],"objectType":"function","scope":"initial"},
+        {"kind":"expression","subjects":["f"],"expression":"f(0)","mode":"algebra","expected":6,"scope":"initial"},
+        {"kind":"style","subjects":["f"],"properties":{"visible":true},"scope":"initial"}
       ]
     }],
     "interactions": [],
-    "display": "algebra"
+    "styles": [{"object":"f","properties":{"visible":true}}],
+    "display": "graphics"
   }
 }
 ```
@@ -59,7 +62,13 @@ CAS 物化的是当次计算结果，不是动态 CAS 单元；它不会自动�
 
 可复用的结构检查仍可使用 exists、type、coordinate、dependsOn、style，以及中点、线/圆上的点、圆心半径、平行垂直、等长、距离和非共线。新数学关系优先写表达式，不逐命令增加谓词。type 使用实际事实类型，简单多边形归一为 polygon。
 
+常见实际类型为 point、line、segment、circle、polygon、polyline、numeric、angle、boolean、list 和 text。数值及滑块的 type 检查使用 numeric，不使用 number 或 slider；这不是全部类型的白名单。
+
 依赖证据取自原生 XML 和定义。M6 从原生函数声明排除形参，读取实际参数引用。独立对象不能冒充依赖对象；带复杂局部绑定或命令参数、无法明确解析的依赖返回 unverified。仍不提供完整 GGB 作用域解析器。不能删除依赖要求来绕过这一边界。
+
+直接依赖可以通过中间数学对象表达。例如先保存两个 Distance 结果，再定义比值；先保存文字表达式和位置点，再调用 Text。Text 的定位点必须是大写开头标签的点或内联坐标：`aN`、`ab` 这类小写开头的标签在该参数位不被解析为点对象，命令会失败；`Point(P)` 这类计算式同样不被接受，几何点默认用大写开头命名。多输出标签以实际引擎返回为准。当前 angle 类型的 expression 检查需要明确转为数值，例如 `angle/(1°)-90`；角度单位换算不改变固定容差。
+
+expression 检查的写法限制（本项目实测）：直接用比较表达式并把 `expected` 写成 `true`／`false`，例如 `n>=3`、`curPath-minPath+10^(-9)>=0`；包一层 `if(条件,1,0)` 会得到 unverified（原生探测不解析 `if`）。三点角是**带方向**的，`Angle(O,B,P)` 可能返回 270°，不能用 `角/(1°)-90` 判直角；垂直或直角用 `ArePerpendicular(Line(O,A),切线)`。`Distance(<circle>)` 未定义，圆半径用 `radius` 谓词、圆心加两点距离或 `Circle(I,圆上的点)`。检查的 `subjects` 必须逐字出现在 expression 中，缺失时 `check` 会指出具体检查编号和缺失名称。
 
 ## 呈现与交互
 
@@ -71,11 +80,15 @@ CAS 物化的是当次计算结果，不是动态 CAS 单元；它不会自动�
 
 另可声明 `{parameter:"a",value:2}`。参数必须是独立、可移动、未固定的数值滑块，目标在有限区间内且实际发生变化。同一参数可用不同目标值采样；每个样本都独立重载原 GGB。报告 method 为 `native_value`，表示原生 API 参数设置，不冒充鼠标拖动。Algebra 视图也允许参数采样。
 
-M1 回归的 freePoint/command 原语保留在协议 2，仍编译到同一执行器；旧命令表不限制 native 程序。不要在同一程序混合两种形式。源码示例见 examples/triangle.json、parabola.json、algebra.json、functions.json 和 statistics.json。
+每个参数样本在目标状态核验后，会在同一副本恢复原值，再执行初态核验及完整快照比较。sample.roundTrip 保存原值 value 和恢复后的 after 报告；往返失败阻止交付，不能忽略隐藏未定义对象。preview 要求对应证据并重算判定；旧参数交付缺少 roundTrip 时必须重新 build。鼠标样本不要求用坐标赋值恢复。真实拖动若有距离目标不超过 10 屏幕像素的其他可见、已定义点，会提前拒绝并记录 target、screen 与逐点 overlaps（含 moveable 与 fixed 标记）：可移动点按重叠可移动点拒绝，固定点（`fixed:true`）按重叠固定点拒绝，依赖型可见点只记录不提前拒绝；其他未移动情况仍保留原时限。
+
+有界的可变数量构造，可以先生成容量固定的原生辅助对象，再取活动前缀。`Take(allPoints,1,count)` 取前 count 个对象，二参数 Take 从指定位置取到末尾。若只要求轮廓，可依次保存 `active=Take(allPoints,1,count)`、`first=Element(active,1)`、`closed=Append(active,first)`、`outline=Polyline(closed)`；拆开命令以保留直接依赖。所有辅助对象必须始终有定义，容量上限必须来自题目且满足 steps 限制。周长从实际相邻点距离求和并独立核验，不用“边数×边长”同时生成和检查结果。若要求填充面或原生 Polygon 类型，不能将轮廓表示当作完成。
+
+M1 回归的 freePoint/command 原语保留在协议 2，仍编译到同一执行器；旧命令表不限制 native 程序。不要在同一程序混合两种形式。几何示例见 examples/triangle.json 和 examples/parabola.json；代数、函数、统计及混合验收输入保留在 tests/fixtures，仅用于回归测试与覆盖记录。
 
 ## 交付与失败
 
-构造、必需核验、GGB 重载及交互检查通过后，关闭资源，再原子提交 result.ggb、request.json、verification.json、preview.png 和 manifest.json。M6 清单协议为 2，milestone 为 M6；preview 复核报告、摘要和实际重载结果。构图与验证均 headless。成功后必须以 preview 自动打开系统默认浏览器作为最后的工具动作，加载同一 GGB；页面确认加载后输出就绪。点击页面“结束预览”或取消进程释放服务，不回写文件；仅关闭默认浏览器标签页不保证结束进程。
+构造、必需核验、GGB 重载及交互检查通过后，关闭资源，再原子提交 result.ggb、request.json、verification.json、preview.png 和 manifest.json。M6 清单协议为 2，milestone 为 M6；preview 复核报告、摘要和实际重载结果。构图与验证均 headless。自动预览复核使用 `preview --delivery <dir> --headless --once`，通过全部原有预览门禁后关闭资源并退出；`--once` 不得与可见预览组合。成功后必须以 preview 自动打开系统默认浏览器作为最后的工具动作，加载同一 GGB；页面确认加载后输出就绪。点击页面“结束预览”或取消进程释放服务，不回写文件；仅关闭默认浏览器标签页不保证结束进程。
 
 容量和时限由 doctor/schema 给出。失败保留运行路径和原因；CAS 不就绪、语法错误、对象未定义、探针污染原对象和数学条件不满足均不能交付。最多三次新运行，保留要求；未验证必须说明能力缺口。
 

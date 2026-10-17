@@ -1,0 +1,310 @@
+{
+  "protocolVersion": 2,
+  "prompt": "画一个圆及其内接正多边形，用整数滑块控制边数 n，范围为 3 到 12。显示边数、边长和周长，改变 n 后图形自动更新。初始圆心 O=(0,0)，半径3，n=3。",
+  "locale": "zh-CN",
+  "outputDir": "output/geometry-benchmark",
+  "plan": {
+    "program": [
+      {
+        "id": "O",
+        "op": "native",
+        "mode": "algebra",
+        "source": "O=(0,0)"
+      },
+      {
+        "id": "R",
+        "op": "native",
+        "mode": "algebra",
+        "source": "R=(3,0)"
+      },
+      {
+        "id": "circle",
+        "op": "native",
+        "mode": "algebra",
+        "source": "circle=Circle(O,R)"
+      },
+      {
+        "id": "n",
+        "op": "native",
+        "mode": "algebra",
+        "source": "n=Slider(3,12,1,1,160,false,true,false,false)"
+      },
+      {
+        "id": "turn",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn=2pi/n"
+      },
+      {
+        "id": "S",
+        "op": "native",
+        "mode": "algebra",
+        "source": "S=Rotate(R,turn,O)"
+      },
+      {
+        "id": "shape",
+        "op": "native",
+        "mode": "algebra",
+        "source": "shape=Polygon(R,S,n)",
+        "outputs": [
+          "shape",
+          "A",
+          "f",
+          "g",
+          "h"
+        ]
+      },
+      {
+        "id": "vertices",
+        "op": "native",
+        "mode": "algebra",
+        "source": "vertices=Sequence(Vertex(shape,j),j,1,n)"
+      },
+      {
+        "id": "side",
+        "op": "native",
+        "mode": "algebra",
+        "source": "side=Distance(R,S)"
+      },
+      {
+        "id": "perimeter",
+        "op": "native",
+        "mode": "algebra",
+        "source": "perimeter=Perimeter(shape)"
+      },
+      {
+        "id": "message",
+        "op": "native",
+        "mode": "algebra",
+        "source": "message=\"边数=\"+n+\"  边长=\"+side+\"  周长=\"+perimeter"
+      },
+      {
+        "id": "NotePos",
+        "op": "native",
+        "mode": "algebra",
+        "source": "NotePos=(-4,5)"
+      },
+      {
+        "id": "note",
+        "op": "native",
+        "mode": "algebra",
+        "source": "note=Text(message,NotePos)"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "geometry",
+        "source": "画一个圆及其内接正多边形，用整数滑块控制边数 n，范围为 3 到 12。显示边数、边长和周长，改变 n 后图形自动更新。初始圆心 O=(0,0)，半径3，n=3。",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "vertices",
+              "n"
+            ],
+            "expression": "Length(vertices)-n",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "vertices",
+              "O",
+              "R"
+            ],
+            "expression": "Max(Zip(abs(Distance(Q,O)-Distance(R,O)),Q,vertices))",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "vertices",
+              "n",
+              "side"
+            ],
+            "expression": "Max(Sequence(abs(Distance(Element(vertices,j),Element(vertices,Mod(j,n)+1))-side),j,1,n))",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "perimeter",
+              "side",
+              "n"
+            ],
+            "expression": "perimeter-n*side",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "shape",
+              "R",
+              "S",
+              "n"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "S",
+              "n",
+              "O",
+              "R"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "note",
+              "n",
+              "side",
+              "perimeter"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "circle"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "O"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "R"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "n"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "shape"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "note"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          }
+        ]
+      }
+    ],
+    "styles": [
+      {
+        "object": "circle",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "O",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "R",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "n",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "shape",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "note",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "message",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "NotePos",
+        "properties": {
+          "visible": false
+        }
+      }
+    ],
+    "interactions": [
+      {
+        "parameter": "n",
+        "value": 4
+      },
+      {
+        "parameter": "n",
+        "value": 6
+      },
+      {
+        "parameter": "n",
+        "value": 12
+      }
+    ],
+    "view": {
+      "xMin": -5,
+      "xMax": 5,
+      "yMin": -5,
+      "yMax": 6
+    }
+  }
+}

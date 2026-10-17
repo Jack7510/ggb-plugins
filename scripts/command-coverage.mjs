@@ -25,7 +25,10 @@ export async function runCoverage(destination) {
   const directory = await mkdtemp(join(destination, 'coverage-'));
   const cases = [];
   for (const name of ['triangle', 'parabola', 'algebra', 'functions', 'statistics', 'client-ellipse']) {
-    const input = JSON.parse(await readFile(join(root, `examples/${name}.json`), 'utf8'));
+    const sourceDirectory = ['triangle', 'parabola'].includes(name)
+      ? 'examples' : 'tests/fixtures';
+    const input = JSON.parse(await readFile(
+      join(root, sourceDirectory, `${name}.json`), 'utf8'));
     input.outputDir = join(directory, name);
     const result = await build(input);
     const preview = await openPreview(result.delivery, false);

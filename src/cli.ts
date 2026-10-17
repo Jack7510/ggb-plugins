@@ -1,7 +1,9 @@
+/** @fileoverview Owns CLI dispatch, structural preflight and process signals. */
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
 import { build, openPreview, openDefaultPreview, readJson } from './delivery.js';
-import { ToolError } from './schema.js';
+import { ToolError, parseRequest } from './schema.js';
+import { compile } from './compile.js';
 import { root } from './server.js';
 import { doctor } from './doctor.js';
 
@@ -9,18 +11,31 @@ const emit = (data: unknown) => console.log(JSON.stringify({ protocolVersion: 1,
 const cancellation = new AbortController();
 const stop = () => cancellation.abort(new Error('Cancelled'));
 process.once('SIGINT', stop); process.once('SIGTERM', stop);
-const usage = 'doctor | build --request <file> | preview --delivery <dir> [--headless] | demo [--output <dir>]';
+const usage = 'doctor | check --request <file> | build --request <file> | preview --delivery <dir> [--headless [--once]] | demo [--output <dir>]';
 let command: string | undefined, ready = false;
 try {
   const { positionals, values } = parseArgs({ allowPositionals: true, options: {
     request: { type: 'string' }, delivery: { type: 'string' }, output: { type: 'string' },
     headless: { type: 'boolean' },
+    once: { type: 'boolean' },
   } });
   if (positionals.length !== 1) throw new Error(usage);
   command = positionals[0];
   if (values.headless && command !== 'preview') throw new Error(usage);
+  if (values.once && (command !== 'preview' || !values.headless)) {
+    throw new Error('--once requires preview --headless');
+  }
   if (command === 'doctor' && !values.request && !values.delivery && !values.output) {
     emit(await doctor(cancellation.signal));
+  } else if (command === 'check' && values.request &&
+    !values.delivery && !values.output) {
+    const request = parseRequest(await readJson(resolve(values.request)));
+    compile(request);
+    emit({
+      validation: 'structural', programSteps: request.plan.program.length,
+      requirements: request.plan.requirements.length,
+      samples: request.plan.interactions.length,
+    });
   } else if (command === 'build' && values.request && !values.delivery && !values.output) {
     emit(await build(await readJson(resolve(values.request)), cancellation.signal));
   } else if (command === 'demo' && !values.request && !values.delivery) {
@@ -38,7 +53,9 @@ try {
         if (session.page.isClosed() || !session.browser.isConnected()) finish();
       });
       emit({ url: session.url, delivery: session.delivery }); ready = true;
-      await ('closed' in session ? Promise.race([closed, session.closed]) : closed);
+      if (!values.once) {
+        await ('closed' in session ? Promise.race([closed, session.closed]) : closed);
+      }
       if (cancellation.signal.aborted) process.exitCode = 130;
     } finally { await session.close(); }
   } else throw new Error(usage);

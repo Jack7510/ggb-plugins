@@ -20,7 +20,7 @@
 
 结果：构造、重载各 29 项检查通过，1 个真实鼠标拖动样本通过，均值和中位数均为 6。切线和路径点保留真实依赖。独立 headless preview 复核通过；关闭页面后浏览器和服务退出，文件 SHA-256 保持 `2cd37e00989d3a4bbda8434aad35a0d69726d7d717ec21d3529ac757d7926854`。
 
-证据：`output/m7-client/events.jsonl`、`final.md`、`ellipse-acceptance/delivery/ggb-BHtVcm/delivery/`，以及运行目录的 `preview-acceptance.json`。请求保留为 [client-ellipse.json](../examples/client-ellipse.json)，可通过相同管线重复构造。最终可见 Chrome 由持续运行的调用方打开；一次性 exec 不承担答复后保留窗口。
+证据：`output/m7-client/events.jsonl`、`final.md`、`ellipse-acceptance/delivery/ggb-BHtVcm/delivery/`，以及运行目录的 `preview-acceptance.json`。请求保留为 [client-ellipse.json](../tests/fixtures/client-ellipse.json)，可通过相同管线重复构造。最终可见 Chrome 由持续运行的调用方打开；一次性 exec 不承担答复后保留窗口。
 
 ## 失败与剩余缺口
 

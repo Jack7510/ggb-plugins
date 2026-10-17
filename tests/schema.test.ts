@@ -12,7 +12,7 @@ import type { Snapshot } from '../src/browser.js';
 
 const fixture = JSON.parse(await readFile(join(root, 'examples/triangle.json'), 'utf8'));
 test('M6 value, assumption and interaction envelopes reject invalid extensions before execution', async () => {
-  const original = JSON.parse(await readFile(join(root, 'examples/statistics.json'), 'utf8'));
+  const original = JSON.parse(await readFile(join(root, 'tests/fixtures/statistics.json'), 'utf8'));
   const cases = [
     (r: any) => { r.plan.requirements[0].checks[0].expected = ['symbolic']; },
     (r: any) => { r.plan.requirements[0].checks[0].expected = Array(256).fill(0); },
@@ -23,6 +23,22 @@ test('M6 value, assumption and interaction envelopes reject invalid extensions b
     (r: any) => { r.plan.interactions = [{parameter:'matrixA',value:1},{parameter:'matrixA',value:1}]; },
   ];
   for (const change of cases) { const input = structuredClone(original); change(input); assert.throws(() => parseRequest(input)); }
+});
+test('expression checks name the check and the missing subject', () => {
+  const input = structuredClone(fixture);
+  const requirement = input.plan.requirements[0];
+  const index = requirement.checks.length;
+  requirement.checks.push({
+    kind: 'expression', subjects: ['A', 'AbsentPoint'],
+    expression: 'Distance(A,B)', mode: 'algebra', expected: 0,
+    scope: 'initial',
+  });
+  assert.throws(() => parseRequest(input), (error: unknown) => {
+    assert(error instanceof Error);
+    assert.match(error.message, new RegExp(`Check ${requirement.id}:${index}`));
+    assert.match(error.message, /missing AbsentPoint/);
+    return true;
+  });
 });
 test('programs can reference later declarations and compile in dependency order', () => {
   const input = structuredClone(fixture);

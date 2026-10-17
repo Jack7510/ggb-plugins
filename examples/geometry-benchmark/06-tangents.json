@@ -1,0 +1,438 @@
+{
+  "protocolVersion": 2,
+  "prompt": "画一个圆和圆外一点 P，从 P 作圆的两条切线，切点为 A、B。显示 PA、PB 以及两个切点处的直角标记，允许移动 P。初始圆心为 O，半径为3；P 保持在圆外。",
+  "locale": "zh-CN",
+  "outputDir": "output/geometry-benchmark",
+  "plan": {
+    "program": [
+      {
+        "id": "O",
+        "op": "native",
+        "mode": "algebra",
+        "source": "O=(0,0)"
+      },
+      {
+        "id": "R",
+        "op": "native",
+        "mode": "algebra",
+        "source": "R=(3,0)"
+      },
+      {
+        "id": "circle",
+        "op": "native",
+        "mode": "algebra",
+        "source": "circle=Circle(O,R)"
+      },
+      {
+        "id": "P",
+        "op": "native",
+        "mode": "algebra",
+        "source": "P=(6,1)"
+      },
+      {
+        "id": "polar",
+        "op": "native",
+        "mode": "algebra",
+        "source": "polar=Polar(P,circle)"
+      },
+      {
+        "id": "A",
+        "op": "native",
+        "mode": "algebra",
+        "source": "A=Intersect(polar,circle,1)"
+      },
+      {
+        "id": "B",
+        "op": "native",
+        "mode": "algebra",
+        "source": "B=Intersect(polar,circle,2)"
+      },
+      {
+        "id": "tA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "tA=Line(P,A)"
+      },
+      {
+        "id": "tB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "tB=Line(P,B)"
+      },
+      {
+        "id": "rA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "rA=Segment(O,A)"
+      },
+      {
+        "id": "rB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "rB=Segment(O,B)"
+      },
+      {
+        "id": "lenPA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "lenPA=Distance(P,A)"
+      },
+      {
+        "id": "lenPB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "lenPB=Distance(P,B)"
+      },
+      {
+        "id": "rightA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "rightA=Angle(O,A,P)"
+      },
+      {
+        "id": "rightB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "rightB=Angle(P,B,O)"
+      },
+      {
+        "id": "message",
+        "op": "native",
+        "mode": "algebra",
+        "source": "message=\"PA=\"+lenPA+\"  PB=\"+lenPB"
+      },
+      {
+        "id": "NotePos",
+        "op": "native",
+        "mode": "algebra",
+        "source": "NotePos=(-3,5)"
+      },
+      {
+        "id": "note",
+        "op": "native",
+        "mode": "algebra",
+        "source": "note=Text(message,NotePos)"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "geometry",
+        "source": "画一个圆和圆外一点 P，从 P 作圆的两条切线，切点为 A、B。显示 PA、PB 以及两个切点处的直角标记，允许移动 P。初始圆心为 O，半径为3；P 保持在圆外。",
+        "checks": [
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "A",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "B",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "lenPA",
+              "lenPB"
+            ],
+            "expression": "lenPA-lenPB",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "rightA"
+            ],
+            "expression": "rightA/(1°)-90",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "rightB"
+            ],
+            "expression": "rightB/(1°)-90",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "P",
+              "O",
+              "R"
+            ],
+            "expression": "Distance(P,O)>Distance(R,O)",
+            "mode": "algebra",
+            "expected": true,
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "A",
+              "P",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "B",
+              "P",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "circle"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "O"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "P"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "A"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "B"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "tA"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "tB"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "rA"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "rB"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "rightA"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "rightB"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "note"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          }
+        ]
+      }
+    ],
+    "styles": [
+      {
+        "object": "circle",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "O",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "P",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "A",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "B",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "tA",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "tB",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "rA",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "rB",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "rightA",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "rightB",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "note",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "polar",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "message",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "NotePos",
+        "properties": {
+          "visible": false
+        }
+      }
+    ],
+    "interactions": [
+      {
+        "point": "P",
+        "dx": 40,
+        "dy": -40
+      },
+      {
+        "point": "O",
+        "dx": -30,
+        "dy": 20
+      },
+      {
+        "point": "R",
+        "dx": 20,
+        "dy": -20
+      }
+    ],
+    "view": {
+      "xMin": -5,
+      "xMax": 9,
+      "yMin": -5,
+      "yMax": 6
+    }
+  }
+}

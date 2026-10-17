@@ -1,0 +1,428 @@
+{
+  "protocolVersion": 2,
+  "prompt": "画一个圆及其圆心 O，在圆上放置 A、B、C 三点，画出圆心角 AOB 和圆周角 ACB。让 C 可沿不包含 A、B 的同一段圆弧移动，展示两角的关系。初始选择 A 到 B 的劣弧所对的优弧作为 C 的路径；不含端点；圆心角使用不超过180度的角。",
+  "locale": "zh-CN",
+  "outputDir": "output/geometry-benchmark",
+  "plan": {
+    "program": [
+      {
+        "id": "O",
+        "op": "native",
+        "mode": "algebra",
+        "source": "O=(0,0)"
+      },
+      {
+        "id": "circle",
+        "op": "native",
+        "mode": "algebra",
+        "source": "circle=Circle(O,3)"
+      },
+      {
+        "id": "A",
+        "op": "native",
+        "mode": "algebra",
+        "source": "A=Point(circle)",
+        "initial": [
+          3,
+          0
+        ]
+      },
+      {
+        "id": "B",
+        "op": "native",
+        "mode": "algebra",
+        "source": "B=Point(circle)",
+        "initial": [
+          0,
+          3
+        ]
+      },
+      {
+        "id": "arc",
+        "op": "native",
+        "mode": "algebra",
+        "source": "arc=CircularArc(O,B,A)"
+      },
+      {
+        "id": "C",
+        "op": "native",
+        "mode": "algebra",
+        "source": "C=Point(arc)",
+        "initial": [
+          -2,
+          -2.2360679775
+        ]
+      },
+      {
+        "id": "central",
+        "op": "native",
+        "mode": "algebra",
+        "source": "central=Angle(A,O,B)"
+      },
+      {
+        "id": "inscribed",
+        "op": "native",
+        "mode": "algebra",
+        "source": "inscribed=Angle(A,C,B)"
+      },
+      {
+        "id": "edgeA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edgeA=Segment(C,A)"
+      },
+      {
+        "id": "edgeB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edgeB=Segment(C,B)"
+      },
+      {
+        "id": "rayA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "rayA=Segment(O,A)"
+      },
+      {
+        "id": "rayB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "rayB=Segment(O,B)"
+      },
+      {
+        "id": "message",
+        "op": "native",
+        "mode": "algebra",
+        "source": "message=\"圆心角=\"+central+\"  圆周角=\"+inscribed"
+      },
+      {
+        "id": "NotePos",
+        "op": "native",
+        "mode": "algebra",
+        "source": "NotePos=(-4,5)"
+      },
+      {
+        "id": "note",
+        "op": "native",
+        "mode": "algebra",
+        "source": "note=Text(message,NotePos)"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "geometry",
+        "source": "画一个圆及其圆心 O，在圆上放置 A、B、C 三点，画出圆心角 AOB 和圆周角 ACB。让 C 可沿不包含 A、B 的同一段圆弧移动，展示两角的关系。初始选择 A 到 B 的劣弧所对的优弧作为 C 的路径；不含端点；圆心角使用不超过180度的角。",
+        "checks": [
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "A",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "B",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "C",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "central",
+              "inscribed"
+            ],
+            "expression": "central/(1°)-2inscribed/(1°)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "central"
+            ],
+            "expression": "central<pi",
+            "mode": "algebra",
+            "expected": true,
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "C",
+              "arc"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "central",
+              "A",
+              "O",
+              "B"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "inscribed",
+              "A",
+              "C",
+              "B"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "circle"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "A"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "B"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "C"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "O"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "central"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "inscribed"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "edgeA"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "edgeB"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "rayA"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "rayB"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "note"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          }
+        ]
+      }
+    ],
+    "styles": [
+      {
+        "object": "circle",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "A",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "B",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "C",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "O",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "central",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "inscribed",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "edgeA",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "edgeB",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "rayA",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "rayB",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "note",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "arc",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "message",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "NotePos",
+        "properties": {
+          "visible": false
+        }
+      }
+    ],
+    "interactions": [
+      {
+        "point": "C",
+        "dx": 60,
+        "dy": -25
+      },
+      {
+        "point": "A",
+        "dx": -20,
+        "dy": -45
+      },
+      {
+        "point": "B",
+        "dx": -40,
+        "dy": 20
+      }
+    ],
+    "view": {
+      "xMin": -5,
+      "xMax": 5,
+      "yMin": -5,
+      "yMax": 6
+    }
+  }
+}

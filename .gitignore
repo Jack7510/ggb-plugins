@@ -4,3 +4,4 @@ dist/
 .runtime-*/
 output/
 .DS_Store
+.env

@@ -2,6 +2,8 @@
 
 本包是独立的 DSH npm bundle，提供 `ggb-construction` Skill、同一套编译后的 GeoGebra CLI、页面与安装器。无需 Codex、开发仓库或另一个插件的缓存。数学程序、核验与 GGB 交付仍使用统一管线。
 
+源码工程中的 Desktop 验证、日志留存与修复提示词见 [操作流程](../docs/dsh-desktop-validation.md)。该流程用于开发协作，不代替下文的独立安装包验收；随包阅读时请到源码仓库查阅此文档。
+
 ## 安装到独立 headless profile
 
 下载同版本的 `ggb-plugins-dsh-<version>.tgz` 和 `.tgz.sha256`，先运行 `shasum -a 256 -c <file>.tgz.sha256`。需要本机 DSH、Node.js 22+、pnpm 11、curl 和 unzip。
@@ -37,13 +39,13 @@ dsh --profile ggb-plugins '用 GeoGebra 作三角形 ABC，取 AB 中点 M，连
 
 构造、核验、重载和自动预览均 headless。文件写在工作区，不能写入安装包。交付目录包含 result.ggb、request.json、verification.json、preview.png 和 manifest.json。失败或未验证阻止正式交付，规则见包内 Skill 引用。
 
-成功后，持续运行的调用方可以打开本机 Google Chrome：
+成功后，持续运行的调用方可以在系统默认浏览器打开已生成文件：
 
 ```sh
 node <installed-plugin>/dist/src/cli.js preview --delivery /absolute/delivery
 ```
 
-自动预览加 `--headless`。一次性 headless 宿主退出可能回收子进程，不能依靠它保留最终窗口。关闭预览会释放专用浏览器和服务，不回写 GGB。
+自动验收使用 `preview --delivery <dir> --headless --once`，复核完成后退出并释放资源。一次性 headless 宿主退出可能回收子进程，不能依靠它保留最终窗口。通过页面“结束预览”或取消进程释放服务，不回写 GGB；仅关闭默认浏览器标签页不保证结束进程。
 
 升级使用同一 profile 的 `dsh plugin --profile ggb-plugins add <new.tgz>`，然后在实际包目录重新执行安装器并重启该 profile。卸载使用 `dsh plugin --profile ggb-plugins remove @local/ggb-plugins-dsh`，不会删除工作区交付文件。
 

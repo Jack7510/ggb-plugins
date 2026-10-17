@@ -137,7 +137,7 @@ test('native asynchronous module waits are bounded and cancellation releases res
     for (const [name, code] of [['timeout', 'execution_failed'], ['cancel', 'cancelled'], ['deadline', 'limit_exceeded']]) await t.test(name!, async () => {
       fault = `native-wait-${name}`; cancellation = new AbortController(); limits.operationMs = 1500;
       if (name === 'deadline') limits.buildMs = 1000;
-      const input = JSON.parse(await fs.readFile(join(root, 'examples/functions.json'), 'utf8')); input.outputDir = directory;
+      const input = JSON.parse(await fs.readFile(join(root, 'tests/fixtures/functions.json'), 'utf8')); input.outputDir = directory;
       await assert.rejects(build(input, cancellation.signal), (error: any) => {
         assert.equal(error.code, code); if (name === 'timeout') assert.match(error.message, /Native command timed out/); return true;
       });
@@ -207,7 +207,8 @@ test('native CAS waits and verification mutation obey the same cleanup gates', {
   try {
     for (const [name, code] of [['cas-ready', 'execution_failed'], ['cas-cancel', 'cancelled'], ['probe-mutation', 'execution_failed']]) await t.test(name!, async () => {
       fault = name!; cancellation = new AbortController();
-      const input = JSON.parse(await fs.readFile(join(root, `examples/${fault === 'probe-mutation' ? 'parabola' : 'algebra'}.json`), 'utf8'));
+      const input = JSON.parse(await fs.readFile(join(root, fault === 'probe-mutation'
+        ? 'examples/parabola.json' : 'tests/fixtures/algebra.json'), 'utf8'));
       input.outputDir = join(directory, fault);
       await assert.rejects(build(input, cancellation.signal), (e: any) => e.code === code);
       await released();

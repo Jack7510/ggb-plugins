@@ -1,0 +1,432 @@
+{
+  "protocolVersion": 2,
+  "prompt": "画一个任意三角形 ABC，构造三条中线及重心 G。允许拖动顶点，显示 G 分割每条中线所得的两段长度之比。初始坐标由 Agent 选择，三角形不退化。",
+  "locale": "zh-CN",
+  "outputDir": "output/geometry-benchmark",
+  "plan": {
+    "program": [
+      {
+        "id": "A",
+        "op": "native",
+        "mode": "algebra",
+        "source": "A=(0,0)"
+      },
+      {
+        "id": "B",
+        "op": "native",
+        "mode": "algebra",
+        "source": "B=(6,0)"
+      },
+      {
+        "id": "C",
+        "op": "native",
+        "mode": "algebra",
+        "source": "C=(2,4)"
+      },
+      {
+        "id": "triangle",
+        "op": "native",
+        "mode": "algebra",
+        "source": "triangle=Polygon(A,B,C)",
+        "outputs": [
+          "triangle",
+          "a",
+          "b",
+          "c"
+        ]
+      },
+      {
+        "id": "D",
+        "op": "native",
+        "mode": "algebra",
+        "source": "D=Midpoint(B,C)"
+      },
+      {
+        "id": "E",
+        "op": "native",
+        "mode": "algebra",
+        "source": "E=Midpoint(C,A)"
+      },
+      {
+        "id": "F",
+        "op": "native",
+        "mode": "algebra",
+        "source": "F=Midpoint(A,B)"
+      },
+      {
+        "id": "mA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "mA=Segment(A,D)"
+      },
+      {
+        "id": "mB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "mB=Segment(B,E)"
+      },
+      {
+        "id": "mC",
+        "op": "native",
+        "mode": "algebra",
+        "source": "mC=Segment(C,F)"
+      },
+      {
+        "id": "lineAD",
+        "op": "native",
+        "mode": "algebra",
+        "source": "lineAD=Line(A,D)"
+      },
+      {
+        "id": "lineBE",
+        "op": "native",
+        "mode": "algebra",
+        "source": "lineBE=Line(B,E)"
+      },
+      {
+        "id": "G",
+        "op": "native",
+        "mode": "algebra",
+        "source": "G=Intersect(lineAD,lineBE)"
+      },
+      {
+        "id": "distAG",
+        "op": "native",
+        "mode": "algebra",
+        "source": "distAG=Distance(A,G)"
+      },
+      {
+        "id": "distGD",
+        "op": "native",
+        "mode": "algebra",
+        "source": "distGD=Distance(G,D)"
+      },
+      {
+        "id": "ratioA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "ratioA=distAG/distGD"
+      },
+      {
+        "id": "distBG",
+        "op": "native",
+        "mode": "algebra",
+        "source": "distBG=Distance(B,G)"
+      },
+      {
+        "id": "distGE",
+        "op": "native",
+        "mode": "algebra",
+        "source": "distGE=Distance(G,E)"
+      },
+      {
+        "id": "ratioB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "ratioB=distBG/distGE"
+      },
+      {
+        "id": "distCG",
+        "op": "native",
+        "mode": "algebra",
+        "source": "distCG=Distance(C,G)"
+      },
+      {
+        "id": "distGF",
+        "op": "native",
+        "mode": "algebra",
+        "source": "distGF=Distance(G,F)"
+      },
+      {
+        "id": "ratioC",
+        "op": "native",
+        "mode": "algebra",
+        "source": "ratioC=distCG/distGF"
+      },
+      {
+        "id": "message",
+        "op": "native",
+        "mode": "algebra",
+        "source": "message=\"AG/GD=\"+ratioA+\"  BG/GE=\"+ratioB+\"  CG/GF=\"+ratioC"
+      },
+      {
+        "id": "NotePos",
+        "op": "native",
+        "mode": "algebra",
+        "source": "NotePos=(0,7)"
+      },
+      {
+        "id": "note",
+        "op": "native",
+        "mode": "algebra",
+        "source": "note=Text(message,NotePos)"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "geometry",
+        "source": "画一个任意三角形 ABC，构造三条中线及重心 G。允许拖动顶点，显示 G 分割每条中线所得的两段长度之比。初始坐标由 Agent 选择，三角形不退化。",
+        "checks": [
+          {
+            "kind": "nonCollinear",
+            "subjects": [
+              "A",
+              "B",
+              "C"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "A",
+              "G",
+              "D"
+            ],
+            "expression": "Distance(A,G)-2Distance(G,D)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "B",
+              "G",
+              "E"
+            ],
+            "expression": "Distance(B,G)-2Distance(G,E)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "C",
+              "G",
+              "F"
+            ],
+            "expression": "Distance(C,G)-2Distance(G,F)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "C",
+              "G",
+              "F"
+            ],
+            "expression": "AreCollinear(C,G,F)",
+            "mode": "algebra",
+            "expected": true,
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "G",
+              "A",
+              "B",
+              "C"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "note",
+              "ratioA",
+              "ratioB",
+              "ratioC"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "triangle"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "mA"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "mB"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "mC"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "G"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "D"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "E"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "F"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "note"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          }
+        ]
+      }
+    ],
+    "styles": [
+      {
+        "object": "triangle",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "mA",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "mB",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "mC",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "G",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "D",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "E",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "F",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "note",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "message",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "NotePos",
+        "properties": {
+          "visible": false
+        }
+      }
+    ],
+    "interactions": [
+      {
+        "point": "A",
+        "dx": -40,
+        "dy": 30
+      },
+      {
+        "point": "B",
+        "dx": 40,
+        "dy": 20
+      },
+      {
+        "point": "C",
+        "dx": -40,
+        "dy": -35
+      }
+    ],
+    "view": {
+      "xMin": -6,
+      "xMax": 10,
+      "yMin": -5,
+      "yMax": 9
+    }
+  }
+}

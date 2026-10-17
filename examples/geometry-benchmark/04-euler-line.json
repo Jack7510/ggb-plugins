@@ -1,0 +1,384 @@
+{
+  "protocolVersion": 2,
+  "prompt": "画一个任意三角形 ABC，构造外心 O、重心 G、垂心 H，展示欧拉线，并显示 OG 和 GH。允许拖动顶点，观察锐角、直角和钝角情况。初始坐标由 Agent 选择，三角形不退化；等边三角形时三个中心重合，欧拉线不唯一。",
+  "locale": "zh-CN",
+  "outputDir": "output/geometry-benchmark",
+  "plan": {
+    "program": [
+      {
+        "id": "A",
+        "op": "native",
+        "mode": "algebra",
+        "source": "A=(0,0)"
+      },
+      {
+        "id": "B",
+        "op": "native",
+        "mode": "algebra",
+        "source": "B=(6,0)"
+      },
+      {
+        "id": "C",
+        "op": "native",
+        "mode": "algebra",
+        "source": "C=(2,4)"
+      },
+      {
+        "id": "triangle",
+        "op": "native",
+        "mode": "algebra",
+        "source": "triangle=Polygon(A,B,C)",
+        "outputs": [
+          "triangle",
+          "a",
+          "b",
+          "c"
+        ]
+      },
+      {
+        "id": "bisAB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "bisAB=PerpendicularBisector(A,B)"
+      },
+      {
+        "id": "bisBC",
+        "op": "native",
+        "mode": "algebra",
+        "source": "bisBC=PerpendicularBisector(B,C)"
+      },
+      {
+        "id": "O",
+        "op": "native",
+        "mode": "algebra",
+        "source": "O=Intersect(bisAB,bisBC)"
+      },
+      {
+        "id": "G",
+        "op": "native",
+        "mode": "algebra",
+        "source": "G=Centroid(triangle)"
+      },
+      {
+        "id": "baseBC",
+        "op": "native",
+        "mode": "algebra",
+        "source": "baseBC=Line(B,C)"
+      },
+      {
+        "id": "altA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "altA=PerpendicularLine(A,baseBC)"
+      },
+      {
+        "id": "baseAC",
+        "op": "native",
+        "mode": "algebra",
+        "source": "baseAC=Line(A,C)"
+      },
+      {
+        "id": "altB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "altB=PerpendicularLine(B,baseAC)"
+      },
+      {
+        "id": "H",
+        "op": "native",
+        "mode": "algebra",
+        "source": "H=Intersect(altA,altB)"
+      },
+      {
+        "id": "euler",
+        "op": "native",
+        "mode": "algebra",
+        "source": "euler=Line(O,H)"
+      },
+      {
+        "id": "lenOG",
+        "op": "native",
+        "mode": "algebra",
+        "source": "lenOG=Distance(O,G)"
+      },
+      {
+        "id": "lenGH",
+        "op": "native",
+        "mode": "algebra",
+        "source": "lenGH=Distance(G,H)"
+      },
+      {
+        "id": "message",
+        "op": "native",
+        "mode": "algebra",
+        "source": "message=\"OG=\"+lenOG+\"  GH=\"+lenGH"
+      },
+      {
+        "id": "NotePos",
+        "op": "native",
+        "mode": "algebra",
+        "source": "NotePos=(0,7)"
+      },
+      {
+        "id": "note",
+        "op": "native",
+        "mode": "algebra",
+        "source": "note=Text(message,NotePos)"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "geometry",
+        "source": "画一个任意三角形 ABC，构造外心 O、重心 G、垂心 H，展示欧拉线，并显示 OG 和 GH。允许拖动顶点，观察锐角、直角和钝角情况。初始坐标由 Agent 选择，三角形不退化；等边三角形时三个中心重合，欧拉线不唯一。",
+        "checks": [
+          {
+            "kind": "nonCollinear",
+            "subjects": [
+              "A",
+              "B",
+              "C"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "O",
+              "G",
+              "H"
+            ],
+            "expression": "AreCollinear(O,G,H)",
+            "mode": "algebra",
+            "expected": true,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "lenOG",
+              "lenGH"
+            ],
+            "expression": "lenGH-2lenOG",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "G",
+              "euler"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "H",
+              "altA"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "O",
+              "A",
+              "B",
+              "C"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "H",
+              "A",
+              "B",
+              "C"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "note",
+              "lenOG",
+              "lenGH"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "triangle"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "O"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "G"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "H"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "euler"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "note"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          }
+        ]
+      }
+    ],
+    "styles": [
+      {
+        "object": "triangle",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "O",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "G",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "H",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "euler",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "note",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "altA",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "altB",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "baseBC",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "baseAC",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "message",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "NotePos",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "bisAB",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "bisBC",
+        "properties": {
+          "visible": false
+        }
+      }
+    ],
+    "interactions": [
+      {
+        "point": "A",
+        "dx": -40,
+        "dy": 30
+      },
+      {
+        "point": "B",
+        "dx": 40,
+        "dy": 20
+      },
+      {
+        "point": "C",
+        "dx": -40,
+        "dy": -35
+      }
+    ],
+    "view": {
+      "xMin": -6,
+      "xMax": 10,
+      "yMin": -5,
+      "yMax": 9
+    }
+  }
+}

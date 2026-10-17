@@ -23,123 +23,370 @@ function requirePassed(result: Verification) {
   if (result.status !== 'passed') throw new ToolError(result.status === 'failed' ? 'verification_failed' : 'verification_unverified', 'Required checks did not pass', result.results.filter(r => r.status !== 'passed'));
 }
 
-/** All problems use this one pipeline. Problem understanding belongs to the calling Codex. */
-export async function build(input: unknown, signal?: AbortSignal) {
+interface PhaseTiming { phase: string; startMs: number; durationMs: number; }
+interface FactTiming {
+  phase: string;
+  casMs: number;
+  probesMs: number;
+  valuesMs: number;
+  snapshotMs: number;
+}
+type Engine = Awaited<ReturnType<typeof openBrowser>>;
+type Page = Awaited<ReturnType<Engine['page']>>;
+type Interaction = Request['plan']['interactions'][number];
+type SampleEvidence = Interaction & {
+  method: 'mouse' | 'native_value';
+  before: Snapshot;
+  after: Verification;
+  roundTrip?: { value: number; after: Verification };
+};
+interface DeliveryResult {
+  delivery: string; file: string; report: string; warnings?: string[];
+}
+interface BuildContext {
+  started: number;
+  request: Request;
+  compiled: ReturnType<typeof compile>;
+  requestBytes: Buffer;
+  requestSha256: string;
+  running: AbortSignal;
+  run: string;
+  temp: string;
+  stage: string;
+  session?: Engine;
+  timings: PhaseTiming[];
+  observationTimings: FactTiming[];
+  diagnostics: string[];
+  timed<T>(phase: string, operation: () => Promise<T>): Promise<T>;
+}
+
+/** Validates before any filesystem or browser side effect. */
+function buildContext(input: unknown, signal?: AbortSignal): BuildContext {
   const started = performance.now();
-  const timings: { phase: string; startMs: number; durationMs: number }[] = [];
-  const observationTimings: { phase: string; casMs: number; probesMs: number; valuesMs: number; snapshotMs: number }[] = [];
-  const timed = async <T>(phase: string, operation: () => Promise<T>): Promise<T> => {
-    const start = performance.now();
-    try { return await operation(); }
-    finally { timings.push({ phase, startMs: start - started, durationMs: performance.now() - start }); }
-  };
-  let request: Request, compiled: ReturnType<typeof compile>;
-  try { signal?.throwIfAborted(); request = parseRequest(input); compiled = compile(request); }
-  catch (error) { throw toolError(error, 'invalid_input', signal); }
-  const requestBytes = Buffer.from(json(request));
-  if (requestBytes.length > limits.requestBytes) throw new ToolError('limit_exceeded', 'Request exceeds the size limit');
-  const running = AbortSignal.any([AbortSignal.timeout(limits.buildMs), ...(signal ? [signal] : [])]);
-  const requestSha256 = sha256(requestBytes);
-  let run: string | undefined;
-  let session: Awaited<ReturnType<typeof openBrowser>> | undefined;
-  let stage = 'export_failed';
-  const diagnostics: string[] = [];
+  let request: Request;
+  let compiled: ReturnType<typeof compile>;
   try {
-    await mkdir(request.outputDir, { recursive: true });
-    run = await mkdtemp(join(resolve(request.outputDir), 'ggb-'));
-    const temp = join(run, 'delivery.tmp'); await mkdir(temp);
-    await writeFile(join(run, 'request.json'), requestBytes);
-    await save(join(run, 'run.json'), { state: 'running', requestSha256 });
-    stage = 'runtime_unavailable';
-    session = await timed('browser.start', () => openBrowser(false, running));
-    const original = await timed('construction.applet', () => session!.page());
-    stage = 'execution_failed'; await timed('construction.execute', () => execute(original, compiled, request.prompt));
-    const initialFacts = await timed('construction.observe', () => observe(original, request, 'initial'));
-    observationTimings.push({ phase: 'construction', ...initialFacts.durations });
-    const construction = verify(request, initialFacts.objects, 'initial', initialFacts.observations);
-    await save(join(run, 'verification.json'), construction); requirePassed(construction);
-    stage = 'export_failed';
-    const bytes = Buffer.from(await timed('export', () => exportGgb(original)), 'base64');
-    if (bytes.length > limits.ggbBytes) throw new ToolError('limit_exceeded', 'GGB file exceeds the size limit');
-    assert(bytes.subarray(0, 2).toString() === 'PK', 'Expected a GGB ZIP archive');
-    await writeFile(join(temp, 'result.ggb'), bytes);
-    stage = 'reload_failed';
-    const reloaded = await timed('reload.applet', () => session!.page());
-    const data = (await readFile(join(temp, 'result.ggb'))).toString('base64');
-    await timed('reload.load', () => loadGgb(reloaded, data, request.prompt, request.plan.display));
-    const reloadFacts = await timed('reload.observe', () => observe(reloaded, request, 'initial'));
-    observationTimings.push({ phase: 'reload', ...reloadFacts.durations });
-    const reload = verify(request, reloadFacts.objects, 'initial', reloadFacts.observations);
-    await save(join(run, 'verification.json'), { construction, reload });
-    requirePassed(reload);
-    const differences = snapshotDifferences(reload.objects, construction.objects);
-    if (differences.length) {
-      try { await save(join(run, 'snapshot-differences.json'), differences); }
-      catch (error) { diagnostics.push('Cannot save snapshot differences: ' + String(error)); }
-    }
-    compareSnapshots(reload.objects, construction.objects);
-    // One page ahead overlaps engine initialization with the current sample.
-    // Each sample still owns a separate applet reloaded from the original file.
-    const prepareSample = () => {
-      const pending = timed('sample.applet', () => session!.page());
-      void pending.catch(() => {}); // The session owns cleanup if a prior sample fails.
-      return pending;
-    };
-    let pendingSample = request.plan.interactions.length ? prepareSample() : undefined;
-    stage = 'export_failed'; await timed('screenshot', () => reloaded.screenshot({ path: join(temp, 'preview.png') }));
-    stage = 'verification_failed';
-    const samples = [];
-    for (const [index, sample] of request.plan.interactions.entries()) {
-      const candidate = await pendingSample!;
-      pendingSample = undefined;
-      let interactionFailed = false;
+    signal?.throwIfAborted();
+    request = parseRequest(input);
+    compiled = compile(request);
+  } catch (error) {
+    throw toolError(error, 'invalid_input', signal);
+  }
+  const requestBytes = Buffer.from(json(request));
+  if (requestBytes.length > limits.requestBytes) {
+    throw new ToolError('limit_exceeded', 'Request exceeds the size limit');
+  }
+  const timings: PhaseTiming[] = [];
+  return {
+    started, request, compiled, requestBytes,
+    requestSha256: sha256(requestBytes),
+    running: AbortSignal.any([
+      AbortSignal.timeout(limits.buildMs), ...(signal ? [signal] : []),
+    ]),
+    run: '', temp: '', stage: 'export_failed',
+    timings, observationTimings: [], diagnostics: [],
+    async timed<T>(phase: string, operation: () => Promise<T>): Promise<T> {
+      const start = performance.now();
       try {
-        if (index + 1 < request.plan.interactions.length) pendingSample = prepareSample();
-        await timed('sample.load', () => loadGgb(candidate, data, request.prompt, request.plan.display));
-        const before = await snapshot(candidate);
-        const method = 'point' in sample ? (await timed('sample.drag', () => dragPoint(candidate, sample)), 'mouse' as const) : await timed('sample.parameter', () => interact(candidate, sample));
-        const sampleFacts = await timed('sample.observe', () => observe(candidate, request, 'sampled'));
-        observationTimings.push({ phase: `sample.${index}`, ...sampleFacts.durations });
-        const after = verify(request, sampleFacts.objects, 'sampled', sampleFacts.observations);
-        samples.push({ ...sample, method, before, after });
-        await save(join(run, 'verification.json'), { construction, reload, samples });
-        requirePassed(after);
-      } catch (error) { interactionFailed = true; throw error; }
-      finally {
-        try { await candidate.close(); }
-        catch (cleanup) {
-          if (!interactionFailed) throw cleanup;
-          diagnostics.push(`Interaction cleanup failed: ${cleanup instanceof Error ? cleanup.message : String(cleanup)}`);
-        }
+        return await operation();
+      } finally {
+        timings.push({
+          phase, startMs: start - started,
+          durationMs: performance.now() - start,
+        });
+      }
+    },
+  };
+}
+
+async function collect(
+  context: BuildContext, page: Page, phase: string,
+  scope: 'initial' | 'sampled',
+): Promise<Verification> {
+  const timingPhase = phase.startsWith('sample.') ? 'sample.observe' :
+    phase.startsWith('return.') ? 'sample.restore.observe' : phase + '.observe';
+  const facts = await context.timed(timingPhase,
+    () => observe(page, context.request, scope));
+  context.observationTimings.push({ phase, ...facts.durations });
+  return verify(context.request, facts.objects, scope, facts.observations);
+}
+
+/** Writes the original material; failure cannot commit a delivery. */
+async function construct(context: BuildContext): Promise<{
+  original: Page; construction: Verification; bytes: Buffer;
+}> {
+  const { request } = context;
+  await mkdir(request.outputDir, { recursive: true });
+  context.run = await mkdtemp(join(resolve(request.outputDir), 'ggb-'));
+  context.temp = join(context.run, 'delivery.tmp');
+  await mkdir(context.temp);
+  await writeFile(join(context.run, 'request.json'), context.requestBytes);
+  await save(join(context.run, 'run.json'), {
+    state: 'running', requestSha256: context.requestSha256,
+  });
+  context.stage = 'runtime_unavailable';
+  const session = await context.timed('browser.start',
+    () => openBrowser(false, context.running));
+  context.session = session;
+  const original = await context.timed('construction.applet',
+    () => session.page());
+  context.stage = 'execution_failed';
+  await context.timed('construction.execute',
+    () => execute(original, context.compiled, request.prompt));
+  const construction = await collect(
+    context, original, 'construction', 'initial',
+  );
+  await save(join(context.run, 'verification.json'), construction);
+  requirePassed(construction);
+  context.stage = 'export_failed';
+  const bytes = Buffer.from(await context.timed('export',
+    () => exportGgb(original)), 'base64');
+  if (bytes.length > limits.ggbBytes) {
+    throw new ToolError('limit_exceeded', 'GGB file exceeds the size limit');
+  }
+  assert(bytes.subarray(0, 2).toString() === 'PK',
+    'Expected a GGB ZIP archive');
+  await writeFile(join(context.temp, 'result.ggb'), bytes);
+  return { original, construction, bytes };
+}
+
+async function reload(
+  context: BuildContext, construction: Verification,
+): Promise<{ reloaded: Page; reload: Verification; data: string }> {
+  const session = context.session;
+  assert(session);
+  context.stage = 'reload_failed';
+  const reloaded = await context.timed('reload.applet', () => session.page());
+  const bytes = await readFile(join(context.temp, 'result.ggb'));
+  const data = bytes.toString('base64');
+  await context.timed('reload.load', () => loadGgb(
+    reloaded, data, context.request.prompt, context.request.plan.display,
+  ));
+  const result = await collect(context, reloaded, 'reload', 'initial');
+  await save(join(context.run, 'verification.json'), {
+    construction, reload: result,
+  });
+  requirePassed(result);
+  const differences = snapshotDifferences(result.objects, construction.objects);
+  if (differences.length) {
+    try {
+      await save(join(context.run, 'snapshot-differences.json'), differences);
+    } catch (error) {
+      context.diagnostics.push(
+        'Cannot save snapshot differences: ' + String(error));
+    }
+  }
+  compareSnapshots(result.objects, construction.objects);
+  return { reloaded, reload: result, data };
+}
+
+/** Restores a parameter on the same sample page, preserving history. */
+async function roundTrip(
+  context: BuildContext, page: Page, parameter: string,
+  before: Snapshot, index: number,
+): Promise<NonNullable<SampleEvidence['roundTrip']>> {
+  const value = before.find(fact => fact.name === parameter)?.value;
+  assert(typeof value === 'number' && Number.isFinite(value));
+  await context.timed('sample.restore',
+    () => interact(page, { parameter, value }));
+  const after = await collect(context, page, `return.${index}`, 'initial');
+  return { value, after };
+}
+
+/** Each sample owns a fresh applet; at most one next page is preloaded. */
+async function sampleInteractions(
+  context: BuildContext, artifact: Awaited<ReturnType<typeof reload>>,
+  construction: Verification,
+): Promise<SampleEvidence[]> {
+  const session = context.session;
+  assert(session);
+  const prepare = () => {
+    const page = context.timed('sample.applet', () => session.page());
+    void page.catch(() => {});
+    return page;
+  };
+  const inputs = context.request.plan.interactions;
+  let pending = inputs.length ? prepare() : undefined;
+  context.stage = 'export_failed';
+  await context.timed('screenshot', () => artifact.reloaded.screenshot({
+    path: join(context.temp, 'preview.png'),
+  }));
+  context.stage = 'verification_failed';
+  const samples: SampleEvidence[] = [];
+  const persist = () => save(join(context.run, 'verification.json'), {
+    construction, reload: artifact.reload, samples,
+  });
+  for (const [index, sample] of inputs.entries()) {
+    assert(pending);
+    const page = await pending;
+    pending = index + 1 < inputs.length ? prepare() : undefined;
+    let failed = false;
+    try {
+      await sampleOne(
+        context, artifact.data, page, sample, index, samples, persist);
+    } catch (error) {
+      failed = true;
+      await captureInteractionFailure(context, page, index);
+      throw error;
+    } finally {
+      try {
+        await page.close();
+      } catch (cleanup) {
+        if (!failed) throw cleanup;
+        context.diagnostics.push(
+          'Interaction cleanup failed: ' + String(cleanup));
       }
     }
-    const zoomResult = request.plan.display === 'algebra' ? { method: 'not_applicable' as const, reason: 'algebra-only view' } : await zoom(reloaded);
-    compareSnapshots(await snapshot(original), construction.objects);
-    const report = { milestone: 'M6', requestSha256, construction, reload, interaction: { status: 'passed', samples, zoom: zoomResult } };
-    stage = 'export_failed';
-    if (Buffer.byteLength(json(report)) > limits.reportBytes) throw new ToolError('limit_exceeded', 'Verification report exceeds the size limit');
-    await save(join(temp, 'verification.json'), report);
-    await writeFile(join(temp, 'request.json'), requestBytes);
-    await save(join(temp, 'manifest.json'), {
-      protocolVersion: 2, milestone: 'M6', runtimeVersion: await runtimeVersion(original), file: 'result.ggb',
-      sha256: sha256(bytes), requestSha256, objects: construction.objects,
+  }
+  return samples;
+}
+
+/** Screenshot diagnostics never replace the original interaction failure. */
+async function captureInteractionFailure(
+  context: BuildContext, page: Page, index: number,
+): Promise<void> {
+  try {
+    await page.screenshot({
+      path: join(context.run, `interaction-failure-${index}.png`),
+      timeout: limits.operationMs,
     });
-    // Close resources before the commit point. No fallible cleanup follows rename.
-    stage = 'export_failed'; await timed('cleanup', () => session!.close()); session = undefined;
-    running.throwIfAborted();
-    const delivery = join(run, 'delivery'); await rename(temp, delivery);
-    const warnings: string[] = [];
-    try { await save(join(run, 'run.json'), { state: 'delivered', requestSha256, delivery: 'delivery', totalMs: performance.now() - started, timings, observationTimings }); }
-    catch (error) { warnings.push(`Delivery committed; run.json update failed: ${error instanceof Error ? error.message : String(error)}`); }
-    return { delivery, file: join(delivery, 'result.ggb'), report: join(delivery, 'verification.json'), ...(warnings.length ? { warnings } : {}) };
   } catch (error) {
-    const failure = toolError(error, stage, running);
-    try { if (session) await timed('cleanup', () => session!.close()); }
-    catch (cleanup) { diagnostics.push(`Cleanup failed: ${cleanup instanceof Error ? cleanup.message : String(cleanup)}`); }
-    failure.details = { run, stage, cause: failure.details, diagnostics };
-    if (run) try { await save(join(run, 'run.json'), { state: 'failed', requestSha256, totalMs: performance.now() - started, timings, observationTimings, error: { code: failure.code, message: failure.message, details: failure.details }, diagnostics }); }
-    catch (write) { diagnostics.push(`Cannot save run.json: ${write instanceof Error ? write.message : String(write)}`); }
-    throw failure;
+    context.diagnostics.push(
+      'Cannot save interaction screenshot: ' + String(error));
+  }
+}
+
+async function sampleOne(
+  context: BuildContext, data: string, page: Page, sample: Interaction,
+  index: number, samples: SampleEvidence[], persist: () => Promise<void>,
+): Promise<void> {
+  const { request } = context;
+  await context.timed('sample.load',
+    () => loadGgb(page, data, request.prompt, request.plan.display));
+  const before = await snapshot(page);
+  const method = await context.timed(
+    'point' in sample ? 'sample.drag' : 'sample.parameter',
+    async () => {
+      if ('point' in sample) {
+        await dragPoint(page, sample);
+        return 'mouse' as const;
+      }
+      return await interact(page, sample);
+    },
+  );
+  const after = await collect(context, page, `sample.${index}`, 'sampled');
+  const evidence: SampleEvidence = { ...sample, method, before, after };
+  samples.push(evidence);
+  await persist();
+  requirePassed(after);
+  if ('parameter' in sample) {
+    evidence.roundTrip = await roundTrip(
+      context, page, sample.parameter, before, index,
+    );
+    await persist();
+    requirePassed(evidence.roundTrip.after);
+    compareSnapshots(evidence.roundTrip.after.objects, before);
+  }
+}
+
+async function commitDelivery(
+  context: BuildContext, original: Page,
+  artifact: Awaited<ReturnType<typeof reload>>,
+  construction: Verification, bytes: Buffer, samples: SampleEvidence[],
+): Promise<DeliveryResult> {
+  const session = context.session;
+  assert(session);
+  const zoomResult = context.request.plan.display === 'algebra' ?
+    { method: 'not_applicable', reason: 'algebra-only view' } :
+    await zoom(artifact.reloaded);
+  compareSnapshots(await snapshot(original), construction.objects);
+  const report = {
+    milestone: 'M6', requestSha256: context.requestSha256,
+    construction, reload: artifact.reload,
+    interaction: { status: 'passed', samples, zoom: zoomResult },
+  };
+  context.stage = 'export_failed';
+  if (Buffer.byteLength(json(report)) > limits.reportBytes) {
+    throw new ToolError('limit_exceeded',
+      'Verification report exceeds the size limit');
+  }
+  await save(join(context.temp, 'verification.json'), report);
+  await writeFile(join(context.temp, 'request.json'), context.requestBytes);
+  await save(join(context.temp, 'manifest.json'), {
+    protocolVersion: 2, milestone: 'M6',
+    runtimeVersion: await runtimeVersion(original), file: 'result.ggb',
+    sha256: sha256(bytes), requestSha256: context.requestSha256,
+    objects: construction.objects,
+  });
+  await context.timed('cleanup', () => session.close());
+  context.session = undefined;
+  context.running.throwIfAborted();
+  const delivery = join(context.run, 'delivery');
+  await rename(context.temp, delivery);
+  const warnings: string[] = [];
+  try {
+    await saveRun(context, 'delivered');
+  } catch (error) {
+    warnings.push(
+      'Delivery committed; run.json update failed: ' + String(error));
+  }
+  return {
+    delivery, file: join(delivery, 'result.ggb'),
+    report: join(delivery, 'verification.json'),
+    ...(warnings.length ? { warnings } : {}),
+  };
+}
+
+async function saveRun(
+  context: BuildContext, state: 'delivered' | 'failed', error?: ToolError,
+): Promise<void> {
+  await save(join(context.run, 'run.json'), {
+    state, requestSha256: context.requestSha256,
+    ...(state === 'delivered' ? { delivery: 'delivery' } : {}),
+    totalMs: performance.now() - context.started,
+    timings: context.timings, observationTimings: context.observationTimings,
+    ...(error ? { error: {
+      code: error.code, message: error.message, details: error.details,
+    }, diagnostics: context.diagnostics } : {}),
+  });
+}
+
+async function failBuild(
+  context: BuildContext, error: unknown,
+): Promise<never> {
+  const failure = toolError(error, context.stage, context.running);
+  const session = context.session;
+  try {
+    if (session) await context.timed('cleanup', () => session.close());
+  } catch (cleanup) {
+    context.diagnostics.push('Cleanup failed: ' + String(cleanup));
+  }
+  failure.details = {
+    run: context.run || undefined, stage: context.stage,
+    cause: failure.details, diagnostics: context.diagnostics,
+  };
+  try {
+    if (context.run) await saveRun(context, 'failed', failure);
+  } catch (write) {
+    context.diagnostics.push('Cannot save run.json: ' + String(write));
+  }
+  throw failure;
+}
+
+/** Builds from an empty canvas; verifies and closes resources before commit. */
+export async function build(
+  input: unknown, signal?: AbortSignal,
+): Promise<Awaited<ReturnType<typeof commitDelivery>>> {
+  const context = buildContext(input, signal);
+  try {
+    const initial = await construct(context);
+    const artifact = await reload(context, initial.construction);
+    const samples = await sampleInteractions(
+      context, artifact, initial.construction);
+    return await commitDelivery(context, initial.original, artifact,
+      initial.construction, initial.bytes, samples);
+  } catch (error) {
+    return await failBuild(context, error);
   }
 }
 
@@ -147,6 +394,56 @@ function validatePhase(request: Request, input: any, phase: 'initial' | 'sampled
   assert(input?.status === 'passed' && Array.isArray(input.objects) && input.objects.length > 0, 'Missing or failed verification evidence');
   const actual = verify(request, input.objects as Snapshot, phase, input.observations); requirePassed(actual);
   assert(equivalent(actual.results, input.results), 'Verification results do not match their observations');
+}
+
+/** Replays interaction decisions from stored facts before loading the file. */
+function validateSamples(
+  request: Request, samples: SampleEvidence[], original: Snapshot,
+): void {
+  for (const [index, sample] of samples.entries()) {
+    const expected = request.plan.interactions[index];
+    assert(expected);
+    const { before: _, after: __, roundTrip, method, ...input } = sample;
+    assert(equivalent(input, expected), 'Interaction sample changed');
+    compareSnapshots(sample.before, original);
+    validatePhase(request, sample.after, 'sampled');
+    const id = 'point' in expected ? expected.point : expected.parameter;
+    const before = sample.before.find(fact => fact.name === id);
+    const after = sample.after.objects.find(fact => fact.name === id);
+    assert(before && after, 'Missing interaction facts');
+    if ('point' in expected) {
+      assert(typeof after.x === 'number' && typeof before.x === 'number' &&
+        typeof after.y === 'number' && typeof before.y === 'number');
+      assert(method === 'mouse' && Math.hypot(after.x - before.x,
+        after.y - before.y) > 1e-8, 'No observed drag movement');
+    } else {
+      assert(method === 'native_value' && before.type === 'numeric' &&
+        before.independent && before.moveable && before.slider &&
+        after.value !== null && before.value !== null &&
+        Math.abs(after.value - before.value) > 1e-8 &&
+        equivalent(after.value, expected.value) &&
+        expected.value >= before.slider.min &&
+        expected.value <= before.slider.max, 'Invalid parameter evidence');
+    }
+  }
+  validateRoundTrips(request, samples);
+}
+
+/** Parameter reports must retain both forward and restored-state evidence. */
+function validateRoundTrips(request: Request, samples: SampleEvidence[]): void {
+  for (const [index, sample] of samples.entries()) {
+    const input = request.plan.interactions[index];
+    if (!input || !('parameter' in input)) {
+      assert(!sample.roundTrip, 'Unexpected round-trip evidence');
+      continue;
+    }
+    const before = sample.before.find(fact => fact.name === input.parameter);
+    assert(before && sample.roundTrip, 'Missing parameter round-trip evidence; rebuild');
+    assert(equivalent(sample.roundTrip.value, before.value),
+      'Parameter restore value changed');
+    validatePhase(request, sample.roundTrip.after, 'initial');
+    compareSnapshots(sample.roundTrip.after.objects, sample.before);
+  }
 }
 
 export async function openPreview(deliveryDir: string, headed = true, signal?: AbortSignal) {
@@ -210,20 +507,7 @@ async function preview(deliveryDir: string, headed: boolean, signal?: AbortSigna
   compareSnapshots(report.construction.objects, manifest.objects); compareSnapshots(report.reload.objects, manifest.objects);
   assert(report.interaction?.status === 'passed' && Array.isArray(report.interaction.samples), 'Missing or failed interaction evidence');
   assert.equal(report.interaction.samples.length, request.plan.interactions.length, 'Incomplete interaction coverage');
-  for (const [index, sample] of report.interaction.samples.entries()) {
-    const expected = request.plan.interactions[index]!;
-    const { before: _, after: __, method, ...input } = sample;
-    assert(equivalent(input, expected), 'Interaction sample changed');
-    compareSnapshots(sample.before, report.reload.objects); validatePhase(request, sample.after, 'sampled');
-    const id = 'point' in expected ? expected.point : expected.parameter;
-    const before = sample.before.find((f: Snapshot[number]) => f.name === id);
-    const after = sample.after.objects.find((f: Snapshot[number]) => f.name === id);
-    assert(before && after, 'Missing interaction facts');
-    if ('point' in expected) assert(method === 'mouse' && Math.hypot(after.x - before.x, after.y - before.y) > 1e-8, 'No observed drag movement');
-    else assert(method === 'native_value' && before.type === 'numeric' && before.independent && before.moveable && before.slider
-      && after.value !== null && before.value !== null && Math.abs(after.value - before.value) > 1e-8
-      && equivalent(after.value, expected.value) && expected.value >= before.slider.min && expected.value <= before.slider.max, 'Invalid parameter evidence');
-  }
+  validateSamples(request, report.interaction.samples, report.reload.objects);
   const z = report.interaction.zoom;
   if (request.plan.display === 'algebra') assert(z?.method === 'not_applicable' && z.reason === 'algebra-only view', 'Invalid algebra view evidence');
   else assert(z?.method === 'button' && Number.isFinite(z.before) && Number.isFinite(z.after) && z.before > 0 && z.after > 0 && z.before !== z.after, 'Missing zoom evidence');

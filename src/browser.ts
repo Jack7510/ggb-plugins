@@ -7,7 +7,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { resolve } from 'node:path';
 import { root, serve } from './server.js';
-import { limits, toolError, type Request, type MathValue, type Interaction } from './schema.js';
+import { limits, ToolError, toolError, type Request, type MathValue, type Interaction } from './schema.js';
 
 export async function openDefaultBrowser(url: string, signal?: AbortSignal) {
   const command = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'rundll32.exe' : 'xdg-open';
@@ -330,38 +330,105 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
   }
 }
 
-export async function dragPoint(page: Page, sample: { point: string; dx: number; dy: number }) {
-  await page.bringToFront();
+/** Waits for drawing before real mouse input. */
+async function waitForPaint(page: Page): Promise<void> {
   await page.evaluate(timeout => new Promise<void>((done, reject) => {
-    const timer = setTimeout(() => reject(new Error('Drag canvas did not paint')), timeout);
-    requestAnimationFrame(() => requestAnimationFrame(() => { clearTimeout(timer); done(); }));
+    const timer = setTimeout(() => {
+      reject(new Error('Drag canvas did not paint'));
+    }, timeout);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      clearTimeout(timer);
+      done();
+    }));
   }), limits.operationMs);
-  await page.locator('#applet canvas').first().hover({ position: { x: 40, y: 40 } });
-  const screen = await page.evaluate(point => {
+}
+
+async function dragScreen(page: Page, point: string) {
+  return await page.evaluate(point => {
     const api = window.ggb;
-    if (api.getObjectType(point) !== 'point' || !api.isMoveable(point)) throw new Error(`Expected a movable 2D point: ${point}`);
+    if (api.getObjectType(point) !== 'point' || !api.isMoveable(point)) {
+      throw new Error(`Expected a movable 2D point: ${point}`);
+    }
     const xml = new DOMParser().parseFromString(api.getXML(), 'text/xml');
     const view = xml.querySelector('euclidianView coordSystem');
-    const rect = document.querySelector('#applet canvas')?.getBoundingClientRect();
+    const canvas = document.querySelector('#applet canvas');
+    const rect = canvas?.getBoundingClientRect();
     if (!view || !rect) throw new Error('Missing graphics view');
-    const xScale = Number(view.getAttribute('scale'));
-    const yScale = Number(view.getAttribute('yscale') ?? xScale);
-    return { x: rect.x + Number(view.getAttribute('xZero')) + api.getXcoord(point) * xScale,
-      y: rect.y + Number(view.getAttribute('yZero')) - api.getYcoord(point) * yScale,
-      px: api.getXcoord(point), py: api.getYcoord(point), rect: rect.toJSON() };
-  }, sample.point);
-  for (const [x, y] of [[screen.x, screen.y], [screen.x + sample.dx, screen.y + sample.dy]]) {
-    if (x! < screen.rect.x + 8 || x! > screen.rect.right - 8 || y! < screen.rect.y + 8 || y! > screen.rect.bottom - 8) throw new Error('Drag sample is outside the view');
+    const sx = Number(view.getAttribute('scale'));
+    const sy = Number(view.getAttribute('yscale') ?? sx);
+    const px = api.getXcoord(point);
+    const py = api.getYcoord(point);
+    const pinned = new Set([...xml.querySelectorAll('element')]
+      .filter(element =>
+        element.querySelector('fixed')?.getAttribute('val') === 'true')
+      .map(element => element.getAttribute('label')));
+    // GeoGebra hits the topmost visible object, so a coincident fixed or
+    // dependent point can capture the press instead of the drag target.
+    const overlaps = api.getAllObjectNames().filter(name => name !== point &&
+      api.getObjectType(name) === 'point' && api.isDefined(name) &&
+      api.getVisible(name) &&
+      Math.hypot((api.getXcoord(name) - px) * sx,
+        (api.getYcoord(name) - py) * sy) <= 10)
+      .map(name => ({
+        name,
+        moveable: api.isMoveable(name),
+        fixed: pinned.has(name),
+      }));
+    return {
+      x: rect.x + Number(view.getAttribute('xZero')) + px * sx,
+      y: rect.y + Number(view.getAttribute('yZero')) - py * sy,
+      px, py, rect: rect.toJSON(), overlaps,
+    };
+  }, point);
+}
+
+/** Performs a real mouse drag; ambiguous point hits retain diagnostics. */
+export async function dragPoint(
+  page: Page, sample: { point: string; dx: number; dy: number },
+): Promise<void> {
+  await page.bringToFront();
+  await waitForPaint(page);
+  await page.locator('#applet canvas').first().hover({
+    position: { x: 40, y: 40 },
+  });
+  const screen = await dragScreen(page, sample.point);
+  const details = { target: sample.point, sample, screen };
+  const movable = screen.overlaps.filter(overlap => overlap.moveable);
+  const pinned = screen.overlaps.filter(overlap => overlap.fixed);
+  if (movable.length) {
+    throw new ToolError('verification_failed',
+      'Ambiguous drag target: overlapping movable points', details);
   }
-  await page.mouse.move(screen.x, screen.y); await page.mouse.down();
+  if (pinned.length) {
+    throw new ToolError('verification_failed',
+      'Ambiguous drag target: overlapping fixed points', details);
+  }
+  for (const [x, y] of [[screen.x, screen.y],
+    [screen.x + sample.dx, screen.y + sample.dy]]) {
+    if (x === undefined || y === undefined || x < screen.rect.x + 8 ||
+      x > screen.rect.right - 8 || y < screen.rect.y + 8 ||
+      y > screen.rect.bottom - 8) {
+      throw new ToolError('verification_failed',
+        'Drag sample is outside the view', details);
+    }
+  }
+  await page.mouse.move(screen.x, screen.y);
+  await page.mouse.down();
   try {
-    await page.evaluate(() => new Promise<void>((done, reject) => {
-      const timer = setTimeout(() => reject(new Error('Drag target did not render')), 30_000);
-      requestAnimationFrame(() => { clearTimeout(timer); done(); });
-    }));
-    await page.mouse.move(screen.x + sample.dx, screen.y + sample.dy, { steps: 12 });
-    await page.waitForFunction(({ point, px, py }) => Math.hypot(window.ggb.getXcoord(point) - px, window.ggb.getYcoord(point) - py) > 1e-8, { point: sample.point, px: screen.px, py: screen.py });
-  } finally { await page.mouse.up(); }
+    await waitForPaint(page);
+    await page.mouse.move(
+      screen.x + sample.dx, screen.y + sample.dy, { steps: 12 });
+    await page.waitForFunction(({ point, px, py }) =>
+      Math.hypot(window.ggb.getXcoord(point) - px,
+        window.ggb.getYcoord(point) - py) > 1e-8,
+    { point: sample.point, px: screen.px, py: screen.py },
+    { timeout: limits.operationMs });
+  } catch (error) {
+    throw new ToolError('verification_failed',
+      'Mouse drag did not complete: ' + String(error), details);
+  } finally {
+    await page.mouse.up();
+  }
 }
 
 /** Parameter samples exercise the native value setter, not simulated mouse drags. */

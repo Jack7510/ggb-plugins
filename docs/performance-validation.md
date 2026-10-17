@@ -62,8 +62,8 @@ node scripts/benchmark.mjs --baseline d82abfa --repeats 5 \
   --output output/performance-benchmark \
   hexagon=/absolute/path/to/hexagon-request.json \
   mercedes=/absolute/path/to/mercedes-request.json \
-  statistics=examples/statistics.json \
-  algebra=examples/algebra.json
+  statistics=tests/fixtures/statistics.json \
+  algebra=tests/fixtures/algebra.json
 ```
 
 脚本保存输入摘要、各次耗时、核验覆盖、交付路径和 comparison.json。四个基准输入中的前两个来自本次会话保存的案例，未加入生产题型模板；在另一工作区复现时需提供相同请求。脚本读取指定 Git 基线的模块，在内存中擦除 TypeScript 类型并重定向到本包依赖，不创建额外 checkout 或运行时依赖。比较不同引擎或协议的提交需另行设计实验，不能直接沿用本次结论。

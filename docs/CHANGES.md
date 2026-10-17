@@ -4,6 +4,16 @@
 
 ## 未发布
 
+- 增加无浏览器的请求 check、参数同副本往返核验及预览证据门禁，headless 预览可用 --once 自动收束；真实拖动提前诊断重叠点与同址固定点（`fixed:true`）并保留失败截图。采用 DSH 独立安装包进行主要端到端验收，见 [验证记录](dsh-primary-validation.md) 与 [求解稳定性 pilot](dsh-solve-stability-pilot.md)。
+
+- examples 仅保留几何题；代数、函数、统计及椭圆／统计混合输入移至 tests/fixtures，保留原始内容和回归覆盖。
+
+- Skill 补充两条编写规则：`Text` 定位点用大写开头标签或内联坐标（小写开头名字在该参数位不被解析为点对象），拖动初态避开与其它可见点（含固定点）同址。
+
+- `check` 的表达式检查报错带出 requirement:index 与缺失的 subject 名；能力契约补充比较表达式（不包 `if`）、`ArePerpendicular` 判垂直、圆半径用 `radius` 谓词三条写法。DSH Desktop 的会话库 usage 路径已写入 [Desktop 验证约定](dsh-desktop-validation.md#4-日志契约与交回分析)。
+
+- 明确插件只分析题意与作图，不提供题目答案；宿主回复与可见产物遵循 [Skill 输出边界](../skills/ggb-construction/SKILL.md#分析与作图边界)，内部计算、证据和核验门禁保留。尚未打包更新已安装副本。
+
 - 支持由 Agent 选择中文或英文工作语言，最终预览跟随请求 locale。README.md 默认英文，README.zh-CN.md 提供中文；两种分发包携带双语入口和中文 INSTALL.md，其余文档保留中文。
 
 - 优化构图运行：固定文本默认展示属性、保存重载字段差异与阶段计时；采样预加载下一份独立 applet，删除每次加载后丢弃的截图。Skill 在同一会话及未变化的安装副本内复用 doctor，数学核验和文件提交门禁保持不变。[性能验收](performance-validation.md)。

@@ -85,6 +85,40 @@ function style(value: unknown) {
   }
 }
 
+/** Validate one expression check, including its declared subject tokens. */
+function expressionCheck(check: any, requirementId: string, index: number,
+  sources: string[]) {
+  mathSource(check.expression);
+  assert(['algebra', 'cas'].includes(check.mode), 'Invalid check mode');
+  let values = 0;
+  const expected = (value: unknown, depth = 0) => {
+    assert(++values <= 256 && depth <= 8,
+      'Expected value exceeds structural limits');
+    if (Array.isArray(value)) {
+      value.forEach(v => expected(v, depth + 1));
+      return;
+    }
+    assert(typeof value === 'boolean' || typeof value === 'number',
+      'Expected boolean, number or nested list');
+    if (typeof value === 'number') finite(value, Number.MAX_VALUE);
+  };
+  expected(check.expected);
+  if ('assumptions' in check) {
+    assert(check.mode === 'cas', 'Assumptions require CAS');
+    array(check.assumptions, 1, 8);
+    for (const assumption of check.assumptions) {
+      mathSource(assumption);
+      assert(sources.some(source => source.includes(assumption)),
+        'Assumption is not in the input');
+    }
+  }
+  const tokens = mathTokens(check.expression);
+  const missing = check.subjects.filter(
+    (id: string) => !tokens.includes(id));
+  assert(missing.length === 0, `Check ${requirementId}:${index} expression `
+    + `must reference every declared subject; missing ${missing.join(', ')}`);
+}
+
 /** Validate the complete envelope before starting any browser or writing output. */
 export function parseRequest(value: unknown): Request {
   const r = record(value, ['protocolVersion', 'prompt', 'locale', 'outputDir', 'clarifications', 'plan']);
@@ -137,24 +171,7 @@ export function parseRequest(value: unknown): Request {
       c.subjects.forEach(identifier);
       assert(['initial', 'sampled'].includes(c.scope), 'Check scope must be initial or sampled');
       if (c.kind === 'expression') {
-        mathSource(c.expression); assert(['algebra', 'cas'].includes(c.mode), 'Invalid check mode');
-        let values = 0;
-        const expected = (value: unknown, depth = 0) => {
-          assert(++values <= 256 && depth <= 8, 'Expected value exceeds structural limits');
-          if (Array.isArray(value)) { value.forEach(v => expected(v, depth + 1)); return; }
-          assert(typeof value === 'boolean' || typeof value === 'number', 'Expected boolean, number or nested list');
-          if (typeof value === 'number') finite(value, Number.MAX_VALUE);
-        };
-        expected(c.expected);
-        if ('assumptions' in c) {
-          assert(c.mode === 'cas', 'Assumptions require CAS'); array(c.assumptions, 1, 8);
-          for (const assumption of c.assumptions) {
-            mathSource(assumption);
-            assert(sources.some(source => source.includes(assumption)), 'Assumption is not in the input');
-          }
-        }
-        const tokens = mathTokens(c.expression);
-        assert(c.subjects.every((id: string) => tokens.includes(id)), 'Expression must reference every declared subject');
+        expressionCheck(c, r.id, r.checks.indexOf(input), sources);
       } else for (const key of ['expression', 'expected', 'mode', 'assumptions']) assert(!(key in c), 'Unexpected expression field');
       for (const key of ['value', 'coordinates', 'properties', 'objectType']) assert((key in c) === (spec.extra === key), `Unexpected or missing ${key}`);
       if (spec.extra === 'value') { finite(c.value); assert(c.value >= 0); }

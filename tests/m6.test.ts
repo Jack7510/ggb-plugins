@@ -7,7 +7,7 @@ import { build, openPreview, sha256 } from '../src/delivery.js';
 import { parseRequest } from '../src/schema.js';
 import { root } from '../src/server.js';
 
-const fixture = async (name: string) => JSON.parse(await readFile(join(root, `examples/${name}.json`), 'utf8'));
+const fixture = async (name: string) => JSON.parse(await readFile(join(root, `tests/fixtures/${name}.json`), 'utf8'));
 
 test('nested native lists preserve small decimals, boolean types and empty lists', { timeout: 30_000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ggb-m6-values-'));

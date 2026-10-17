@@ -1,0 +1,639 @@
+{
+  "protocolVersion": 2,
+  "prompt": "画一个圆及其内接正多边形，用整数滑块控制边数 n，范围为 3 到 12。显示边数、边长和周长，改变 n 后图形自动更新。初始圆心 O=(0,0)，半径3，n=3。",
+  "locale": "zh-CN",
+  "outputDir": "output/geometry-benchmark",
+  "plan": {
+    "program": [
+      {
+        "id": "O",
+        "op": "native",
+        "mode": "algebra",
+        "source": "O=(0,0)"
+      },
+      {
+        "id": "R",
+        "op": "native",
+        "mode": "algebra",
+        "source": "R=(3,0)"
+      },
+      {
+        "id": "circle",
+        "op": "native",
+        "mode": "algebra",
+        "source": "circle=Circle(O,R)"
+      },
+      {
+        "id": "n",
+        "op": "native",
+        "mode": "algebra",
+        "source": "n=Slider(3,12,1,1,160,false,true,false,false)"
+      },
+      {
+        "id": "turn",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn=2pi/n"
+      },
+      {
+        "id": "turn1",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn1=1turn"
+      },
+      {
+        "id": "V1",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V1=Rotate(R,turn1,O)"
+      },
+      {
+        "id": "turn2",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn2=2turn"
+      },
+      {
+        "id": "V2",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V2=Rotate(R,turn2,O)"
+      },
+      {
+        "id": "turn3",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn3=3turn"
+      },
+      {
+        "id": "V3",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V3=Rotate(R,turn3,O)"
+      },
+      {
+        "id": "turn4",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn4=4turn"
+      },
+      {
+        "id": "V4",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V4=Rotate(R,turn4,O)"
+      },
+      {
+        "id": "turn5",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn5=5turn"
+      },
+      {
+        "id": "V5",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V5=Rotate(R,turn5,O)"
+      },
+      {
+        "id": "turn6",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn6=6turn"
+      },
+      {
+        "id": "V6",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V6=Rotate(R,turn6,O)"
+      },
+      {
+        "id": "turn7",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn7=7turn"
+      },
+      {
+        "id": "V7",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V7=Rotate(R,turn7,O)"
+      },
+      {
+        "id": "turn8",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn8=8turn"
+      },
+      {
+        "id": "V8",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V8=Rotate(R,turn8,O)"
+      },
+      {
+        "id": "turn9",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn9=9turn"
+      },
+      {
+        "id": "V9",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V9=Rotate(R,turn9,O)"
+      },
+      {
+        "id": "turn10",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn10=10turn"
+      },
+      {
+        "id": "V10",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V10=Rotate(R,turn10,O)"
+      },
+      {
+        "id": "turn11",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn11=11turn"
+      },
+      {
+        "id": "V11",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V11=Rotate(R,turn11,O)"
+      },
+      {
+        "id": "allVertices",
+        "op": "native",
+        "mode": "algebra",
+        "source": "allVertices={R,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11}"
+      },
+      {
+        "id": "vertices",
+        "op": "native",
+        "mode": "algebra",
+        "source": "vertices=Take(allVertices,1,n)"
+      },
+      {
+        "id": "firstVertex",
+        "op": "native",
+        "mode": "algebra",
+        "source": "firstVertex=Element(vertices,1)"
+      },
+      {
+        "id": "closedVertices",
+        "op": "native",
+        "mode": "algebra",
+        "source": "closedVertices=Append(vertices,firstVertex)"
+      },
+      {
+        "id": "shape",
+        "op": "native",
+        "mode": "algebra",
+        "source": "shape=Polyline(closedVertices)"
+      },
+      {
+        "id": "side",
+        "op": "native",
+        "mode": "algebra",
+        "source": "side=Distance(R,V1)"
+      },
+      {
+        "id": "turn12",
+        "op": "native",
+        "mode": "algebra",
+        "source": "turn12=12turn"
+      },
+      {
+        "id": "V12",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V12=Rotate(R,turn12,O)"
+      },
+      {
+        "id": "edge1",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edge1=Distance(R,V1)"
+      },
+      {
+        "id": "edge2",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edge2=Distance(V1,V2)"
+      },
+      {
+        "id": "edge3",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edge3=Distance(V2,V3)"
+      },
+      {
+        "id": "edge4",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edge4=Distance(V3,V4)"
+      },
+      {
+        "id": "edge5",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edge5=Distance(V4,V5)"
+      },
+      {
+        "id": "edge6",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edge6=Distance(V5,V6)"
+      },
+      {
+        "id": "edge7",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edge7=Distance(V6,V7)"
+      },
+      {
+        "id": "edge8",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edge8=Distance(V7,V8)"
+      },
+      {
+        "id": "edge9",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edge9=Distance(V8,V9)"
+      },
+      {
+        "id": "edge10",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edge10=Distance(V9,V10)"
+      },
+      {
+        "id": "edge11",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edge11=Distance(V10,V11)"
+      },
+      {
+        "id": "edge12",
+        "op": "native",
+        "mode": "algebra",
+        "source": "edge12=Distance(V11,V12)"
+      },
+      {
+        "id": "allEdges",
+        "op": "native",
+        "mode": "algebra",
+        "source": "allEdges={edge1,edge2,edge3,edge4,edge5,edge6,edge7,edge8,edge9,edge10,edge11,edge12}"
+      },
+      {
+        "id": "activeEdges",
+        "op": "native",
+        "mode": "algebra",
+        "source": "activeEdges=Take(allEdges,1,n)"
+      },
+      {
+        "id": "perimeter",
+        "op": "native",
+        "mode": "algebra",
+        "source": "perimeter=Sum(activeEdges)"
+      },
+      {
+        "id": "message",
+        "op": "native",
+        "mode": "algebra",
+        "source": "message=\"边数=\"+n+\"  边长=\"+side+\"  周长=\"+perimeter"
+      },
+      {
+        "id": "NotePos",
+        "op": "native",
+        "mode": "algebra",
+        "source": "NotePos=(-4,5)"
+      },
+      {
+        "id": "note",
+        "op": "native",
+        "mode": "algebra",
+        "source": "note=Text(message,NotePos)"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "geometry",
+        "source": "画一个圆及其内接正多边形，用整数滑块控制边数 n，范围为 3 到 12。显示边数、边长和周长，改变 n 后图形自动更新。初始圆心 O=(0,0)，半径3，n=3。",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "vertices",
+              "n"
+            ],
+            "expression": "Length(vertices)-n",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "vertices",
+              "O",
+              "R"
+            ],
+            "expression": "Max(Zip(abs(Distance(Q,O)-Distance(R,O)),Q,vertices))",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "vertices",
+              "n",
+              "side"
+            ],
+            "expression": "Max(Sequence(abs(Distance(Element(vertices,j),Element(vertices,Mod(j,n)+1))-side),j,1,n))",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "perimeter",
+              "side",
+              "n"
+            ],
+            "expression": "perimeter-n*side",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "shape",
+              "n",
+              "O",
+              "R"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "vertices",
+              "n",
+              "O",
+              "R"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "note",
+              "n",
+              "side",
+              "perimeter"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "circle"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "O"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "R"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "n"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "shape"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "note"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          }
+        ]
+      }
+    ],
+    "styles": [
+      {
+        "object": "circle",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "O",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "R",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "n",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "shape",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "note",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "message",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "NotePos",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "V1",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "V2",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "V3",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "V4",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "V5",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "V6",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "V7",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "V8",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "V9",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "V10",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "V11",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "allVertices",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "vertices",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "firstVertex",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "closedVertices",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "V12",
+        "properties": {
+          "visible": false
+        }
+      }
+    ],
+    "interactions": [
+      {
+        "parameter": "n",
+        "value": 4
+      },
+      {
+        "parameter": "n",
+        "value": 6
+      },
+      {
+        "parameter": "n",
+        "value": 12
+      }
+    ],
+    "view": {
+      "xMin": -5,
+      "xMax": 5,
+      "yMin": -5,
+      "yMax": 6
+    }
+  }
+}

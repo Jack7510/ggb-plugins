@@ -1,0 +1,423 @@
+{
+  "protocolVersion": 2,
+  "prompt": "在一个圆内取点 P，过 P 作两条不同直线，分别交圆于 A、B 和 C、D。显示 PA·PB 与 PC·PD，允许移动 P 和两条直线。初始圆心 O=(0,0)，半径4；P 保持在圆内，两条直线保持不同。",
+  "locale": "zh-CN",
+  "outputDir": "output/geometry-benchmark",
+  "plan": {
+    "program": [
+      {
+        "id": "O",
+        "op": "native",
+        "mode": "algebra",
+        "source": "O=(0,0)"
+      },
+      {
+        "id": "circle",
+        "op": "native",
+        "mode": "algebra",
+        "source": "circle=Circle(O,4)"
+      },
+      {
+        "id": "P",
+        "op": "native",
+        "mode": "algebra",
+        "source": "P=(0.5,0.5)"
+      },
+      {
+        "id": "U",
+        "op": "native",
+        "mode": "algebra",
+        "source": "U=(2,1.2)"
+      },
+      {
+        "id": "V",
+        "op": "native",
+        "mode": "algebra",
+        "source": "V=(-1,2.5)"
+      },
+      {
+        "id": "l",
+        "op": "native",
+        "mode": "algebra",
+        "source": "l=Line(P,U)"
+      },
+      {
+        "id": "m",
+        "op": "native",
+        "mode": "algebra",
+        "source": "m=Line(P,V)"
+      },
+      {
+        "id": "A",
+        "op": "native",
+        "mode": "algebra",
+        "source": "A=Intersect(l,circle,1)"
+      },
+      {
+        "id": "B",
+        "op": "native",
+        "mode": "algebra",
+        "source": "B=Intersect(l,circle,2)"
+      },
+      {
+        "id": "C",
+        "op": "native",
+        "mode": "algebra",
+        "source": "C=Intersect(m,circle,1)"
+      },
+      {
+        "id": "D",
+        "op": "native",
+        "mode": "algebra",
+        "source": "D=Intersect(m,circle,2)"
+      },
+      {
+        "id": "productAB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "productAB=Distance(P,A)*Distance(P,B)"
+      },
+      {
+        "id": "productCD",
+        "op": "native",
+        "mode": "algebra",
+        "source": "productCD=Distance(P,C)*Distance(P,D)"
+      },
+      {
+        "id": "message",
+        "op": "native",
+        "mode": "algebra",
+        "source": "message=\"PA×PB=\"+productAB+\"  PC×PD=\"+productCD"
+      },
+      {
+        "id": "NotePos",
+        "op": "native",
+        "mode": "algebra",
+        "source": "NotePos=(-4,6)"
+      },
+      {
+        "id": "note",
+        "op": "native",
+        "mode": "algebra",
+        "source": "note=Text(message,NotePos)"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "geometry",
+        "source": "在一个圆内取点 P，过 P 作两条不同直线，分别交圆于 A、B 和 C、D。显示 PA·PB 与 PC·PD，允许移动 P 和两条直线。初始圆心 O=(0,0)，半径4；P 保持在圆内，两条直线保持不同。",
+        "checks": [
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "A",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "B",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "C",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "D",
+              "circle"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "A",
+              "P",
+              "B"
+            ],
+            "expression": "AreCollinear(A,P,B)",
+            "mode": "algebra",
+            "expected": true,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "C",
+              "P",
+              "D"
+            ],
+            "expression": "AreCollinear(C,P,D)",
+            "mode": "algebra",
+            "expected": true,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "productAB",
+              "productCD"
+            ],
+            "expression": "productAB-productCD",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "P",
+              "O"
+            ],
+            "expression": "Distance(P,O)<4",
+            "mode": "algebra",
+            "expected": true,
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "A",
+              "P",
+              "U"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "C",
+              "P",
+              "V"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "circle"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "P"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "U"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "V"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "l"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "m"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "A"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "B"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "C"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "D"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "note"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          }
+        ]
+      }
+    ],
+    "styles": [
+      {
+        "object": "circle",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "P",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "U",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "V",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "l",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "m",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "A",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "B",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "C",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "D",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "note",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "message",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "NotePos",
+        "properties": {
+          "visible": false
+        }
+      }
+    ],
+    "interactions": [
+      {
+        "point": "P",
+        "dx": 30,
+        "dy": -25
+      },
+      {
+        "point": "U",
+        "dx": 35,
+        "dy": -30
+      },
+      {
+        "point": "V",
+        "dx": -30,
+        "dy": -20
+      }
+    ],
+    "view": {
+      "xMin": -6,
+      "xMax": 6,
+      "yMin": -5,
+      "yMax": 7
+    }
+  }
+}

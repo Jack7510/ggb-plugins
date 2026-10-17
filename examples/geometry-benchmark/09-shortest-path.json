@@ -1,0 +1,453 @@
+{
+  "protocolVersion": 2,
+  "prompt": "画一条直线 l，在同一侧取 A、B 两点。在线上取可拖动点 P，用轴对称法构造使 AP＋PB 最小的点 P₀，并同时显示当前路径和最短路径。初始 l 为 x 轴，A=(0,3)、B=(6,4)，A、B 保持在线的同一侧。",
+  "locale": "zh-CN",
+  "outputDir": "output/geometry-benchmark",
+  "plan": {
+    "program": [
+      {
+        "id": "l",
+        "op": "native",
+        "mode": "algebra",
+        "source": "l: y=0"
+      },
+      {
+        "id": "A",
+        "op": "native",
+        "mode": "algebra",
+        "source": "A=(0,3)"
+      },
+      {
+        "id": "B",
+        "op": "native",
+        "mode": "algebra",
+        "source": "B=(6,4)"
+      },
+      {
+        "id": "P",
+        "op": "native",
+        "mode": "algebra",
+        "source": "P=Point(l)",
+        "initial": [
+          2,
+          0
+        ]
+      },
+      {
+        "id": "Aprime",
+        "op": "native",
+        "mode": "algebra",
+        "source": "Aprime=Reflect(A,l)"
+      },
+      {
+        "id": "cross",
+        "op": "native",
+        "mode": "algebra",
+        "source": "cross=Line(Aprime,B)"
+      },
+      {
+        "id": "Pzero",
+        "op": "native",
+        "mode": "algebra",
+        "source": "Pzero=Intersect(cross,l)"
+      },
+      {
+        "id": "currentA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "currentA=Segment(A,P)"
+      },
+      {
+        "id": "currentB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "currentB=Segment(P,B)"
+      },
+      {
+        "id": "bestA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "bestA=Segment(A,Pzero)"
+      },
+      {
+        "id": "bestB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "bestB=Segment(Pzero,B)"
+      },
+      {
+        "id": "distAP",
+        "op": "native",
+        "mode": "algebra",
+        "source": "distAP=Distance(A,P)"
+      },
+      {
+        "id": "distPB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "distPB=Distance(P,B)"
+      },
+      {
+        "id": "lengthNow",
+        "op": "native",
+        "mode": "algebra",
+        "source": "lengthNow=distAP+distPB"
+      },
+      {
+        "id": "distAZ",
+        "op": "native",
+        "mode": "algebra",
+        "source": "distAZ=Distance(A,Pzero)"
+      },
+      {
+        "id": "distZB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "distZB=Distance(Pzero,B)"
+      },
+      {
+        "id": "lengthBest",
+        "op": "native",
+        "mode": "algebra",
+        "source": "lengthBest=distAZ+distZB"
+      },
+      {
+        "id": "message",
+        "op": "native",
+        "mode": "algebra",
+        "source": "message=\"当前路径=\"+lengthNow+\"  最短路径=\"+lengthBest"
+      },
+      {
+        "id": "NotePos",
+        "op": "native",
+        "mode": "algebra",
+        "source": "NotePos=(-3,7)"
+      },
+      {
+        "id": "note",
+        "op": "native",
+        "mode": "algebra",
+        "source": "note=Text(message,NotePos)"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "geometry",
+        "source": "画一条直线 l，在同一侧取 A、B 两点。在线上取可拖动点 P，用轴对称法构造使 AP＋PB 最小的点 P₀，并同时显示当前路径和最短路径。初始 l 为 x 轴，A=(0,3)、B=(6,4)，A、B 保持在线的同一侧。",
+        "checks": [
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "P",
+              "l"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "Pzero",
+              "l"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "A",
+              "Aprime",
+              "l"
+            ],
+            "expression": "Distance(A,l)-Distance(Aprime,l)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "A",
+              "Aprime"
+            ],
+            "expression": "x(A)-x(Aprime)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "A",
+              "Aprime"
+            ],
+            "expression": "y(A)+y(Aprime)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "lengthNow",
+              "lengthBest"
+            ],
+            "expression": "lengthNow>=lengthBest",
+            "mode": "algebra",
+            "expected": true,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "lengthBest",
+              "Aprime",
+              "B"
+            ],
+            "expression": "lengthBest-Distance(Aprime,B)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "Pzero",
+              "A",
+              "B",
+              "l"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "note",
+              "lengthNow",
+              "lengthBest"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "l"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "A"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "B"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "P"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "Aprime"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "Pzero"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "currentA"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "currentB"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "bestA"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "bestB"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          },
+          {
+            "kind": "style",
+            "subjects": [
+              "note"
+            ],
+            "scope": "sampled",
+            "properties": {
+              "visible": true
+            }
+          }
+        ]
+      }
+    ],
+    "styles": [
+      {
+        "object": "l",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "A",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "B",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "P",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "Aprime",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "Pzero",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "currentA",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "currentB",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "bestA",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "bestB",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "note",
+        "properties": {
+          "visible": true
+        }
+      },
+      {
+        "object": "cross",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "message",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "NotePos",
+        "properties": {
+          "visible": false
+        }
+      }
+    ],
+    "interactions": [
+      {
+        "point": "P",
+        "dx": 70,
+        "dy": 0
+      },
+      {
+        "point": "A",
+        "dx": -30,
+        "dy": -20
+      },
+      {
+        "point": "B",
+        "dx": 30,
+        "dy": -20
+      }
+    ],
+    "view": {
+      "xMin": -6,
+      "xMax": 10,
+      "yMin": -5,
+      "yMax": 9
+    }
+  }
+}

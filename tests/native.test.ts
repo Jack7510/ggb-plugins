@@ -8,7 +8,10 @@ import { root } from '../src/server.js';
 import { parseRequest } from '../src/schema.js';
 import { compile } from '../src/compile.js';
 
-const fixture = async (name: string) => JSON.parse(await readFile(join(root, `examples/${name}.json`), 'utf8'));
+const fixture = async (name: string) => {
+  const directory = name === 'algebra' ? 'tests/fixtures' : 'examples';
+  return JSON.parse(await readFile(join(root, directory, `${name}.json`), 'utf8'));
+};
 
 test('native program contract accepts new mathematical commands without wrappers and rejects effects', async () => {
   const input = await fixture('algebra');
