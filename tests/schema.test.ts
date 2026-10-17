@@ -24,8 +24,8 @@ test('M6 value, assumption and interaction envelopes reject invalid extensions b
   ];
   for (const change of cases) { const input = structuredClone(original); change(input); assert.throws(() => parseRequest(input)); }
 });
-test('reserved GeoGebra names are rejected before execution', () => {
-  for (const name of ['ln', 'sin', 'Circle', 'Text', 'true']) {
+test('reserved step IDs are rejected while engine-owned outputs may use reserved labels', () => {
+  for (const name of ['ln', 'sin', 'Circle', 'Text', 'true', 'Segment']) {
     const input = structuredClone(fixture);
     input.plan.program[0].id = name;
     assert.throws(() => parseRequest(input),
@@ -36,7 +36,7 @@ test('reserved GeoGebra names are rejected before execution', () => {
     id: 'helper', op: 'native', source: 'helper=1', mode: 'algebra',
     outputs: ['helper', 'Segment'],
   });
-  assert.throws(() => parseRequest(outputs), /Reserved GeoGebra name: Segment/);
+  assert.doesNotThrow(() => parseRequest(outputs));
 });
 test('filling accepts fractions and rejects out-of-range values', () => {
   const sample = structuredClone(fixture);
