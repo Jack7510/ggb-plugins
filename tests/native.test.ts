@@ -89,6 +89,19 @@ test('native failures and unresolved probes never commit delivery', { timeout: 1
       ['CAS syntax', r => { r.plan.program[0].source = 'Factor('; }, 'execution_failed'],
       ['missing declared output', r => { r.plan.program[0] = { id: 'factored', op: 'native', mode: 'algebra', source: 'other=1' }; }, 'execution_failed'],
     ];
+    await t.test('failed execution names the missing outputs', async () => {
+      const input = await fixture('algebra');
+      input.outputDir = join(directory, 'missing-output');
+      input.plan.program[0] = {
+        id: 'factored', op: 'native', mode: 'algebra', source: 'other=1',
+      };
+      await assert.rejects(build(input), (error: any) => {
+        assert.equal(error.code, 'execution_failed');
+        assert.match(String(error.message), /actual labels: other/);
+        assert.match(String(error.message), /missing: factored/);
+        return true;
+      });
+    });
     await t.test('native fixed coordinates cannot counterfeit a dependency', async () => {
       const input = await fixture('parabola'); input.outputDir = join(directory, 'fake-dependent-point');
       input.plan.program.find((step: any) => step.id === 'T').source = 'T=(1,2)';
