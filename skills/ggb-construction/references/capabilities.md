@@ -126,6 +126,8 @@ CAS 物化的是当次计算结果，不是动态 CAS 单元；它不会自动�
 
 `expression` 检查有 subjects、expression、mode、expected 和 scope。subjects 必须指向程序声明的对象且实际出现在表达式中。expected 为布尔、有限数值或嵌套数组（列表／矩阵），不是模型提交的 passed。
 
+构造命令直接保证的关系不算独立核验：路径点（`P=Point(el)`）必然在路径上，`Midpoint(A,B)` 必然是中点，`Circle(O,r)` 的圆心必然是 `O`，`Line(P,l)` 与 `l` 平行，`OrthogonalLine(P,l)` 与 `l` 垂直，`Intersect(a,b)` 同时落在两条曲线上。对这些关系再写 `pointOn`／`midpoint`／`center`／`parallel`／`perpendicular` 只核对引擎行为，不能当作题设条件的证据。`check` 会以 `warnings` 列出这类检查（不改通过状态）；题设条件另需一条独立关系，例如椭圆的 `Distance(P,F1)+Distance(P,F2)=2a`。
+
 `expected` 必须独立求出：按题目条件和本次构造推导，不从 `build` 的失败证据、`inspect` 结果或上一轮观测里抄数值。检查的意义在于声明值与引擎值独立相符；把观测值抄回 expected 只是自复述。观测与推导不一致时，先用证据区分构造错误与计算错误，再只改对应的一项。`verification_failed` 的 details 给出 subjects 的实际事实（坐标、数值、可见性等），它是诊断依据，不是期望值来源。每个结构最多 256 个节点、深度最多 8；布尔值不会与数值 0/1 混同，数组逐项采用固定容差和灰区判定。
 
 - Algebra 例：`Distance(T,p)` 期望 0；`AreEqual(Tangent(T,p),b)` 期望 true。

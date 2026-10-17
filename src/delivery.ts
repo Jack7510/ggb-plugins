@@ -12,6 +12,7 @@ import {
   commandTokens, diffViolations, editFields, requireEffects, validateTargets,
 } from './edit.js';
 import { compile, type BaseFacts } from './compile.js';
+import { tautologies } from './tautology.js';
 import {
   modifyViolations, requireUpdateEffects, updateFields, valueMatches,
   validateModifyStyles, validateUpdates, type BaseFact,
@@ -660,10 +661,13 @@ async function commitDelivery(
   assert(session);
   const zoomResult = await zoomEvidence(context, artifact.reloaded);
   compareSnapshots(await snapshot(original), construction.objects);
+  const guaranteed = tautologies(context.request.plan.program,
+    context.request.plan.requirements);
   const report = {
     milestone: 'M6', requestSha256: context.requestSha256,
     construction, reload: artifact.reload,
     interaction: { status: 'passed', samples, zoom: zoomResult },
+    ...(guaranteed.length ? { tautology: guaranteed } : {}),
   };
   context.stage = 'export_failed';
   if (Buffer.byteLength(json(report)) > limits.reportBytes) {
