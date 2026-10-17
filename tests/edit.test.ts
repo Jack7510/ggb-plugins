@@ -81,6 +81,36 @@ test('archive audit rejects scripts, custom tools and opaque materials', () => {
   reject(archive(''), /no objects/);
 });
 
+test('archive labels are decoded and keep their actual names', () => {
+  const summary = auditGgb(archive(
+    element('segment', 'L_2&apos;') + element('angle', '&#x3B8;1') +
+    element('point', 'A&amp;B')));
+  assert.deepEqual(summary.objects.map(object => object.name),
+    ["L_2'", 'θ1', 'A&B']);
+});
+
+test('edit targets accept the labels real files contain', () => {
+  const input: any = editRequest();
+  input.plan.edits = [
+    { object: 'θ1', properties: { color: '#1F8F3A' } },
+    { object: "L_2'", properties: { lineThickness: 8 } },
+  ];
+  input.plan.requirements[0].checks = [
+    { kind: 'style', subjects: ['θ1'], scope: 'initial',
+      properties: { color: '#1F8F3A' } },
+    { kind: 'style', subjects: ["L_2'"], scope: 'initial',
+      properties: { lineThickness: 8 } },
+  ];
+  const request = parseRequest(input);
+  assert.deepEqual(request.plan.edits?.map(edit => edit.object),
+    ['θ1', "L_2'"]);
+  for (const bad of ['', 'A B', 'A"B', 'A<B', '\u0000A', 'x'.repeat(65)]) {
+    const broken: any = editRequest();
+    broken.plan.edits[0].object = bad;
+    assert.throws(() => parseRequest(broken), /Invalid base object name/);
+  }
+});
+
 test('edit requests carry a digest and never mix with a program', () => {
   const request = parseRequest(editRequest());
   assert.equal(request.base?.sha256, sha);
@@ -105,7 +135,7 @@ test('edit requests carry a digest and never mix with a program', () => {
     input.plan.edits.push({ object: 'circ', properties: { visible: true } });
   },
     /Duplicate edit target/);
-  reject(input => { input.plan.edits[0].object = 'A)'; },
+  reject(input => { input.plan.edits[0].object = 'A"B'; },
     /Invalid base object name/);
   reject(input => {
     input.plan.interactions = [{ point: 'O', dx: 40, dy: 0 }];
