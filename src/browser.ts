@@ -282,7 +282,17 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
         source = `${step.id}=(${result})`;
       }
       const labels = step.op === 'native' ? (await api.asyncEvalCommandGetLabels(source))?.split(',').filter(Boolean) : null;
-      if ((step.op === 'native' ? !labels?.length : !api.evalCommand(source)) || outputs.some(id => !api.isDefined(id))) throw new Error(`Execution failed or output undefined: ${step.id}`);
+      // Execute before probing definedness: a structured step defines its
+      // outputs inside evalCommand, so a pre-check reports every output missing.
+      const executed = step.op === 'native' ?
+        Boolean(labels?.length) : api.evalCommand(source);
+      const missing = outputs.filter(id => !api.isDefined(id));
+      if (!executed || missing.length > 0) {
+        const detail = `actual labels: ${labels?.join(',') ?? 'none'}`
+          + `; missing: ${missing.join(',') || 'none'}`;
+        throw new Error(
+          `Execution failed or output undefined: ${step.id}; ${detail}`);
+      }
       if (labels && (labels.length !== outputs.length || labels.some(id => !outputs.includes(id)))) throw new Error(`Incomplete native outputs: ${step.id}: ${labels.join(',')}`);
       if (step.op === 'native' && api.getAllObjectNames().some(id => !before.includes(id) && !outputs.includes(id) && api.isIndependent(id)))
         throw new Error(`Undeclared independent output: ${step.id}`);
