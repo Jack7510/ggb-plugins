@@ -1,12 +1,17 @@
 /**
  * @fileoverview Owns GeoGebra execution and browser resources via Playwright.
  */
-import { chromium, type Browser, type Page } from 'playwright';
+import {
+  chromium, type Browser, type BrowserContext, type Page,
+} from 'playwright';
 import { readFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { resolve } from 'node:path';
 import { root, serve } from './server.js';
+import {
+  dependencyFacts, presentationOwner, type ObjectMetadata, type ReferenceFact,
+} from './facts.js';
 import type { EditEffect, UpdateEffect } from './edit.js';
 import { limits, ToolError, toolError, type Edit, type Request, type MathValue, type Interaction, type Style, type Update } from './schema.js';
 
@@ -151,11 +156,25 @@ async function launchBrowser(headed: boolean, signal?: AbortSignal) {
 export const runtimeVersion = (page: Page) => page.evaluate(() =>
   new DOMParser().parseFromString(window.ggb.getXML(), 'text/xml').documentElement.getAttribute('version'));
 
-export const exportGgb = (page: Page) => page.evaluate(timeout =>
-  new Promise<string>((done, reject) => {
-    const timer = setTimeout(() => reject(new Error('GGB export timed out')), timeout);
-    window.ggb.getBase64(data => { clearTimeout(timer); done(data); });
-  }), limits.operationMs);
+/** Every consumer receives a bounded ZIP payload or the same export error. */
+export async function exportGgb(page: Page): Promise<string> {
+  try {
+    const data = await page.evaluate(timeout => new Promise<string>(
+      (done, reject) => {
+        const timer = setTimeout(() => reject(
+          new Error('GGB export timed out')), timeout);
+        window.ggb.getBase64(base64 => { clearTimeout(timer); done(base64); });
+      }), limits.operationMs);
+    const bytes = Buffer.from(data, 'base64');
+    if (bytes.length > limits.ggbBytes) {
+      throw new ToolError('limit_exceeded', 'GGB file exceeds the size limit');
+    }
+    if (bytes.subarray(0, 2).toString() !== 'PK') {
+      throw new ToolError('export_failed', 'Expected a GGB ZIP archive');
+    }
+    return data;
+  } catch (error) { throw toolError(error, 'export_failed'); }
+}
 
 /** Loads exported bytes, waits for data readiness and updates viewer text. */
 export async function loadGgb(
@@ -192,89 +211,201 @@ export async function loadGgb(
   }, display);
 }
 
-export async function snapshot(page: Page) {
-  const facts = await page.evaluate(() => {
-    const api = window.ggb;
-    const xml = new DOMParser().parseFromString(api.getXML(), 'text/xml');
-    const elements = new Map([...xml.querySelectorAll('construction > element')].map(e => [e.getAttribute('label'), e]));
-    const definitions = new Map([...xml.querySelectorAll('construction > command')].flatMap(command =>
-      [...(command.querySelector('output')?.attributes ?? [])].map(output => [output.value, {
-        name: command.getAttribute('name')!, args: [...(command.querySelector('input')?.attributes ?? [])].map(attribute => attribute.value),
-      }] as const)));
-    const expressions = new Map([...xml.querySelectorAll('construction > expression')].map(e => [e.getAttribute('label'), e.getAttribute('exp')]));
-    const names = api.getAllObjectNames();
-    const finite = (n: number) => Number.isFinite(n) ? n : null;
-    return names.sort().map(name => {
-      const nativeType = api.getObjectType(name);
-      const type = ['triangle', 'quadrilateral', 'pentagon', 'hexagon', 'polygon'].includes(nativeType) ? 'polygon' : nativeType;
-      const element = elements.get(name);
-      // The API aliases point3d to point; XML retains its actual dimension.
-      if (/3d/i.test(element?.getAttribute('type') ?? '')) {
-        throw new Error(`Unsupported spatial object: ${name}`);
-      }
-      const expression = expressions.get(name) ?? '';
-      // Canonical function declarations explicitly name their bound variables.
-      // Nested commands with local binders remain ambiguous.
-      const parameters = /^[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?\(([^()]*)\)\s*=/.exec(expression)?.[1]?.split(',').map(s => s.trim()) ?? [];
-      const c = element?.querySelector('coords');
-      const m = element?.querySelector('matrix');
-      const coefficients = type === 'line' && c ? ['x', 'y', 'z'].map(k => Number(c.getAttribute(k))) : null;
-      const norm = coefficients ? Math.hypot(coefficients[0]!, coefficients[1]!) * (coefficients[0] === 0 ? Math.sign(coefficients[1]!) : Math.sign(coefficients[0]!)) : 0;
-      const line = coefficients && norm ? coefficients.map(n => finite(n / norm)) : null;
-      let circle: { x: number; y: number; radius: number } | null = null;
-      // GeoGebra stores a conic as a homogeneous 3x3 matrix
-      // (A0..A5 = a11, a22, a33, a12, a13, a23), so the implicit form
-      // A0x^2 + 2A3xy + A1y^2 + 2A4x + 2A5y + A2 = 0 is available for every
-      // conic, not only for circles.
-      const conic = m && ['conic', 'ellipse', 'hyperbola', 'parabola']
-        .includes(type) ?
-        Array.from({ length: 6 }, (_, i) => Number(m.getAttribute('A' + i))) :
-        null;
-      if (type === 'circle' && m) {
-        const a = conic ?? Array.from({ length: 6 },
-          (_, i) => Number(m.getAttribute('A' + i)));
-        const x = -a[4]! / a[0]!, y = -a[5]! / a[1]!;
-        const radius = api.getValue(`Radius(${name})`);
-        if ([x, y, radius].every(Number.isFinite)) circle = { x, y, radius };
-      }
-      return {
-        name, type, nativeType, defined: api.isDefined(name), independent: api.isIndependent(name), moveable: api.isMoveable(name),
-        command: api.getCommandString(name, false),
-        nativeDefinition: definitions.get(name) ?? null,
-        referenceState: (() => {
-          const args = definitions.get(name)?.args;
-          // Local binders and nested expressions cannot be resolved by token
-          // matching alone. Preserve them as evidence, never certify such edges.
-          const body = expression.replace(/^[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?\([^()]*\)\s*=/, '');
-          const scopedExpression = !args && ((!api.isIndependent(name) && /function/.test(nativeType) && !parameters.length)
-            || /[A-Za-z][A-Za-z0-9_]*\s*[\[(][^\])]*,/.test(body));
-          return scopedExpression || args && (new Set(args).size !== args.length || args.some(s => !/^(?:[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?|-?\d+(?:\.\d+)?(?:E[-+]?\d+)?)$/.test(s))) ? 'ambiguous' : 'direct';
-        })(),
-        expression: expressions.get(name) ?? null,
-        inputs: [...new Set([...(definitions.get(name)?.args ?? []), expression].flatMap(s => s.replace(/"(?:\\.|[^"\\])*"/g, ' ').match(/[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?/g) ?? []).filter(token => token !== name && !parameters.includes(token) && names.includes(token)))],
-        valueString: api.getValueString(name, false),
-        x: type === 'point' ? finite(api.getXcoord(name)) : null,
-        y: type === 'point' ? finite(api.getYcoord(name)) : null,
-        value: finite(api.getValue(name)), line, circle,
-        conic: conic?.every(Number.isFinite) ? conic : null,
-        color: api.getColor(name), visible: api.getVisible(name), labelVisible: api.getLabelVisible(name), labelStyle: api.getLabelStyle(name),
-        lineThickness: api.getLineThickness(name),
-        lineStyle: api.getLineStyle(name),
-        filling: finite(api.getFilling(name)),
-        caption: api.getCaption(name, false),
-        fixed: element?.querySelector('fixed')?.getAttribute('val') === 'true',
-        slider: element?.querySelector('slider') ? {
-          min: api.getValue(element.querySelector('slider')!.getAttribute('min')!),
-          max: api.getValue(element.querySelector('slider')!.getAttribute('max')!),
-        } : null,
-      };
-    });
+/** Reads canonical XML metadata without interpreting mathematical source. */
+function readConstructionMetadata(): ObjectMetadata[] {
+  const api = window.ggb;
+  const xml = new DOMParser().parseFromString(api.getXML(), 'text/xml');
+  const commands = [...xml.querySelectorAll('construction > command')];
+  const definitions = new Map(commands
+    .flatMap(command => {
+      const args = [...(command.querySelector('input')?.attributes ?? [])]
+        .map(attribute => attribute.value);
+      const outputs = [...(command.querySelector('output')?.attributes ?? [])]
+        .map(attribute => attribute.value);
+      return outputs.map(name => [name, {
+        definition: { name: command.getAttribute('name') ?? '', args }, outputs,
+      }] as const);
+    }));
+  const expressionNodes = [...xml.querySelectorAll('construction > expression')];
+  const expressions = new Map(expressionNodes
+    .map(e => [e.getAttribute('label'), e.getAttribute('exp')]));
+  return [...xml.querySelectorAll('construction > element')].map(element => {
+    const name = element.getAttribute('label') ?? '';
+    const numbers = (node: string, fields: string[]) => {
+      const child = element.querySelector(node);
+      return child ? fields.map(field => Number(child.getAttribute(field)))
+        : null;
+    };
+    const slider = element.querySelector('slider');
+    return {
+      name, xmlType: element.getAttribute('type') ?? '',
+      expression: expressions.get(name) ?? null,
+      definition: definitions.get(name)?.definition ?? null,
+      outputs: definitions.get(name)?.outputs ?? [],
+      coords: numbers('coords', ['x', 'y', 'z']),
+      matrix: numbers('matrix', ['A0', 'A1', 'A2', 'A3', 'A4', 'A5']),
+      fixed: element.querySelector('fixed')?.getAttribute('val') === 'true',
+      slider: slider ? {
+        min: api.getValue(slider.getAttribute('min') ?? ''),
+        max: api.getValue(slider.getAttribute('max') ?? ''),
+      } : null,
+    };
   });
-  const lists = facts.filter(fact => fact.type === 'list').map(fact => fact.name);
-  const values = lists.length ? await page.evaluate(nativeValues, lists) : [];
-  return facts.map(fact => ({ ...fact, data: fact.type === 'list' ? values[lists.indexOf(fact.name)] ?? null : null }));
 }
-export type Snapshot = Awaited<ReturnType<typeof snapshot>>;
+
+/** Reads engine values separately from dependency and ownership policy. */
+function readNativeFacts() {
+  const api = window.ggb;
+  const finite = (value: number) => Number.isFinite(value) ? value : null;
+  return api.getAllObjectNames().sort().map(name => {
+    const nativeType = api.getObjectType(name);
+    const type = ['triangle', 'quadrilateral', 'pentagon', 'hexagon', 'polygon']
+      .includes(nativeType) ? 'polygon' : nativeType;
+    return {
+      name, type, nativeType, defined: api.isDefined(name),
+      independent: api.isIndependent(name), moveable: api.isMoveable(name),
+      command: api.getCommandString(name, false),
+      valueString: api.getValueString(name, false),
+      x: type === 'point' ? finite(api.getXcoord(name)) : null,
+      y: type === 'point' ? finite(api.getYcoord(name)) : null,
+      value: finite(api.getValue(name)),
+      radius: type === 'circle'
+        ? finite(api.getValue(`Radius(${name})`)) : null,
+      color: api.getColor(name), visible: api.getVisible(name),
+      labelVisible: api.getLabelVisible(name),
+      labelStyle: api.getLabelStyle(name),
+      lineThickness: api.getLineThickness(name),
+      lineStyle: api.getLineStyle(name),
+      filling: finite(api.getFilling(name)),
+      caption: api.getCaption(name, false),
+    };
+  });
+}
+
+type NativeFact = ReturnType<typeof readNativeFacts>[number];
+
+/** Canonical numeric geometry is shared by every verifier and diff. */
+function geometry(fact: NativeFact, metadata: ObjectMetadata) {
+  const finite = (value: number) => Number.isFinite(value) ? value : null;
+  const coefficients = fact.type === 'line' ? metadata.coords : null;
+  const norm = coefficients
+    ? Math.hypot(coefficients[0] ?? 0, coefficients[1] ?? 0)
+      * Math.sign(coefficients[0] || coefficients[1] || 0) : 0;
+  const line = coefficients && norm ? coefficients.map(n => finite(n / norm))
+    : null;
+  const matrix = metadata.matrix;
+  const conic = matrix?.every(Number.isFinite) ? matrix : null;
+  const x = matrix ? -(matrix[4] ?? NaN) / (matrix[0] ?? NaN) : NaN;
+  const y = matrix ? -(matrix[5] ?? NaN) / (matrix[1] ?? NaN) : NaN;
+  const circle = fact.type === 'circle' && Number.isFinite(x)
+    && Number.isFinite(y) && fact.radius !== null
+    ? { x, y, radius: fact.radius } : null;
+  return { line, circle, conic: fact.type === 'circle' ? null : conic };
+}
+
+type CompletedFact = Omit<NativeFact, 'radius'>
+  & ReturnType<typeof geometry>
+  & Pick<ReferenceFact,
+    'inputs' | 'referenceState' | 'styleOwner' | 'styleFields'>
+  & Pick<ObjectMetadata, 'expression' | 'fixed' | 'slider'>
+  & { nativeDefinition: ObjectMetadata['definition'] };
+
+/** Joins native identity metadata and observed values without guessing. */
+function completeFact(fact: NativeFact, metadata: ObjectMetadata,
+  inputs: string[], types: ReadonlyMap<string, string>): CompletedFact {
+  if (/3d/i.test(metadata.xmlType)) {
+    throw new Error(`Unsupported spatial object: ${fact.name}`);
+  }
+  const { radius, ...observed } = fact;
+  return {
+    ...observed, ...geometry(fact, metadata),
+    nativeDefinition: metadata.definition, expression: metadata.expression,
+    inputs, referenceState: 'direct' as const,
+    ...presentationOwner(metadata, types),
+    fixed: metadata.fixed, slider: metadata.slider,
+  };
+}
+
+/** Engine-only dependency introspection uses an isolated, disposable copy. */
+const dependencyCache = new WeakMap<BrowserContext, {
+  xml: string; graph: Promise<Map<string, string[]>>;
+}>();
+
+/** Reuses graph evidence only for identical XML in this browser context. */
+async function nativeDependencies(page: Page,
+  names: string[]): Promise<Map<string, string[]>> {
+  if (!names.length) return new Map();
+  const xml = await page.evaluate(() => window.ggb.getXML());
+  const context = page.context();
+  const cached = dependencyCache.get(context);
+  if (cached?.xml === xml) return cached.graph;
+  const graph = probeDependencies(page, names, xml);
+  dependencyCache.set(context, { xml, graph });
+  try { return await graph; }
+  catch (error) {
+    if (dependencyCache.get(context)?.graph === graph) {
+      dependencyCache.delete(context);
+    }
+    throw error;
+  }
+}
+
+/** Deletion probes run only in a disposable applet, never the original. */
+async function probeDependencies(page: Page, names: string[],
+  original: string): Promise<Map<string, string[]>> {
+  const base64 = await exportGgb(page);
+  const audit = await page.context().newPage();
+  try {
+    await audit.goto(new URL('/', page.url()).href);
+    await audit.evaluate(async () => { await window.appletReady; });
+    const removals = await audit.evaluate(
+      async ({ names, base64, timeout }) => {
+      const api = window.ggb;
+      const results: { target: string; removed: string[] }[] = [];
+      for (const target of names) {
+        await new Promise<void>((done, reject) => {
+          const timer = setTimeout(() => reject(
+            new Error('Dependency audit reload timed out')), timeout);
+          api.setBase64(base64, () => { clearTimeout(timer); done(); });
+        });
+        const before = api.getAllObjectNames();
+        api.deleteObject(target);
+        const remaining = new Set(api.getAllObjectNames());
+        results.push({ target, removed: before.filter(name =>
+          !remaining.has(name)) });
+      }
+      return results;
+    }, { names, base64, timeout: limits.operationMs });
+    if (await page.evaluate(() => window.ggb.getXML()) !== original) {
+      throw new Error('Dependency audit changed original construction');
+    }
+    return dependencyFacts(names, removals);
+  } finally { await audit.close(); }
+}
+
+export type Snapshot = (ReturnType<typeof completeFact> & {
+  data: MathValue | null;
+})[];
+
+/** Collects facts; only the two readers execute in the browser realm. */
+export async function snapshot(page: Page): Promise<Snapshot> {
+  const metadata = await page.evaluate(readConstructionMetadata);
+  const raw = await page.evaluate(readNativeFacts);
+  const dependencies = await nativeDependencies(page, raw.map(f => f.name));
+  const types = new Map(raw.map(fact => [fact.name, fact.type]));
+  const byName = new Map(metadata.map(fact => [fact.name, fact]));
+  const lists = raw.filter(fact => fact.type === 'list').map(fact => fact.name);
+  const values = lists.length ? await page.evaluate(nativeValues, lists) : [];
+  return raw.map(fact => {
+    const material = byName.get(fact.name);
+    if (!material) throw new Error(`Missing native metadata: ${fact.name}`);
+    return {
+      ...completeFact(fact, material, dependencies.get(fact.name) ?? [], types),
+      data: fact.type === 'list'
+        ? values[lists.indexOf(fact.name)] ?? null : null,
+    };
+  });
+}
 
 /** Execute only compiler-produced data, never model-authored JavaScript. */
 export async function execute(page: Page, compiled: import('./compile.js').Compiled, prompt: string) {

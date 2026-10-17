@@ -71,7 +71,7 @@ inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`byt
 
 - `edits` 每项的 `properties` 只允许 `color`、`lineThickness`、`lineStyle`、`filling`、`labelVisible`、`visible`；同一对象只能出现一次。`filling` 只适用于封闭图形（圆、圆锥曲线、多边形、扇形、弧、不等式区域），`lineThickness`／`lineStyle` 只适用于有轮廓的对象。
 - 编辑请求不含 `program`、`styles`、`view` 与 `interactions`。基线自身带视图，重建或平移视图会破坏“只改声明字段”。
-- 对象名来自文件，可含撇号、下标或非 ASCII 字符（如 `A'`、`B_{1}`、`θ1`）；归档 XML 里的 `&apos;` 等实体在读取时解码。`check` 的 subjects 接受这类名字；它们只作查找键，不参与 expression 检查的 token 匹配。
+- 对象名来自文件，可含撇号、下标或非 ASCII 字符（如 `A'`、`B_{1}`、`θ1`）；归档 XML 里的 `&apos;` 等实体在读取时解码。`check` 的 subjects 接受这类名字；查找与表达式结构检查使用完整标签，不把前缀当作另一个对象；结构词法检查不认证语义依赖。
 - 每个声明的字段都有一条 requirement 检查，`source` 取自本次指令原文。
 
 **门禁**（前四条由工具判定，不能由模型豁免）：
@@ -79,7 +79,7 @@ inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`byt
 1. 摘要一致：文件 `sha256` 等于 `base.sha256`，原件不被写回；归档条目、脚本、宏、图片/按钮/3D 材料静态拒绝。
 2. 基线可解释：XML 中每个对象都出现在加载后的事实里，加载后不得出现无法描述的对象类型。
 3. 逐字段读回：每个 setter 之后读回声明的字段；未生效返回 `edit_no_effect`，不把“调用被接受”当作成功。
-4. 差异白名单：edited 文件的字段级差异必须落在声明的 `object:field` 集合内，否则返回 `preservation_violation`。多边形与其边对象共享外观：改多边形颜色或描边时，GeoGebra 会把同一值同步到边对象；工具允许这类传播，条件是边对象在定义中引用被编辑对象且取到同一请求值，并把这些传播变化写入 `diff.json` 的 `changes`。
+4. 差异白名单：edited 文件的字段级差异必须落在声明的 `object:field` 集合内，否则返回 `preservation_violation`。多边形与其边对象共享外观：改多边形颜色或描边时，GeoGebra 会把同一值同步到边对象；工具允许这类传播，条件是 XML 输出组确认多边形对边的描边归属，且变化字段为 color／lineStyle／lineThickness 并取到同一请求值；数学依赖不能授权 visible、filling 或其他外观传播，并把这些传播变化写入 `diff.json` 的 `changes`。
 5. 重载一致：导出文件在新 applet 中重载后，事实与编辑后状态完全一致，并重跑 requirement 检查。
 
 **交付**：除 result.ggb、request.json、verification.json、preview.png、manifest.json 外，另含 base.ggb（基线副本）、manifest 的 `base` 块与 diff.json（`baseSha256`、`allowed`、`changes`）。preview 会重新加载 base.ggb、重算差异，并核对报告中的 `changes`；报告中删改差异即预览失败。
@@ -113,10 +113,10 @@ inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`byt
 
 - `mode:"algebra"`：source 是一条完整英文 GeoGebra 数学语句，包括命名、方程、函数、嵌套命令、列表、矩阵等。例如 `p: y^2=4x`、`A=Point(d)`、`g=Derivative(f)`。
 - `mode:"cas"`：source 是 CAS 数学表达式，例如 `Factor(x^4-1)`、`Expand((x+2)^3)`、`Solutions(x^2-1,x)`。工具等待 CAS 就绪，执行计算，并把结果赋给 id，成为可重载的原生对象。
-- 可选 `outputs:[ID,...]` 包含 id，缺省为 `[id]`。必须完整匹配原生返回标签，遗漏输出即失败；未返回标签的附属对象也会采集。可声明原生下标名，例如 id 为 `B_{1}`、source 为 `B=Intersect(c,l)`、outputs 为 `["B_{1}","B_{2}"]`。`outputs` 允许与保留名同形（多边形自动边可能是 `i`、`j`），因为它记录引擎标签，不是自命名。CAS 只物化一个命名结果。输出已存在、缺失或未定义均失败；不允许隐式新增未声明的独立参数。
+- 可选 `outputs:[ID,...]` 包含 id，缺省为 `[id]`。必须完整匹配原生返回标签，遗漏输出即失败；未返回标签的附属对象也会采集。可声明原生下标名，例如 id 为 `B_{1}`、source 为 `B=Intersect(c,l)`、outputs 为 `["B_{1}","B_{2}"]`。显式 outputs 与 id 使用同一新建对象命名规则，不豁免保留字或内置名称保护。CAS 只物化一个命名结果。输出已存在、缺失或未定义均失败；不允许隐式新增未声明的独立参数。
 - 可选 `initial:[x,y]` 只初始化该步可移动点，适用于准线等路径上的点。原生约束仍生效，不把初始化坐标当作题目给定条件。
 
-ID 最长 32 字符，首位为 ASCII 字母，后续为字母、数字或下划线，可包含原生末尾下标花括号，如 `B_{1}`。e/i/x/y/z/pi 和 GgbProbe 前缀保留。中文显示名用 caption。源文本不会拼接到 shell，也不会作为 JavaScript 执行。小数写普通十进制或 `10^(-7)`；不要写会被解释为欧拉常数表达式的 `1e-7`。
+ID 最长 32 字符，首位为 ASCII 字母，后续为字母、数字或下划线，可包含原生末尾下标花括号，如 `B_{1}`。保留字与内置名称约束见下方命名规则。中文显示名用 caption。源文本不会拼接到 shell，也不会作为 JavaScript 执行。小数写普通十进制或 `10^(-7)`；不要写会被解释为欧拉常数表达式的 `1e-7`。
 
 构造和探针使用固定 runtime 的异步输入接口，等待引擎按需加载数学模块，每次等待上限 30 秒；CAS 仍按实际使用等待。新数学命令不需新增 TypeScript 包装。任意 JavaScript、脚本触发器、外部资源、文件操作和三维材料不在开放范围；呈现通过结构化 styles 设置。未知命令、计算未决及超时返回真实错误，不允许降级为已通过。
 
@@ -126,7 +126,7 @@ CAS 物化的是当次计算结果，不是动态 CAS 单元；它不会自动�
 
 `expression` 检查有 subjects、expression、mode、expected 和 scope。subjects 必须指向程序声明的对象且实际出现在表达式中。expected 为布尔、有限数值或嵌套数组（列表／矩阵），不是模型提交的 passed。
 
-构造命令直接保证的关系不算独立核验：路径点（`P=Point(el)`）必然在路径上，`Midpoint(A,B)` 必然是中点，`Circle(O,r)` 的圆心必然是 `O`，`Line(P,l)` 与 `l` 平行，`OrthogonalLine(P,l)` 与 `l` 垂直，`Intersect(a,b)` 同时落在两条曲线上。对这些关系再写 `pointOn`／`midpoint`／`center`／`parallel`／`perpendicular` 只核对引擎行为，不能当作题设条件的证据。`check` 会以 `warnings` 列出这类检查（不改通过状态）；题设条件另需一条独立关系，例如椭圆的 `Distance(P,F1)+Distance(P,F2)=2a`。
+每个 requirement 可选 purpose：construction（构造正确性）、constraint（题设约束）、interaction（交互行为）。未提供时记录 unspecified，兼容旧请求。purpose 不跳过任何检查，也不证明检查独立于构造。warnings 与报告 verificationNotes 对所有要求说明同一证据边界，不再按命令名检测“同义反复”。构造关系检查可以证明指定对象按要求构成；一般命题或独立证据仍需宿主对照题目审查。
 
 `expected` 必须独立求出：按题目条件和本次构造推导，不从 `build` 的失败证据、`inspect` 结果或上一轮观测里抄数值。检查的意义在于声明值与引擎值独立相符；把观测值抄回 expected 只是自复述。观测与推导不一致时，先用证据区分构造错误与计算错误，再只改对应的一项。`verification_failed` 的 details 给出 subjects 的实际事实（坐标、数值、可见性等），它是诊断依据，不是期望值来源。每个结构最多 256 个节点、深度最多 8；布尔值不会与数值 0/1 混同，数组逐项采用固定容差和灰区判定。
 
@@ -140,17 +140,23 @@ CAS 物化的是当次计算结果，不是动态 CAS 单元；它不会自动�
 
 常见实际类型为 point、line、segment、circle、polygon、polyline、numeric、angle、boolean、list 和 text。数值及滑块的 type 检查使用 numeric，不使用 number 或 slider；这不是全部类型的白名单。
 
-依赖证据取自原生 XML 和定义。M6 从原生函数声明排除形参，读取实际参数引用。独立对象不能冒充依赖对象；带复杂局部绑定或命令参数、无法明确解析的依赖返回 unverified。仍不提供完整 GGB 作用域解析器。不能删除依赖要求来绕过这一边界。
+依赖证据来自隔离副本中的真实引擎操作，inputs 记录传递依赖而非正则提取的词。verify、修改重算和采样覆盖共同消费该事实。副本关闭后原画布 XML 必须保持不变。同一浏览器上下文内仅可复用原始 XML 逐字节相同的依赖证据，不缓存数学值或核验结果；原文、数值、构造或视图改变即重新核验。
 
-直接依赖可以通过中间数学对象表达。例如先保存两个 Distance 结果，再定义比值；先保存文字表达式和位置点，再调用 Text。Text 的定位点必须是大写开头标签的点或内联坐标：`aN`、`ab` 这类小写开头的标签在该参数位不被解析为点对象，命令会失败；`Point(P)` 这类计算式同样不被接受，几何点默认用大写开头命名。多输出标签以实际引擎返回为准。当前 angle 类型的 expression 检查需要明确转为数值，例如 `angle/(1°)-90`；角度单位换算不改变固定容差。
+有意义的中间数学对象可以使构造与核验更清楚。例如先保存两个 Distance 结果，再定义比值；先保存文字表达式和位置点，再调用 Text。Text 的定位点必须是大写开头标签的点或内联坐标：`aN`、`ab` 这类小写开头的标签在该参数位不被解析为点对象，命令会失败；`Point(P)` 这类计算式同样不被接受，几何点默认用大写开头命名。多输出标签以实际引擎返回为准。当前 angle 类型的 expression 检查需要明确转为数值，例如 `angle/(1°)-90`；角度单位换算不改变固定容差。
 
 expression 检查的写法限制（本项目实测）：直接用比较表达式并把 `expected` 写成 `true`／`false`，例如 `n>=3`、`curPath-minPath+10^(-9)>=0`；包一层 `if(条件,1,0)` 会得到 unverified（原生探测不解析 `if`）。三点角是**带方向**的，`Angle(O,B,P)` 可能返回 270°，不能用 `角/(1°)-90` 判直角；垂直或直角用 `ArePerpendicular(Line(O,A),切线)`。`Distance(<circle>)` 未定义，圆半径用 `radius` 谓词、圆心加两点距离或 `Circle(I,圆上的点)`。`pointOn` 支持直线、圆和圆锥曲线（椭圆、双曲线、抛物线）：圆锥用归档中的齐次矩阵求隐式方程，再按点到曲线的距离比较，因此椭圆上的点无需先改写成参数点。检查的 `subjects` 必须逐字出现在 expression 中，缺失时 `check` 会指出具体检查编号和缺失名称。
 
 ## 命名规则
 
-步骤 id 与自行命名的对象不能与 GeoGebra 的保留名相同，否则该步执行失败或覆盖内建含义：函数与算符（`ln`、`log`、`sin`、`cos`、`tan`、`sqrt`、`abs`、`exp`、`floor`、`round`、`if`、`and`、`or`、`not`、`mod`、`min`、`max`）、常量（`pi`、`e`、`i`、`true`、`false`）、常用命令（`Segment`、`Line`、`Circle`、`Point`、`Midpoint`、`Intersect`、`Distance`、`Angle`、`Polygon`、`Text`、`Slider`、`Locus` 等）。`check` 会以 `Reserved GeoGebra name` 拒绝这类名字，覆盖范围见源码中的 `reservedNames`。实测把 `ln` 用作对象名会得到 `Execution failed or output undefined: ln`。`outputs` 是引擎返回的标签而不是自命名：必须照抄实际返回值，即使形如 `i`、`Segment` 也照抄，`check` 只校验标签语法。
+所有新建对象声明共用 src/names.ts 的命名策略：freePoint、command、Algebra、CAS 的 id，以及显式 outputs 均须通过。续构中的新增对象执行相同规则。报告 requirement ID 不属于对象名。
 
-其他命名注意：单字母 `x`、`y`、`z` 是坐标变量，`x=2` 会被解析为直线；几何点用大写开头（`P`、`NotePos`），小写开头多字母名只用于数值、向量和线段。避免与已有标签重名，引擎自动生成附属标签时也要按实际返回值声明。
+策略区分两类错误：官方 [禁用标签](https://geogebra.github.io/docs/manual/en/Naming_Objects/) 返回 Reserved GeoGebra name；插件保护的内置名称返回 Protected GeoGebra built-in name。后者保护常量、英文逻辑运算符、官方 [预定义函数](https://geogebra.github.io/docs/manual/en/Predefined_Functions_and_Operators/) 及仓库 docs/command-catalog.json 中的英文命令名，避免名称遮蔽。GgbProbe 前缀属于工具命名空间，禁止占用。匹配区分大小写且按完整名称进行；Circle1、sinValue 可用。
+
+命令目录是命名保护依据，不是可执行命令白名单。使用 Circle 等命令构造普通名称的对象仍允许；目录以外的数学命令仍交给引擎。静态 check 不解释 source 的完整语法。build 继续检查实际输出身份、完整标签、定义有效性、原有对象冲突和未声明独立对象，失败时不能提交交付。
+
+这些规则只限制新声明。引用、编辑或更新已有 GGB 对象时保留原始标签，不按新命名策略重命名或拒绝文件。
+
+已有 GGB 的标签按原始身份处理，包括撇号、Unicode 和下标；不得用前缀替代实际名称。工具在隔离 applet 加载同一 GGB，逐对象调用引擎删除并读取实际消失集合，获得传递依赖。原画布不执行这些删除。缺少目标、删除无效或证据不完整时返回 unverified，不从 XML、正则或显示字符串补猜权限。原始 XML 仅保留为构造定义和外观归属的审计材料。
 
 ## 图形与存在性
 
@@ -173,6 +179,8 @@ expression 检查的写法限制（本项目实测）：直接用比较表达式
 每个参数样本在目标状态核验后，会在同一副本恢复原值，再执行初态核验及完整快照比较。sample.roundTrip 保存原值 value 和恢复后的 after 报告；往返失败阻止交付，不能忽略隐藏未定义对象。preview 要求对应证据并重算判定；旧参数交付缺少 roundTrip 时必须重新 build。鼠标样本不要求用坐标赋值恢复。真实拖动若有距离目标不超过 10 屏幕像素的其他可见、已定义点，会提前拒绝并记录 target、screen 与逐点 overlaps（含 moveable 与 fixed 标记）：可移动点按重叠可移动点拒绝，固定点（`fixed:true`）按重叠固定点拒绝，依赖型可见点只记录不提前拒绝；其他未移动情况仍保留原时限。
 
 有界的可变数量构造，可以先生成容量固定的原生辅助对象，再取活动前缀。`Take(allPoints,1,count)` 取前 count 个对象，二参数 Take 从指定位置取到末尾。若只要求轮廓，可依次保存 `active=Take(allPoints,1,count)`、`first=Element(active,1)`、`closed=Append(active,first)`、`outline=Polyline(closed)`；拆开命令以保留直接依赖。所有辅助对象必须始终有定义，容量上限必须来自题目且满足 steps 限制。周长从实际相邻点距离求和并独立核验，不用“边数×边长”同时生成和检查结果。若要求填充面或原生 Polygon 类型，不能将轮廓表示当作完成。
+
+所有输入形式共用执行后的采样覆盖门禁：具有可操控输入的 sampled 数学关系，至少有一个与 subjects 同名或存在确定依赖路径的交互目标。可操控能力来自真实的点移动／数值滑块、fixed 与 moveable 状态，不按对象名或检查种类推测。固定量仍执行每次 sampled 复验；声明 purpose:interaction 却没有可操控输入时拒绝。值保持不变量不表示失败；无关输入移动不能算联动覆盖。缺少确定性元数据的旧交付需要重新 build。
 
 M1 回归的 freePoint/command 原语保留在协议 2，仍编译到同一执行器；旧命令表不限制 native 程序。不要在同一程序混合两种形式。几何示例见 examples/v2-cases/triangle.json 和 examples/v2-cases/parabola.json；代数、函数、统计及混合验收输入保留在 tests/fixtures，仅用于回归测试与覆盖记录。
 

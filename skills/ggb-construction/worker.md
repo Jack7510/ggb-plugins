@@ -157,11 +157,13 @@ For `equalLength`, create two segment objects (`s1=Segment(A,B)`, `s2=Segment(B,
   undefined line.
 - Derive every `expected` value from the prompt and the construction before writing it.
   Do not copy a value from `build` evidence, `inspect`, or a previous observation.
-- Checks that the construction already guarantees (a path point on its path, a midpoint, a
-  circle centre, a line parallel/perpendicular to its defining line, an intersection on its
-  curves) are reported as `warnings`; they do not fail the build, but they are not
-  independent evidence for the problem. Add a separate relation, for example
-  `Distance(P,F1)+Distance(P,F2)=2a` for an ellipse.
+- Record the evidence purpose on each requirement: `purpose:construction`,
+  `purpose:constraint`, or `purpose:interaction`. This metadata never waives a check.
+  Warnings explain execution-evidence limits; the tool does not certify independence
+  by matching command names. Keep construction assertions and review independent
+  problem evidence against the original prompt.
+- A sampled relation with controllable inputs needs a relevant changed input. Fixed
+  assertions still run in every sample; moving an unrelated object does not prove coupling.
 - Predicates are safer than free-form expressions. `perpendicular`/`parallel` need line
   objects; for other pairs use `ArePerpendicular`/`AreParallel` with `expected: true`.
   Do not use `IsPerpendicular` or `AreCollinear` on segments.
@@ -211,7 +213,7 @@ A run allows at most three builds; use `ggb_check` for structure before spending
   intersection, and will not lie where the crossing is required.
 - Reflection: `A2=Reflect(A,l)`. Verify `A2` with a `coordinate` check; verify the midpoint
   with a `coordinate` check. `midpoint` on `M=Midpoint(A,A2)` is construction-guaranteed, so
-  it is only a warning, not independent evidence.
+  review construction correctness separately from independent problem evidence.
 
 ## Common patterns
 
@@ -222,7 +224,7 @@ A run allows at most three builds; use `ggb_check` for structure before spending
 - Point on an ellipse: `c: x^2/9+y^2/5=1`, `F=(-2,0)`, `Fp=(2,0)`, `P=Point(c)`.
   Check the type of `c`, coordinates of `F`/`Fp`, `pointOn` for `P`/`c`, the boolean
   expression `y(P)>0`, and the numeric expression `Distance(P,F)+Distance(P,Fp)` with
-  expected 6. `P=Point(c)` makes `pointOn` a warning; the distance sum is the independent
+  expected 6. `pointOn` checks the path construction; the distance sum is separate
   relation. If `P` lands on the axis, use `Intersect(c, x=1)` and take the upper point.
 - Numeric expression: put the expression alone and use a numeric expected value:
   `{"expression":"Distance(P,F)+Distance(P,Fp)","expected":6}`. Do not write `=6`.
@@ -239,9 +241,9 @@ Fix the named field and call it again.
 
 ## Warnings
 
-`ggb_check` may return `warnings` for checks that the construction already guarantees.
-A warning does not invalidate a successful `ggb_build`; the delivery remains valid.
-Keep the check but add an independent relation for the problem condition.
+`ggb_check` returns `warnings` describing the limits of execution evidence.
+They do not classify a command as a proof or invalidate a successful build.
+Record evidence purposes and review the mathematical argument independently.
 
 ## Failures
 

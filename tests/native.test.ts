@@ -1,11 +1,12 @@
+/** @fileoverview Exercises native programs and strict failure evidence. */
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import test from 'node:test';
+import test, { type TestContext } from 'node:test';
 import { build, openPreview, sha256 } from '../src/delivery.js';
 import { root } from '../src/server.js';
-import { parseRequest } from '../src/schema.js';
+import { parseRequest, ToolError } from '../src/schema.js';
 import { compile } from '../src/compile.js';
 
 const fixture = async (name: string) => {
@@ -109,6 +110,45 @@ test('pointOn verifies a point on an ellipse in the real engine',
     }
   });
 
+/** Output diagnostics distinguish missing labels from undefined values. */
+async function outputDiagnostics(t: TestContext, directory: string): Promise<void> {
+  await t.test('failed execution names the missing outputs', async () => {
+    const input = await fixture('algebra');
+    input.outputDir = join(directory, 'missing-output');
+    input.plan.program[0] = {
+      id: 'factored', op: 'native', mode: 'algebra', source: 'other=1',
+    };
+    await assert.rejects(build(input), (error: unknown) => {
+      assert(error instanceof ToolError);
+      assert.equal(error.code, 'execution_failed');
+      assert.match(String(error.message), /actual labels: other/);
+      assert.match(String(error.message), /missing: factored \(not created\)/);
+      return true;
+    });
+  });
+  await t.test('undefined outputs say so instead of missing', async () => {
+    const input = await fixture('algebra');
+    input.outputDir = join(directory, 'undefined-output');
+    input.plan.program = [
+      { id: 'c1', op: 'native', mode: 'algebra', source: 'c1: x^2+y^2=1' },
+      { id: 'c2', op: 'native', mode: 'algebra',
+        source: 'c2: (x-5)^2+y^2=1' },
+      // Disjoint circles: the intersection label is created without a value.
+      { id: 'hit', op: 'native', mode: 'algebra',
+        source: 'hit=Intersect(c1,c2)', outputs: ['hit'] },
+    ];
+    input.plan.interactions = [];
+    input.plan.requirements = [{ id: 'hit', source: input.prompt,
+      checks: [{ kind: 'exists', subjects: ['hit'], scope: 'initial' }] }];
+    await assert.rejects(build(input), (error: unknown) => {
+      assert(error instanceof ToolError);
+      assert.equal(error.code, 'execution_failed');
+      assert.match(String(error.message), /missing: hit \(undefined\)/);
+      return true;
+    });
+  });
+}
+
 test('native failures and unresolved probes never commit delivery', { timeout: 120_000 }, async t => {
   const directory = await mkdtemp(join(tmpdir(), 'ggb-native-failure-'));
   try {
@@ -122,39 +162,7 @@ test('native failures and unresolved probes never commit delivery', { timeout: 1
       ['CAS syntax', r => { r.plan.program[0].source = 'Factor('; }, 'execution_failed'],
       ['missing declared output', r => { r.plan.program[0] = { id: 'factored', op: 'native', mode: 'algebra', source: 'other=1' }; }, 'execution_failed'],
     ];
-    await t.test('failed execution names the missing outputs', async () => {
-      const input = await fixture('algebra');
-      input.outputDir = join(directory, 'missing-output');
-      input.plan.program[0] = {
-        id: 'factored', op: 'native', mode: 'algebra', source: 'other=1',
-      };
-      await assert.rejects(build(input), (error: any) => {
-        assert.equal(error.code, 'execution_failed');
-        assert.match(String(error.message), /actual labels: other/);
-        assert.match(String(error.message), /missing: factored \(not created\)/);
-        return true;
-      });
-    });
-    await t.test('undefined outputs say so instead of missing', async () => {
-      const input = await fixture('algebra');
-      input.outputDir = join(directory, 'undefined-output');
-      input.plan.program = [
-        { id: 'c1', op: 'native', mode: 'algebra', source: 'c1: x^2+y^2=1' },
-        { id: 'c2', op: 'native', mode: 'algebra',
-          source: 'c2: (x-5)^2+y^2=1' },
-        // Disjoint circles: the intersection label is created without a value.
-        { id: 'hit', op: 'native', mode: 'algebra',
-          source: 'hit=Intersect(c1,c2)', outputs: ['hit'] },
-      ];
-      input.plan.interactions = [];
-      input.plan.requirements = [{ id: 'hit', source: input.prompt,
-        checks: [{ kind: 'exists', subjects: ['hit'], scope: 'initial' }] }];
-      await assert.rejects(build(input), (error: any) => {
-        assert.equal(error.code, 'execution_failed');
-        assert.match(String(error.message), /missing: hit \(undefined\)/);
-        return true;
-      });
-    });
+    await outputDiagnostics(t, directory);
     await t.test('native fixed coordinates cannot counterfeit a dependency', async () => {
       const input = await fixture('parabola'); input.outputDir = join(directory, 'fake-dependent-point');
       input.plan.program.find((step: any) => step.id === 'T').source = 'T=(1,2)';
@@ -164,7 +172,7 @@ test('native failures and unresolved probes never commit delivery', { timeout: 1
       const input = await fixture('algebra'); input.outputDir = join(directory, 'local-binding');
       input.plan.program = [{id:'n',op:'native',mode:'algebra',source:'n=99'}, {id:'values',op:'native',mode:'algebra',source:'values=Sequence(n,n,1,3)'}];
       input.plan.requirements = [{id:'dependency',source:input.prompt,checks:[{kind:'dependsOn',subjects:['values','n'],scope:'initial'}]}];
-      await assert.rejects(build(input), (e: any) => e.code === 'verification_unverified');
+      await assert.rejects(build(input), (e: any) => e.code === 'verification_failed');
     });
     await t.test('function parameter shadowing cannot certify a global dependency', async () => {
       const input = await fixture('algebra'); input.outputDir = join(directory, 'function-binding');

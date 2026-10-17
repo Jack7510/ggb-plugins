@@ -4,12 +4,14 @@
 
 ## 未发布
 
+- 统一对象身份、引擎依赖证据与外观归属；native／旧原语共用采样覆盖门禁。移除命令式“同义反复”检测和自制 LaTeX 标题转换，证据目的仅作记录。新建对象集中校验官方禁用标签和内置名称遮蔽，所有 id 与显式 outputs 共用，保留引擎核验。核验门禁与反例复验见 [统一门禁验证](unified-validation.md)。
+
 - 修复代码审查发现的六处边界问题：等长谓词只接受真实线段；编辑和续构的初次核验未通过时禁止导出；ZIP 解压在分配内存时限制单条目与剩余总量；外部 GGB 和实际快照拒绝 XML 三维类型，防止 API 类型别名隐藏维度；条件来源不再接受 Agent 的提问；允许沿已声明更新依赖重算圆锥系数。三种构图模式共用导出、重载与原子提交，提交和预览共用证据复验。新增离线、真实 applet 与故障回归，保留不相关字段变化的拒绝和原文件只读规则。
 
-- 将军饮马案例的可见文字改为构图和观察提示，保留全部数学检查与拖动样本。viewer 支持简单 LaTeX 标题的纯文本展示及长标题换行，未知语法保留原文。Codex 安装副本复跑结果见 [验证报告](codex-v2-validation.md)。
+- 将军饮马案例的可见文字改为构图和观察提示，保留全部数学检查与拖动样本。viewer 保留题干原文并支持长标题换行，不再自制 LaTeX 解释。Codex 安装副本复跑结果见 [验证报告](codex-v2-validation.md)。
 
 - 新增 `capabilities.json` 与 `skills/ggb-construction/worker.md`：插件是 Worker 提示词与能力契约的唯一来源。`capabilities.json` 由 `src/schema.ts` 和 `worker.md` 生成，包含请求协议版本、`pointOn` 支持的圆锥曲线类型、检查谓词、限额与 `workerSkillSha256`；ggb-agent Worker 启动时校验该哈希与 profile 版本，不匹配即拒绝启动。ggb-dsh 不再保存第二份完整 Skill。
-- `check` 与构造交付报告新增同义反复提示：路径点、`Midpoint`、`Circle` 圆心、`Line`／`ParallelLine`、`OrthogonalLine`／`PerpendicularLine`、`Intersect` 已经保证的关系再写成 `pointOn`／`midpoint`／`center`／`parallel`／`perpendicular` 只核对引擎行为，不能算题设条件的证据；这类检查以 `warnings`（`check`）与 `tautology`（报告）列出，不改变通过状态。Skill 与能力契约要求另加独立关系检查。
+- `check` 与交付报告明确执行证据的边界；当前使用 purpose 与 verificationNotes 记录证据目的，不按命令名认证独立性，见 [能力契约](../skills/ggb-construction/references/capabilities.md#通用核验)。
 - `pointOn` 支持圆锥曲线（椭圆、双曲线、抛物线）：从归档的齐次矩阵取隐式方程，按点到曲线的距离核验；此前只支持直线与圆，椭圆上取点只能用参数表达式绕开。另把「非 expression 检查出现 expression 字段」和「expected 类型错误」的报错改成点名具体字段与实际值。
 - Skill 与能力契约增加期望值规则：坐标、距离、面积、角度等 `expected` 必须按题目条件独立算出，不从失败证据、`inspect` 结果或上一轮观测里抄数值；失败后只改证据指出的那一项。评测中「将军饮马」连续三次构建都因自选期望值出错而耗尽构建次数。
 - 执行失败区分「引擎未创建该标签」与「标签已创建但未定义」：`Execution failed or output undefined: hit; actual labels: ...; missing: hit (undefined)`，不再把未定义的几何结果（如不相交的圆求交点）笼统报成缺失。
@@ -29,7 +31,7 @@
 
 - `check` 的表达式检查报错带出 requirement:index 与缺失的 subject 名；能力契约补充比较表达式（不包 `if`）、`ArePerpendicular` 判垂直、圆半径用 `radius` 谓词三条写法。DSH Desktop 的会话库 usage 路径已写入 [Desktop 验证约定](dsh-desktop-validation.md#4-日志契约与交回分析)。
 
-- `check` 拒绝与 GeoGebra 保留名冲突的对象名（函数、常量、常用命令，如 `ln`、`pi`、`Segment`），报 `Reserved GeoGebra name`；能力契约新增命名规则与"题干点名的图形必须画出并用检查覆盖"两节，并说明 `check` 是静态校验、对象存在性由 `build` 判定。测试夹具路径随 `examples/v2-cases` 移动同步修正。
+- 命名有效性由固定引擎及实际输出判定；静态 check 保留协议语法与工具命名空间约束，不维护命令名黑名单。题干点名的图形仍必须画出并核验。测试夹具路径随 `examples/v2-cases` 移动同步修正。
 
 - 样式新增 `filling`（0–1 填充不透明度），用于"填充图形"类要求；样式比较对 `filling` 用容差，其余字段仍精确比较。`examples/v2-cases` 新增两个用例：`general-horse.json`（翻折原理说明图）与 `dashed-blue-circle.json`（虚线圆 + 半透明蓝色填充）。
 

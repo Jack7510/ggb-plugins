@@ -1,0 +1,128 @@
+{
+  "protocolVersion": 2,
+  "prompt": "令滑块 a 在 1 到 3 之间变化，绘制 f(x)=a*x^2、导函数和 x^2+y^2<a 的区域，计算 0 到 1 的定积分。",
+  "locale": "zh-CN",
+  "outputDir": "output/functions-algebra",
+  "plan": {
+    "program": [
+      {
+        "id": "a",
+        "op": "native",
+        "mode": "algebra",
+        "source": "a=Slider(1,3,0.1,1,140,false,true,false,false)"
+      },
+      {
+        "id": "f",
+        "op": "native",
+        "mode": "algebra",
+        "source": "f(x)=a*x^2"
+      },
+      {
+        "id": "derivative",
+        "op": "native",
+        "mode": "algebra",
+        "source": "derivative=Derivative(f)"
+      },
+      {
+        "id": "area",
+        "op": "native",
+        "mode": "algebra",
+        "source": "area=Integral(f,0,1)"
+      },
+      {
+        "id": "region",
+        "op": "native",
+        "mode": "algebra",
+        "source": "region:x^2+y^2<a"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "algebra",
+        "source": "令滑块 a 在 1 到 3 之间变化，绘制 f(x)=a*x^2、导函数和 x^2+y^2<a 的区域，计算 0 到 1 的定积分。",
+        "checks": [
+          {
+            "kind": "expression",
+            "subjects": [
+              "f",
+              "a"
+            ],
+            "expression": "f(2)-4a",
+            "expected": 0,
+            "scope": "sampled",
+            "mode": "algebra"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "derivative",
+              "a"
+            ],
+            "expression": "derivative(2)-4a",
+            "expected": 0,
+            "scope": "sampled",
+            "mode": "algebra"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "area",
+              "a"
+            ],
+            "expression": "area-a/3",
+            "expected": 0,
+            "scope": "sampled",
+            "mode": "algebra"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "region"
+            ],
+            "expression": "region(0,0)",
+            "expected": true,
+            "scope": "sampled",
+            "mode": "algebra"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "region"
+            ],
+            "expression": "region(2,2)",
+            "expected": false,
+            "scope": "sampled",
+            "mode": "algebra"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "f",
+              "a"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "derivative",
+              "a"
+            ],
+            "scope": "sampled"
+          }
+        ]
+      }
+    ],
+    "display": "algebra",
+    "interactions": [
+      {
+        "parameter": "a",
+        "value": 2.5
+      },
+      {
+        "parameter": "a",
+        "value": 3
+      }
+    ]
+  }
+}

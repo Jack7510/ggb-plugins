@@ -5,6 +5,7 @@
  * XML) and `build` (types from live facts) apply the same policy and the same
  * preservation allow-list.
  */
+import type { ReferenceFact as FactLink } from './facts.js';
 import { ToolError, type Edit } from './schema.js';
 
 // Filling paints a closed region only. Other objects accept the call and then
@@ -78,32 +79,8 @@ function matches(field: string, actual: unknown, requested: unknown): boolean {
   return actual === requested;
 }
 
-/** Identifier tokens of a native definition string, ignoring quoted text. */
-export function commandTokens(source: string): string[] {
-  return source.replace(/"(?:\\.|[^"\\])*"/g, ' ')
-    .match(/[A-Za-z][A-Za-z0-9_]*/g) ?? [];
-}
-
-/** A dependency edge: `name` reads the objects listed in `inputs`. */
-export interface FactLink { name: string; inputs: readonly string[]; }
-
-/** Transitive objects that depend on `targets`, excluding the targets. */
-export function dependents(
-  links: FactLink[], targets: readonly string[],
-): Set<string> {
-  const found = new Set<string>();
-  const queue = [...targets];
-  while (queue.length) {
-    const current = queue.shift()!;
-    for (const link of links) {
-      if (link.name === current || found.has(link.name) ||
-        targets.includes(link.name) || !link.inputs.includes(current)) continue;
-      found.add(link.name);
-      queue.push(link.name);
-    }
-  }
-  return found;
-}
+export { dependents } from './facts.js';
+export type { ReferenceFact as FactLink } from './facts.js';
 
 /**
  * Changes outside the declared pairs mean the edit touched the figure.
@@ -126,8 +103,6 @@ export function allowedStyleChanges(
   edits: Edit[], differences: Difference[], links: FactLink[] = [],
 ): Set<string> {
   const allowed = editFields(edits);
-  const closure = new Map(edits.map(edit =>
-    [edit.object, dependents(links, [edit.object])] as const));
   const accepted = new Set<string>();
   for (const difference of differences) {
     const key = `${difference.object}\u0000${difference.field}`;
@@ -138,7 +113,9 @@ export function allowedStyleChanges(
     const propagated = edits.some(({ object, properties }) =>
       object !== difference.object &&
       Object.hasOwn(properties, difference.field) &&
-      closure.get(object)?.has(difference.object) === true &&
+      links.some(link => link.name === difference.object
+        && link.styleOwner === object
+        && link.styleFields?.includes(difference.field)) &&
       matches(difference.field, difference.actual,
         (properties as Record<string, unknown>)[difference.field]));
     if (propagated) accepted.add(key);

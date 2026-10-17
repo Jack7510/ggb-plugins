@@ -1,3 +1,4 @@
+/** @fileoverview Checks request contracts, numeric boundaries and source identity. */
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -26,19 +27,76 @@ test('M6 value, assumption and interaction envelopes reject invalid extensions b
   ];
   for (const change of cases) { const input = structuredClone(original); change(input); assert.throws(() => parseRequest(input)); }
 });
-test('reserved step IDs are rejected while engine-owned outputs may use reserved labels', () => {
-  for (const name of ['ln', 'sin', 'Circle', 'Text', 'true', 'Segment']) {
+test('new object IDs reject reserved labels and built-in shadowing', () => {
+  for (const name of ['ln', 'sin', 'xAxis', 'gammaRegularized',
+    'Circle', 'Text', 'true', 'Segment', 'sinIntegral', 'e', 'i',
+    'GgbProbeResult']) {
+    const input = structuredClone(fixture);
+    for (const step of [
+      { id: name, op: 'freePoint', x: 0, y: 0 },
+      { id: name, op: 'command', name: 'Midpoint', args: [] },
+      { id: name, op: 'native', source: `${name}=1`, mode: 'algebra' },
+      { id: name, op: 'native', source: '1', mode: 'cas' },
+    ]) {
+      input.plan.program[0] = step;
+      assert.throws(() => parseRequest(input), /Reserved|Protected/);
+    }
+  }
+});
+
+test('explicit outputs cannot bypass naming policy in create or modify', () => {
+  for (const name of ['sqrt', 'Circle', 'e', 'i', 'GgbProbeOutput']) {
+    for (const base of [undefined,
+      { path: '/tmp/naming-base.ggb', sha256: 'a'.repeat(64) }]) {
+      const input = structuredClone(fixture);
+      if (base) {
+        input.base = base;
+        delete input.plan.view;
+        input.plan.interactions = [];
+      }
+      input.plan.program = [{
+        id: 'helper', op: 'native', source: 'helper=1', mode: 'algebra',
+        outputs: ['helper', name],
+      }];
+      assert.throws(() => parseRequest(input), /Reserved|Protected/);
+    }
+  }
+});
+
+test('shadowing protection covers the official command catalog', async () => {
+  const catalog = JSON.parse(await readFile(
+    join(root, 'docs/command-catalog.json'), 'utf8')) as {
+      commands: string[];
+    };
+  for (const name of catalog.commands) {
     const input = structuredClone(fixture);
     input.plan.program[0].id = name;
-    assert.throws(() => parseRequest(input),
-      new RegExp(`Reserved GeoGebra name: ${name}`));
+    assert.throws(() => parseRequest(input), /Protected/);
   }
-  const outputs = structuredClone(fixture);
-  outputs.plan.program.push({
-    id: 'helper', op: 'native', source: 'helper=1', mode: 'algebra',
-    outputs: ['helper', 'Segment'],
-  });
-  assert.doesNotThrow(() => parseRequest(outputs));
+});
+
+test('ordinary output names and command use remain available', () => {
+  for (const name of ['Circle1', 'sinValue', 'circle', 'B_{1}']) {
+    const input = structuredClone(fixture);
+    input.plan.program[0] = {
+      id: name, op: 'native', source: `${name}=Circle((0,0),2)`,
+      mode: 'algebra', outputs: [name],
+    };
+    assert.doesNotThrow(() => parseRequest(input));
+  }
+});
+
+test('existing base identities are not renamed by new-object policy', () => {
+  const input = structuredClone(fixture);
+  input.base = { path: '/tmp/naming-base.ggb', sha256: 'a'.repeat(64) };
+  input.plan = {
+    edits: [{ object: 'Circle', properties: { color: '#123456' } }],
+    requirements: [{ id: 'appearance', source: input.prompt, checks: [{
+      kind: 'style', subjects: ['Circle'], scope: 'initial',
+      properties: { color: '#123456' },
+    }] }], interactions: [],
+  };
+  assert.doesNotThrow(() => parseRequest(input));
 });
 test('requirement IDs may carry report-style punctuation', () => {
   const named = structuredClone(fixture);

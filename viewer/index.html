@@ -49,37 +49,6 @@
       },
     };
     let messages = translations.en;
-    /** Converts simple math notation; unknown syntax stays verbatim. */
-    function mathTitleText(source) {
-      const symbols = {
-        triangle: '△', cdot: '·', times: '×', leq: '≤', geq: '≥',
-      };
-      const scripts = {
-        '^': '⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻', '_': '₀₁₂₃₄₅₆₇₈₉₊₋',
-      };
-      let text = source
-        .replace(/\\(?:d?frac)\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)')
-        .replace(/\\sqrt\{([^{}]+)\}/g, '√($1)')
-        .replace(/\\(triangle|cdot|times|leq|geq)\b/g,
-          (_, name) => symbols[name])
-        .replace(/\\ /g, ' ');
-      text = text.replace(/([\^_])(?:\{([0-9+-]+)\}|([0-9]))/g,
-        (_, marker, group, digit) => [...(group ?? digit)].map(value => {
-          return scripts[marker]['0123456789+-'.indexOf(value)];
-        }).join(''));
-      return /[\\{}^_]/.test(text) ? null : text;
-    }
-    /** Formats math spans only; textContent keeps source HTML inert. */
-    function titleText(prompt) {
-      return prompt.replace(/\$([^$\n]+)\$|\\\((.+?)\\\)/g,
-        (original, dollar, parenthesis) => {
-          const math = dollar ?? parenthesis;
-          if (!/[\\^_=]/.test(math) && !/^[A-Za-z0-9]+$/.test(math)) {
-            return original;
-          }
-          return mathTitleText(math) ?? original;
-        });
-    }
     /** Updates viewer text; problem statements retain their original language. */
     function setViewerLocale(locale, display = 'graphics') {
       const chinese = locale.toLowerCase().startsWith('zh');
@@ -89,7 +58,7 @@
       const heading = document.querySelector('h1');
       const prompt = material?.prompt ??
         (window.ggb ? heading.textContent : messages.title);
-      heading.textContent = titleText(prompt);
+      heading.textContent = prompt;
       heading.title = prompt;
       document.getElementById('status').textContent =
         display === 'algebra' ? messages.algebra : messages.graphics;

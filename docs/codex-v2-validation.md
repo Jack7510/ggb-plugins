@@ -110,3 +110,8 @@ pnpm check、构建和 76 项离线测试通过。离线测试初次受到沙箱
 | audit.json、*-audit.png、title-regression-*.png | 前后不变量对照、标题审查与截图 |
 
 最终可见预览另记在 final-preview.log；就绪 JSON 是实际打开依据。
+
+
+## 后续统一修复
+
+本报告保留两轮历史数据。之后的对象依赖、样式归属、采样覆盖及原文标题统一修复，以 [统一门禁验证](unified-validation.md) 为准；不把历史包或旧事实报告当作当前版本验收证据。

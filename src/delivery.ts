@@ -9,10 +9,11 @@ import { dragPoint, interact, execute, exportGgb, loadGgb, openBrowser, openDefa
 import { unsupportedType, type GgbSummary } from './ggbfile.js';
 import { loadBase } from './inspect.js';
 import {
-  commandTokens, diffViolations, editFields, requireEffects, validateTargets,
+  diffViolations, editFields, requireEffects, validateTargets,
 } from './edit.js';
+import { requireSampleCoverage } from './facts.js';
 import { compile, type BaseFacts } from './compile.js';
-import { tautologies } from './tautology.js';
+import { verificationNotes } from './tautology.js';
 import {
   modifyViolations, requireUpdateEffects, updateFields, valueMatches,
   validateModifyStyles, validateUpdates, type BaseFact,
@@ -328,15 +329,6 @@ function checkBaseline(baseline: Snapshot, summary: GgbSummary): void {
   }
 }
 
-/** Dependency links for edit propagation: recorded inputs plus definitions. */
-function editLinks(facts: Snapshot) {
-  return facts.map(fact => ({
-    name: fact.name,
-    inputs: [...new Set([...fact.inputs, ...commandTokens(fact.command)])]
-      .filter(input => input !== fact.name),
-  }));
-}
-
 /** Base labels and types from the bounded archive summary. */
 function summaryFacts(summary: GgbSummary): BaseFacts {
   return {
@@ -390,7 +382,7 @@ async function modifyGates(
   const declared = new Set(compiled.program.flatMap(step => step.outputs));
   const violations = modifyViolations({
     styles: compiled.styles, updates: compiled.updates, differences,
-    links: editLinks(verification.objects), declared,
+    links: verification.objects, declared,
     baseLabels: facts.labels,
   });
   if (violations.length) {
@@ -418,7 +410,7 @@ async function editGates(
     () => collect(context, page, 'construction', 'initial'));
   const differences = snapshotDifferences(verification.objects, baseline);
   const violations = diffViolations(edits, differences,
-    editLinks(verification.objects));
+    verification.objects);
   if (violations.length) {
     throw new ToolError('preservation_violation',
       'Edit changed fields it did not declare', violations);
@@ -439,11 +431,7 @@ async function exportArtifact(context: BuildContext,
   context.stage = 'export_failed';
   const bytes = Buffer.from(await context.timed('export',
     () => exportGgb(page)), 'base64');
-  if (bytes.length > limits.ggbBytes) {
-    throw new ToolError('limit_exceeded', 'GGB file exceeds the size limit');
-  }
-  assert(bytes.subarray(0, 2).toString() === 'PK',
-    'Expected a GGB ZIP archive');
+  // exportGgb owns the shared size and ZIP validation for every consumer.
   await writeFile(join(context.temp, 'result.ggb'), bytes);
   return bytes;
 }
@@ -638,13 +626,12 @@ async function commitDelivery(
   assert(session);
   const zoomResult = await zoomEvidence(context, artifact.reloaded);
   compareSnapshots(await snapshot(original), construction.objects);
-  const guaranteed = tautologies(context.request.plan.program,
-    context.request.plan.requirements);
+  const guaranteed = verificationNotes(context.request.plan.requirements);
   const report = {
     milestone: 'M6', requestSha256: context.requestSha256,
     construction, reload: artifact.reload,
     interaction: { status: 'passed', samples, zoom: zoomResult },
-    ...(guaranteed.length ? { tautology: guaranteed } : {}),
+    ...(guaranteed.length ? { verificationNotes: guaranteed } : {}),
   };
   return await finishDelivery(context, {
     bytes, objects: construction.objects, page: original, report,
@@ -719,6 +706,7 @@ function validatePhase(request: Request, input: any, phase: 'initial' | 'sampled
 /** Re-derives completion from evidence, both at commit and preview. */
 function validateDeliveryEvidence(request: Request,
   report: DeliveryEvidence, objects: Snapshot): void {
+  requireSampleCoverage(request, report.construction.objects);
   validatePhase(request, report.construction, 'initial');
   validatePhase(request, report.reload, 'initial');
   compareSnapshots(report.construction.objects, objects);
@@ -857,7 +845,7 @@ async function recheckEdits(
     assert(equivalent(differences, report.edit.changes),
       'Recorded edit diff does not match the files');
     const violations = diffViolations(request.plan.edits ?? [], differences,
-      editLinks(objects));
+      objects);
     assert.equal(violations.length, 0,
       `Undeclared changes: ${JSON.stringify(violations)}`);
   } finally {
@@ -933,7 +921,7 @@ async function recheckModify(
     const declared = new Set(compiled.program.flatMap(step => step.outputs));
     const violations = modifyViolations({
       styles: compiled.styles, updates: compiled.updates, differences,
-      links: editLinks(objects), declared, baseLabels,
+      links: objects, declared, baseLabels,
     });
     assert.equal(violations.length, 0,
       `Undeclared changes: ${JSON.stringify(violations)}`);

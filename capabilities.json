@@ -3,7 +3,7 @@
   "toolVersion": "0.8.0",
   "requestProtocolVersion": 2,
   "workerProfileVersion": "plugin-core-v1",
-  "workerSkillSha256": "a6803e3a6e8adb4f898e055272ccaa6cf5dcde1b412418812466cc4d417e5e5a",
+  "workerSkillSha256": "f8cb6fe07446158d8dfef7dcfa513f6abc31c07a6b8e0a0472a5f63bed5e7072",
   "modelFacingTools": [
     "ggb_inspect",
     "ggb_check",
@@ -193,5 +193,10 @@
       ],
       "extra": "properties"
     }
-  }
+  },
+  "evidencePurposes": [
+    "construction",
+    "constraint",
+    "interaction"
+  ]
 }

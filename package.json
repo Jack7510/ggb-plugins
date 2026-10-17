@@ -17,8 +17,8 @@
     "check": "tsc --noEmit",
     "demo": "node dist/src/cli.js demo",
     "preview": "node dist/src/cli.js preview",
-    "test": "node --test dist/tests/schema.test.js dist/tests/edit.test.js dist/tests/tautology.test.js dist/tests/modify.test.js dist/tests/preflight.test.js dist/tests/server.test.js dist/tests/package.test.js dist/tests/capabilities.test.js dist/tests/review.test.js scripts/coverage.test.mjs dsh/test/plugin.test.mjs",
-    "test:browser": "node --test --test-concurrency=1 dist/tests/browser.test.js dist/tests/interaction.test.js dist/tests/native.test.js dist/tests/m6.test.js dist/tests/edit-browser.test.js dist/tests/modify-browser.test.js dist/tests/review-browser.test.js && node --experimental-test-module-mocks --test --test-concurrency=1 dist/tests/faults.test.js dist/tests/startup.test.js",
+    "test": "node --test dist/tests/schema.test.js dist/tests/edit.test.js dist/tests/tautology.test.js dist/tests/modify.test.js dist/tests/preflight.test.js dist/tests/server.test.js dist/tests/package.test.js dist/tests/capabilities.test.js dist/tests/review.test.js dist/tests/facts.test.js scripts/coverage.test.mjs dsh/test/plugin.test.mjs",
+    "test:browser": "node --test --test-concurrency=1 dist/tests/browser.test.js dist/tests/interaction.test.js dist/tests/native.test.js dist/tests/m6.test.js dist/tests/edit-browser.test.js dist/tests/modify-browser.test.js dist/tests/review-browser.test.js dist/tests/facts-browser.test.js dist/tests/names-browser.test.js && node --experimental-test-module-mocks --test --test-concurrency=1 dist/tests/faults.test.js dist/tests/startup.test.js",
     "ggb": "node dist/src/cli.js",
     "coverage:commands": "pnpm build && node scripts/command-coverage.mjs",
     "pack:dsh": "pnpm build && node scripts/package-plugin.mjs --target=dsh"

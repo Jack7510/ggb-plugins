@@ -162,10 +162,12 @@ test('targets must exist and accept that property on that type', () => {
 test('diff allow-list admits documented propagation to dependents', () => {
   const edits = [{ object: 'bTri', properties: { color: '#E8833A' } }];
   const links = [
-    { name: 'a', inputs: ['P', 'C', 'bTri'] },
-    { name: 'c_1', inputs: ['C', 'A', 'bTri'] },
-    { name: 'O', inputs: [] },
-    { name: 'txtSum', inputs: [] },
+    { name: 'a', inputs: ['P', 'C', 'bTri'],
+      referenceState: 'direct' as const, styleOwner: 'bTri',
+      styleFields: ['color', 'lineStyle', 'lineThickness'] },
+    { name: 'c_1', inputs: ['C', 'A', 'bTri'], referenceState: 'direct' as const },
+    { name: 'O', inputs: [], referenceState: 'direct' as const },
+    { name: 'txtSum', inputs: [], referenceState: 'direct' as const },
   ];
   const propagated = [
     { object: 'a', field: 'color', expected: '#C7442E', actual: '#E8833A' },

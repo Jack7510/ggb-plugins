@@ -21,16 +21,15 @@ import { compareSnapshots, verify } from '../src/verify.js';
 const fixture = async (name: string) => parseRequest(JSON.parse(await readFile(join(root, `examples/v2-cases/${name}.json`), 'utf8')));
 const cli = join(root, 'dist/src/cli.js');
 
-test('math titles wrap safely without changing the original request or GGB', {
+test('titles wrap verbatim without interpreting math, escapes or HTML', {
   timeout: 30_000,
 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ggb-math-title-'));
   const evidence = join(root, 'output/codex-v2-display-fix');
   const notation = String.raw` $2x^2+3y^2=6$，$F_1$，$\triangle ABF_2$，$C:\ x^2-y^2=4$，$\dfrac{1}{2}$，\(\sqrt{3}\)，$\unknown{x}$，价格 $5 and $10。<img src=x onerror=alert(1)>`;
-  const formatted = String.raw` 2x²+3y²=6，F₁，△ ABF₂，C: x²-y²=4，(1)/(2)，√(3)，$\unknown{x}$，价格 $5 and $10。<img src=x onerror=alert(1)>`;
   try {
     const request = await fixture('triangle');
-    const prefix = request.prompt.repeat(3);
+    const prefix = request.prompt.repeat(3) + String.raw` \$5$ `;
     request.prompt = prefix + notation;
     request.outputDir = directory;
     const result = await build(request);
@@ -49,7 +48,7 @@ test('math titles wrap safely without changing the original request or GGB', {
       await mkdir(evidence, { recursive: true });
       for (const [index, page] of [session.page, published].entries()) {
         const heading = page.locator('h1');
-        assert.equal(await heading.textContent(), prefix + formatted);
+        assert.equal(await heading.textContent(), prefix + notation);
         assert.equal(await heading.getAttribute('title'), request.prompt);
         assert.equal(await page.locator('h1 img').count(), 0);
         assert.equal(await page.locator('h1').evaluate(element => {

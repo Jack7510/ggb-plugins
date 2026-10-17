@@ -1,6 +1,7 @@
-/** @fileoverview Request envelope validation and shared vocabulary. */
+/** @fileoverview Validates request envelopes and owns shared capabilities. */
 import assert from 'node:assert/strict';
 import { isAbsolute } from 'node:path';
+import { validateNewObjectName } from './names.js';
 
 export class ToolError extends Error {
   constructor(public code: string, message: string, public details?: unknown) { super(message); }
@@ -38,26 +39,6 @@ export const predicates: Record<string, { types: string[]; extra?: string; varia
   dependsOn: { types: ['any', 'any'], variadic: true },
   style: { types: ['any'], extra: 'properties' },
 };
-// GeoGebra parses these exact names as functions, commands or constants, so a
-// step that uses one as its object name fails at execution (`ln`) or shadows
-// the built-in (`Circle`). The list is curated, not exhaustive: it covers the
-// operators, the frequent commands and the reserved constants.
-export const reservedNames: ReadonlySet<string> = new Set([
-  'abs', 'and', 'asin', 'acos', 'atan', 'atan2', 'ceiling', 'cos', 'cosh',
-  'cot', 'csc', 'div', 'e', 'else', 'elseif', 'erf', 'exp', 'false', 'floor',
-  'gcd', 'i', 'if', 'in', 'lcm', 'lg', 'ln', 'log', 'log10', 'log2', 'max',
-  'min', 'mod', 'not', 'nroot', 'or', 'pi', 'random', 'round', 'sec', 'sgn',
-  'sin', 'sinh', 'sqrt', 'tan', 'tanh', 'then', 'true', 'xor',
-  'Angle', 'AngleBisector', 'Append', 'Area', 'BarChart', 'Center', 'Circle',
-  'Count', 'Derivative', 'Distance', 'Element', 'Ellipse', 'Expand', 'Factor',
-  'First', 'Hyperbola', 'If', 'Integral', 'Intersect', 'Last', 'Length',
-  'Limit', 'Line', 'Locus', 'Map', 'Midpoint', 'NSolve', 'Parabola',
-  'ParallelLine', 'Perimeter', 'PerpendicularBisector', 'PerpendicularLine',
-  'Point', 'Polygon', 'Polyline', 'Product', 'Radius', 'Random', 'Ray',
-  'Reflect', 'Rotate', 'Segment', 'Sequence', 'Simplify', 'Slider', 'Solve',
-  'Sort', 'Sum', 'Table', 'Take', 'Tangent', 'Text', 'Translate', 'Vector',
-  'Zip',
-]);
 export interface Style { visible?: boolean; labelVisible?: boolean; color?: string; lineThickness?: number; lineStyle?: number; filling?: number; caption?: string; fixed?: boolean; }
 export type Argument = number | { ref: string };
 export type MathValue = number | boolean | MathValue[];
@@ -73,6 +54,10 @@ export type EditStyle = {
 export interface Edit { object: string; properties: EditStyle }
 /** A controlled value change on one independent base object. */
 export interface Update { object: string; value?: number; coords?: [number, number] }
+export const evidencePurposes = [
+  'construction', 'constraint', 'interaction',
+] as const;
+export type EvidencePurpose = typeof evidencePurposes[number];
 export interface Request {
   protocolVersion: 2; prompt: string; locale: string; outputDir: string;
   base?: { path: string; sha256: string };
@@ -81,7 +66,8 @@ export interface Request {
     program: Step[];
     edits?: Edit[];
     updates?: Update[];
-    requirements: { id: string; source: string; checks: Check[] }[];
+    requirements: { id: string; source: string; checks: Check[];
+      purpose?: EvidencePurpose }[];
     styles?: { object: string; properties: Style }[];
     interactions: Interaction[];
     view?: { xMin: number; xMax: number; yMin: number; yMax: number };
@@ -121,11 +107,12 @@ function identifier(value: unknown): asserts value is string {
     && !['e', 'i', 'x', 'y', 'z', 'pi'].includes(value) && !value.startsWith('GgbProbe'),
   `Invalid or reserved object identifier: ${JSON.stringify(value)}`);
 }
-/** Native outputs are engine labels, so reserved-looking names are allowed. */
-
-function outputIdentifier(value: unknown): asserts value is string {
-  assert(typeof value === 'string' && value.length <= 32 && labelPattern.test(value)
-    && !value.startsWith('GgbProbe'), `Invalid output identifier: ${JSON.stringify(value)}`);
+/** Every declared new output uses the same syntax and built-in protection. */
+function newObjectIdentifier(value: unknown): asserts value is string {
+  assert(typeof value === 'string' && value.length <= 32
+    && labelPattern.test(value),
+  `Invalid object identifier: ${JSON.stringify(value)}`);
+  validateNewObjectName(value);
 }
 function finite(value: unknown, max = limits.coordinate): asserts value is number {
   assert(typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= max, 'Invalid finite number');
@@ -263,158 +250,245 @@ function baseInput(value: unknown): { path: string; sha256: string } {
   return { path: base.path, sha256: base.sha256 };
 }
 
-/** Validate the complete envelope before starting any browser or writing output. */
-export function parseRequest(value: unknown): Request {
-  const r = record(value, ['protocolVersion', 'prompt', 'locale', 'outputDir',
-    'clarifications', 'plan', 'base']);
-  assert.equal(r.protocolVersion, 2, 'Unsupported request protocol; regenerate with protocolVersion 2');
-  text(r.prompt, limits.promptChars); text(r.locale, 32); text(r.outputDir);
-  const base = 'base' in r ? baseInput(r.base) : undefined;
-  const sources = [r.prompt];
-  if ('clarifications' in r) {
-    array(r.clarifications, 0, 20);
-    for (const input of r.clarifications) {
-      const c = record(input, ['question', 'answer']); text(c.question); text(c.answer);
-      // Questions propose conditions; only user material can supply them.
+type Fields = ReturnType<typeof record>;
+
+/** Only original material and confirmed answers supply conditions. */
+function requestSources(request: Fields): string[] {
+  const sources: string[] = [request.prompt];
+  if ('clarifications' in request) {
+    array(request.clarifications, 0, 20);
+    for (const input of request.clarifications) {
+      const c = record(input, ['question', 'answer']);
+      text(c.question);
+      text(c.answer);
       sources.push(c.answer);
     }
   }
-  const p = record(r.plan, ['program', 'requirements', 'styles', 'interactions',
-    'view', 'display', 'edits', 'updates']);
-  if ('display' in p) assert(['graphics', 'algebra'].includes(p.display), 'Invalid display');
-  if (base) {
-    // A base request is either a presentation edit or a construction
-    // modification. Mixing the two modes would make the reported diff
-    // ambiguous, so the request must choose one.
-    const presentation = 'edits' in p;
-    const construction = ('program' in p && p.program.length > 0)
-      || 'updates' in p || 'styles' in p;
-    assert(!(presentation && construction),
-      'An edit request declares edits, not a program or other construction changes');
-    assert(presentation || construction,
-      'A base request needs edits or construction changes');
-    assert(!('view' in p),
-      'The base keeps its own view; view edits are unsupported');
-    if (presentation) {
-      array(p.edits, 1, limits.steps);
-      const targets = new Set<string>();
-      for (const input of p.edits) {
-        const edit = record(input, ['object', 'properties']);
-        baseName(edit.object);
-        assert(!targets.has(edit.object), 'Duplicate edit target');
-        targets.add(edit.object);
-        editStyle(edit.properties);
-      }
-    } else {
-      if ('program' in p) {
-        array(p.program, 0, limits.steps);
-        for (const step of p.program) {
-          assert(step?.op === 'native',
-            'Base modifications declare native program steps');
-        }
-      }
-      if ('updates' in p) {
-        array(p.updates, 1, limits.steps);
-        const targets = new Set<string>();
-        for (const input of p.updates) {
-          update(input);
-          assert(!targets.has(input.object), 'Duplicate update target');
-          targets.add(input.object);
-        }
-      }
-    }
-  } else {
+  return sources;
+}
+
+/** Modes differ in allowed effects, not in downstream completion gates. */
+function validatePlanMode(p: Fields, base: boolean): void {
+  if (!base) {
     assert(!('edits' in p), 'A creation request declares a program, not edits');
     assert(!('updates' in p), 'Updates apply only to a base');
     array(p.program, 1, limits.steps);
+    return;
   }
-  for (const input of p.program ?? []) {
-    const s = record(input, input?.op === 'native' ? ['id', 'op', 'source', 'mode', 'outputs', 'initial'] : input?.op === 'freePoint' ? ['id', 'op', 'x', 'y'] : ['id', 'op', 'name', 'args']);
-    identifier(s.id);
-    assert(!reservedNames.has(s.id), `Reserved GeoGebra name: ${s.id}; rename the object`);
-    if (s.op === 'native') {
-      mathSource(s.source); assert(['algebra', 'cas'].includes(s.mode), 'Invalid native mode');
-      if ('outputs' in s) {
-        array(s.outputs, 1, 16);
-        s.outputs.forEach(outputIdentifier);
-        assert(s.outputs.includes(s.id), 'Outputs must include step ID');
+  const presentation = 'edits' in p;
+  const construction = ('program' in p && p.program.length > 0)
+    || 'updates' in p || 'styles' in p;
+  assert(!(presentation && construction),
+    'An edit request declares edits, not a program or other construction changes');
+  assert(presentation || construction,
+    'A base request needs edits or construction changes');
+  assert(!('view' in p),
+    'The base keeps its own view; view edits are unsupported');
+  if (presentation) {
+    array(p.edits, 1, limits.steps);
+    const targets = new Set<string>();
+    for (const input of p.edits) {
+      const edit = record(input, ['object', 'properties']);
+      baseName(edit.object);
+      assert(!targets.has(edit.object), 'Duplicate edit target');
+      targets.add(edit.object);
+      editStyle(edit.properties);
+    }
+    return;
+  }
+  if ('program' in p) {
+    array(p.program, 0, limits.steps);
+    for (const step of p.program) {
+      assert(step?.op === 'native',
+        'Base modifications declare native program steps');
+    }
+  }
+  if ('updates' in p) {
+    array(p.updates, 1, limits.steps);
+    const targets = new Set<string>();
+    for (const input of p.updates) {
+      update(input);
+      assert(!targets.has(input.object), 'Duplicate update target');
+      targets.add(input.object);
+    }
+  }
+}
+
+/** Native output names follow policy; the engine validates source semantics. */
+function validateNativeStep(step: Fields): void {
+  mathSource(step.source);
+  assert(['algebra', 'cas'].includes(step.mode), 'Invalid native mode');
+  if ('outputs' in step) {
+    array(step.outputs, 1, 16);
+    step.outputs.forEach(newObjectIdentifier);
+    assert(step.outputs.includes(step.id), 'Outputs must include step ID');
+  }
+  if ('initial' in step) {
+    array(step.initial, 2, 2);
+    step.initial.forEach((n: unknown) => finite(n));
+  }
+  if (step.mode === 'cas') {
+    assert(!step.outputs || step.outputs.length === 1,
+      'CAS materializes one named result');
+  }
+}
+
+function validateProgram(program: unknown[]): void {
+  for (const input of program) {
+    const step = record(input,
+      ['id', 'op', 'source', 'mode', 'outputs', 'initial',
+        'x', 'y', 'name', 'args']);
+    let keys = ['id', 'op', 'name', 'args'];
+    if (step.op === 'native') {
+      keys = ['id', 'op', 'source', 'mode', 'outputs', 'initial'];
+    } else if (step.op === 'freePoint') keys = ['id', 'op', 'x', 'y'];
+    record(input, keys);
+    newObjectIdentifier(step.id);
+    if (step.op === 'native') validateNativeStep(step);
+    else if (step.op === 'freePoint') {
+      finite(step.x);
+      finite(step.y);
+    } else {
+      assert.equal(step.op, 'command', 'Unsupported operation');
+      if (typeof step.name !== 'string'
+        || !Object.hasOwn(commands, step.name)) {
+        throw new ToolError('unsupported_operation', 'Unsupported command');
       }
-      if ('initial' in s) { array(s.initial, 2, 2); s.initial.forEach((n: unknown) => finite(n)); }
-      if (s.mode === 'cas') assert(!s.outputs || s.outputs.length === 1, 'CAS materializes one named result');
-    } else if (s.op === 'freePoint') { finite(s.x); finite(s.y); }
-    else {
-      assert.equal(s.op, 'command', 'Unsupported operation');
-      if (typeof s.name !== 'string' || !Object.hasOwn(commands, s.name)) throw new ToolError('unsupported_operation', 'Unsupported command');
-      array(s.args, 2, 16);
-      for (const arg of s.args) {
+      array(step.args, 2, 16);
+      for (const arg of step.args) {
         if (typeof arg === 'number') finite(arg);
         else identifier(record(arg, ['ref']).ref);
       }
     }
   }
-  array(p.requirements, 1, limits.requirements);
+}
+
+function validateCheck(input: unknown, requirement: string, index: number,
+  sources: string[]): void {
+  const c = record(input, ['kind', 'subjects', 'scope', 'value', 'coordinates',
+    'properties', 'objectType', 'expression', 'expected',
+    'mode', 'assumptions']);
+  if (typeof c.kind !== 'string' || !Object.hasOwn(predicates, c.kind)) {
+    throw new ToolError('unsupported_operation',
+      'Unsupported verification method');
+  }
+  const spec = predicates[c.kind]!;
+  subjectCount(c, spec, requirement);
+  c.subjects.forEach(subject);
+  assert(['initial', 'sampled'].includes(c.scope),
+    'Check scope must be initial or sampled');
+  if (c.kind === 'expression') expressionCheck(c, requirement, index, sources);
+  else {
+    const stray = ['expression', 'expected', 'mode', 'assumptions']
+      .filter(key => key in c);
+    assert(stray.length === 0,
+      `Unexpected expression field in ${c.kind}: ${stray.join(', ')}`);
+  }
+  for (const key of ['value', 'coordinates', 'properties', 'objectType']) {
+    assert((key in c) === (spec.extra === key), `Unexpected or missing ${key}`);
+  }
+  if (spec.extra === 'value') {
+    finite(c.value);
+    assert(c.value >= 0);
+  }
+  if (spec.extra === 'coordinates') {
+    array(c.coordinates, 2, 2);
+    c.coordinates.forEach((n: unknown) => finite(n));
+  }
+  if (spec.extra === 'properties') style(c.properties);
+  if (spec.extra === 'objectType') text(c.objectType, 64);
+}
+
+function validateRequirements(value: unknown, sources: string[]): void {
+  array(value, 1, limits.requirements);
   const ids = new Set<string>();
   let count = 0;
-  for (const input of p.requirements) {
-    const r = record(input, ['id', 'source', 'checks']);
-    requirementId(r.id); assert(!ids.has(r.id), 'Duplicate requirement ID');
+  for (const input of value) {
+    const r = record(input, ['id', 'source', 'checks', 'purpose']);
+    assert(r.purpose === undefined || evidencePurposes.includes(r.purpose),
+      'Invalid evidence purpose');
+    requirementId(r.id);
+    assert(!ids.has(r.id), 'Duplicate requirement ID');
     ids.add(r.id);
     text(r.source, limits.promptChars);
-    assert(sources.some(source => source.includes(r.source)), 'Requirement source is not in the input');
+    assert(sources.some(source => source.includes(r.source)),
+      'Requirement source is not in the input');
     array(r.checks, 1, limits.checks);
-    for (const input of r.checks) {
-      const c = record(input, ['kind', 'subjects', 'scope', 'value', 'coordinates', 'properties', 'objectType', 'expression', 'expected', 'mode', 'assumptions']);
-      if (typeof c.kind !== 'string' || !Object.hasOwn(predicates, c.kind)) throw new ToolError('unsupported_operation', 'Unsupported verification method');
-      const spec = predicates[c.kind]!;
-      subjectCount(c, spec, r.id);
-      c.subjects.forEach(subject);
-      assert(['initial', 'sampled'].includes(c.scope), 'Check scope must be initial or sampled');
-      if (c.kind === 'expression') {
-        expressionCheck(c, r.id, r.checks.indexOf(input), sources);
-      } else {
-        const stray = ['expression', 'expected', 'mode', 'assumptions']
-          .filter(key => key in c);
-        assert(stray.length === 0,
-          `Unexpected expression field in ${c.kind}: ${stray.join(', ')}`);
-      }
-      for (const key of ['value', 'coordinates', 'properties', 'objectType']) assert((key in c) === (spec.extra === key), `Unexpected or missing ${key}`);
-      if (spec.extra === 'value') { finite(c.value); assert(c.value >= 0); }
-      if (spec.extra === 'coordinates') { array(c.coordinates, 2, 2); c.coordinates.forEach((n: unknown) => finite(n)); }
-      if (spec.extra === 'properties') style(c.properties);
-      if (spec.extra === 'objectType') text(c.objectType, 64);
+    for (const [index, check] of r.checks.entries()) {
+      validateCheck(check, r.id, index, sources);
       count++;
     }
   }
   assert(count <= limits.checks, 'Too many checks');
+}
+
+function validatePresentation(p: Fields, base: boolean): void {
   if ('styles' in p) {
     array(p.styles, 0, limits.steps);
     const targets = new Set<string>();
     for (const input of p.styles) {
       const s = record(input, ['object', 'properties']);
-      if (base) baseName(s.object); else identifier(s.object);
+      if (base) baseName(s.object);
+      else identifier(s.object);
       style(s.properties);
-      assert(!targets.has(s.object), 'Duplicate style target'); targets.add(s.object);
+      assert(!targets.has(s.object), 'Duplicate style target');
+      targets.add(s.object);
     }
   }
+  if ('view' in p) {
+    const v = record(p.view, ['xMin', 'xMax', 'yMin', 'yMax']);
+    for (const key of ['xMin', 'xMax', 'yMin', 'yMax']) {
+      finite(v[key], limits.coordinate * 2);
+    }
+    assert(v.xMax > v.xMin && v.yMax > v.yMin, 'Invalid view bounds');
+  }
+}
+
+function validateInteractions(p: Fields, base: boolean): void {
   array(p.interactions, 0, limits.samples);
   assert(!base || p.interactions.length === 0,
     'Edit requests take no interaction samples yet');
   const points = new Set<string>();
   for (const input of p.interactions) {
-    const sample = record(input, input && 'parameter' in input ? ['parameter', 'value'] : ['point', 'dx', 'dy']);
-    const id = sample.parameter ?? sample.point; identifier(id);
+    const sample = record(input, input && 'parameter' in input
+      ? ['parameter', 'value'] : ['point', 'dx', 'dy']);
+    const id = sample.parameter ?? sample.point;
+    identifier(id);
     if ('parameter' in sample) finite(sample.value);
-    else { finite(sample.dx, 120); finite(sample.dy, 120); assert(Math.hypot(sample.dx, sample.dy) >= 20, 'Drag sample is too small'); }
+    else {
+      finite(sample.dx, 120);
+      finite(sample.dy, 120);
+      assert(Math.hypot(sample.dx, sample.dy) >= 20,
+        'Drag sample is too small');
+    }
     const key = 'parameter' in sample ? `${id}:${sample.value}` : id;
-    assert(!points.has(key), 'Duplicate interaction sample'); points.add(key);
+    assert(!points.has(key), 'Duplicate interaction sample');
+    points.add(key);
   }
-  if ('view' in p) {
-    const v = record(p.view, ['xMin', 'xMax', 'yMin', 'yMax']);
-    Object.values(v).forEach(n => finite(n, limits.coordinate * 2));
-    for (const key of ['xMin', 'xMax', 'yMin', 'yMax']) finite(v[key], limits.coordinate * 2);
-    assert(v.xMax > v.xMin && v.yMax > v.yMin, 'Invalid view bounds');
+}
+
+/** Validate the full envelope before a browser starts or output is written. */
+export function parseRequest(value: unknown): Request {
+  const r = record(value, ['protocolVersion', 'prompt', 'locale', 'outputDir',
+    'clarifications', 'plan', 'base']);
+  assert.equal(r.protocolVersion, 2,
+    'Unsupported request protocol; regenerate with protocolVersion 2');
+  text(r.prompt, limits.promptChars);
+  text(r.locale, 32);
+  text(r.outputDir);
+  const base = 'base' in r ? baseInput(r.base) : undefined;
+  const sources = requestSources(r);
+  const p = record(r.plan, ['program', 'requirements', 'styles', 'interactions',
+    'view', 'display', 'edits', 'updates']);
+  if ('display' in p) {
+    assert(['graphics', 'algebra'].includes(p.display), 'Invalid display');
   }
-  // Creation requests always carry a list; edit requests carry none.
+  validatePlanMode(p, Boolean(base));
+  validateProgram(p.program ?? []);
+  validateRequirements(p.requirements, sources);
+  validatePresentation(p, Boolean(base));
+  validateInteractions(p, Boolean(base));
+  // Every field has been checked above; this clone is the validated envelope.
   const request = structuredClone(value) as Request;
   request.plan.program = request.plan.program ?? [];
   if (base) request.base = base;
@@ -424,8 +498,9 @@ export function parseRequest(value: unknown): Request {
 // Mathematical syntax belongs to GeoGebra. This scan only restricts host/script
 // effects; browser isolation and post-execution object/material audits also apply.
 const effects = new Set(('Execute Repeat Delete Rename SetValue SetCoords SetFixed SetColor SetCaption SetVisibleInView SetConditionToShowObject SetDynamicColor SetFilling SetLayer SetLineStyle SetLineThickness SetPointSize SetPointStyle SetTrace SetLabelMode ShowLabel ShowAxes ShowGrid SetAxesRatio SetBackgroundColor SetPerspective SetActiveView SetConstructionStep SetSeed SetSpinSpeed StartAnimation StartRecord RunClickScript RunUpdateScript ExportImage Download InsertImage Image Turtle Button Checkbox InputBox PlaySound ReadText Pan ZoomIn ZoomOut CenterView SelectObjects CopyFreeObject AttachCopyToView ParseToFunction ParseToNumber UpdateConstruction JavaScript RunJavaScript').toLowerCase().split(' '));
+/** Structural source tokens only; never dependency or modification authority. */
 export function mathTokens(source: string): string[] {
-  return (source.replace(/"(?:\\.|[^"\\])*"/g, ' ').match(/[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?/g) ?? []);
+  return (source.replace(/"(?:\\.|[^"\\])*"/g, ' ').match(/[\p{L}][\p{L}\p{M}\p{N}_]*(?:\{[\p{L}\p{M}\p{N}]+\})?['′]*/gu) ?? []);
 }
 export function mathSource(source: unknown): asserts source is string {
   text(source, 8192);

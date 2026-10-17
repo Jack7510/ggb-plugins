@@ -1,3 +1,4 @@
+/** @fileoverview Exercises M6 programs, evidence coverage and reload rejection. */
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -59,8 +60,7 @@ test('M6 reuses native delivery for calculus, inequalities, sliders, paths, matr
   const directory = await mkdtemp(join(tmpdir(), 'ggb-m6-'));
   try {
     for (const name of ['functions', 'statistics', 'parameters-algebra']) await t.test(name, async () => {
-      const input = await fixture(name === 'parameters-algebra' ? 'functions' : name); input.outputDir = directory;
-      if (name === 'parameters-algebra') { input.plan.display = 'algebra'; input.plan.interactions = input.plan.interactions.filter((s: any) => s.parameter); }
+      const input = await fixture(name); input.outputDir = directory;
       const result = await build(input), before = sha256(await readFile(result.file));
       const report = JSON.parse(await readFile(result.report, 'utf8'));
       assert.equal(report.milestone, 'M6'); assert.equal(report.reload.status, 'passed');

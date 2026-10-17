@@ -15,7 +15,7 @@ const skill = await readFile(skillPath);
 const frontmatter = /^---\r?\nname: [^\r\n]+\r?\nversion: ([^\r\n]+)\r?\n/u.exec(skill.toString('utf8'));
 if (!frontmatter) throw new Error('worker.md has no name/version frontmatter');
 // The schema is compiled first so the manifest and the runtime share one source.
-const { commands, limits, predicates } = await import(
+const { commands, limits, predicates, evidencePurposes } = await import(
   new URL('../dist/src/schema.js', import.meta.url).href);
 const manifest = {
   schemaVersion: 1,
@@ -27,6 +27,7 @@ const manifest = {
   limits,
   commands,
   predicates,
+  evidencePurposes,
 };
 const target = join(root, 'capabilities.json');
 await writeFile(target, `${JSON.stringify(manifest, null, 2)}\n`);

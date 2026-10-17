@@ -158,10 +158,11 @@ test('the modify gate allows additions, declared updates and propagation',
       differences, declared: new Set(['P', 's']),
       baseLabels: new Set(['O', 'R', 'circ']),
       links: [
-        { name: 'O', inputs: [] }, { name: 'R', inputs: [] },
-        { name: 'circ', inputs: ['O', 'R'] },
-        { name: 'P', inputs: ['circ'] },
-        { name: 's', inputs: ['O', 'P'] },
+        { name: 'O', inputs: [], referenceState: 'direct' as const },
+        { name: 'R', inputs: [], referenceState: 'direct' as const },
+        { name: 'circ', inputs: ['O', 'R'], referenceState: 'direct' as const },
+        { name: 'P', inputs: ['circ'], referenceState: 'direct' as const },
+        { name: 's', inputs: ['O', 'P'], referenceState: 'direct' as const },
       ],
     });
     assert.deepEqual(violations, []);

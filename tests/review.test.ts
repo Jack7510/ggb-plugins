@@ -181,7 +181,8 @@ test('conic recomputation is allowed only along a declared update dependency',
         expected: [80, 144, -720, 0, 0, 0],
         actual: [108, 144, -945, 0, -54, 0] }],
       declared: new Set<string>(), baseLabels: new Set(['F1', 'el']),
-      links: [{ name: 'el', inputs: ['F1'] }],
+      links: [{ name: 'el', inputs: ['F1'],
+        referenceState: 'direct' as const }],
     };
     assert.deepEqual(modifyViolations(input), []);
     assert.equal(modifyViolations({ ...input, links: [] }).length, 1);
