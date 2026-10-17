@@ -8,7 +8,9 @@ import { join, resolve } from 'node:path';
 import { dragPoint, interact, execute, exportGgb, loadGgb, openBrowser, openDefaultBrowser, runtimeVersion, snapshot, observe, zoom, applyEdits, type Snapshot } from './browser.js';
 import { opaqueTypes, type GgbSummary } from './ggbfile.js';
 import { loadBase } from './inspect.js';
-import { diffViolations, editFields, requireEffects, validateTargets } from './edit.js';
+import {
+  commandTokens, diffViolations, editFields, requireEffects, validateTargets,
+} from './edit.js';
 import { compile } from './compile.js';
 import { limits, parseRequest, ToolError, toolError, type Request } from './schema.js';
 import { compareSnapshots, snapshotDifferences, equivalent, verify, type Verification } from './verify.js';
@@ -323,6 +325,15 @@ function checkBaseline(baseline: Snapshot, summary: GgbSummary): void {
   }
 }
 
+/** Dependency links for edit propagation: recorded inputs plus definitions. */
+function editLinks(facts: Snapshot) {
+  return facts.map(fact => ({
+    name: fact.name,
+    inputs: [...new Set([...fact.inputs, ...commandTokens(fact.command)])]
+      .filter(input => input !== fact.name),
+  }));
+}
+
 /** Applies edits, then enforces effect, preservation and requirement gates. */
 async function editGates(
   context: BuildContext, page: Page, summary: GgbSummary,
@@ -338,7 +349,8 @@ async function editGates(
   const verification = await context.timed('edit.verify',
     () => collect(context, page, 'construction', 'initial'));
   const differences = snapshotDifferences(verification.objects, baseline);
-  const violations = diffViolations(edits, differences);
+  const violations = diffViolations(edits, differences,
+    editLinks(verification.objects));
   if (violations.length) {
     throw new ToolError('preservation_violation',
       'Edit changed fields it did not declare', violations);
@@ -687,7 +699,8 @@ async function recheckEdits(
     const differences = snapshotDifferences(objects, baseline);
     assert(equivalent(differences, report.edit.changes),
       'Recorded edit diff does not match the files');
-    const violations = diffViolations(request.plan.edits ?? [], differences);
+    const violations = diffViolations(request.plan.edits ?? [], differences,
+      editLinks(objects));
     assert.equal(violations.length, 0,
       `Undeclared changes: ${JSON.stringify(violations)}`);
   } finally {

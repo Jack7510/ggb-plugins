@@ -74,13 +74,56 @@ function matches(field: string, actual: unknown, requested: unknown): boolean {
   return actual === requested;
 }
 
-/** Changes outside the declared pairs mean the edit touched the figure. */
+/** Identifier tokens of a native definition string, ignoring quoted text. */
+export function commandTokens(source: string): string[] {
+  return source.replace(/"(?:\\.|[^"\\])*"/g, ' ')
+    .match(/[A-Za-z][A-Za-z0-9_]*/g) ?? [];
+}
+
+/** A dependency edge: `name` reads the objects listed in `inputs`. */
+export interface FactLink { name: string; inputs: readonly string[]; }
+
+/** Transitive objects that depend on `targets`, excluding the targets. */
+export function dependents(
+  links: FactLink[], targets: readonly string[],
+): Set<string> {
+  const found = new Set<string>();
+  const queue = [...targets];
+  while (queue.length) {
+    const current = queue.shift()!;
+    for (const link of links) {
+      if (link.name === current || found.has(link.name) ||
+        targets.includes(link.name) || !link.inputs.includes(current)) continue;
+      found.add(link.name);
+      queue.push(link.name);
+    }
+  }
+  return found;
+}
+
+/**
+ * Changes outside the declared pairs mean the edit touched the figure.
+ *
+ * GeoGebra copies a polygon's color and stroke to its edge objects, so a
+ * dependent may change too. That propagation is accepted only when the
+ * dependent really reads the edited object and takes the requested value;
+ * any other dependent change, or any unrelated change, is still a violation.
+ */
 export function diffViolations(
-  edits: Edit[], differences: Difference[],
+  edits: Edit[], differences: Difference[], links: FactLink[] = [],
 ): Difference[] {
   const allowed = editFields(edits);
-  return differences.filter(({ object, field }) =>
-    !allowed.has(`${object}\u0000${field}`));
+  const closure = new Map(edits.map(edit =>
+    [edit.object, dependents(links, [edit.object])] as const));
+  const propagated = (difference: Difference) => edits.some(({ object,
+    properties }) => object !== difference.object &&
+    Object.hasOwn(properties, difference.field) &&
+    closure.get(object)?.has(difference.object) === true &&
+    matches(difference.field, difference.actual,
+      (properties as Record<string, unknown>)[difference.field]));
+  return differences.filter(difference =>
+    !allowed.has(`${difference.object}\u0000${difference.field}`) &&
+    !propagated(difference));
 }
 
 /** Every declared field must be observable, not merely accepted. */

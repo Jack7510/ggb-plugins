@@ -129,6 +129,26 @@ test('targets must exist and accept that property on that type', () => {
     [{ object: 'circ', properties: { filling: 0.3, lineStyle: 1 } }], types);
 });
 
+test('diff allow-list admits documented propagation to dependents', () => {
+  const edits = [{ object: 'bTri', properties: { color: '#E8833A' } }];
+  const links = [
+    { name: 'a', inputs: ['P', 'C', 'bTri'] },
+    { name: 'c_1', inputs: ['C', 'A', 'bTri'] },
+    { name: 'O', inputs: [] },
+    { name: 'txtSum', inputs: [] },
+  ];
+  const propagated = [
+    { object: 'a', field: 'color', expected: '#C7442E', actual: '#E8833A' },
+    { object: 'c_1', field: 'filling', expected: 0, actual: 0.4 },
+    { object: 'txtSum', field: 'color', expected: '#111111', actual: '#E8833A' },
+    { object: 'a', field: 'visible', expected: true, actual: false },
+  ];
+  assert.deepEqual(diffViolations(edits, propagated, links).map(change =>
+    `${change.object}.${change.field}`), ['c_1.filling', 'txtSum.color',
+    'a.visible']);
+  assert.equal(diffViolations(edits, propagated.slice(0, 1)).length, 1);
+});
+
 test('diff allow-list rejects undeclared objects and fields', () => {
   const edits = [
     { object: 'circ', properties: { color: '#112233', filling: 0.3 } },
