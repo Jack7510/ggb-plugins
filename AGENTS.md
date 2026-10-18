@@ -68,6 +68,18 @@
 
 `package.json`、`plugin.json` 和 `dsh/package.json` 的版本必须一致。先验证两种封装，再提供 `docs/releases/v<version>.md`。发布工作流从固定标签构建；不要移动已发布标签。安装步骤只在安装说明（`codex/README.md`、`dsh/README.md`）维护，本文件不复制。
 
+## Skill 与参考文档
+
+Skill 描述的是**通用解**：稳定的分析流程、构法选择原则、核验与交付规则。它不记录
+单个案例的命令配方、参数取值或完整公式。
+
+- 具体命令、表达式与样例放在 `skills/ggb-construction/references/` 与
+  `examples/v2-cases/`；新增案例先加样例与参考，只有总结出通用规则时才改 Skill。
+- Skill 不随案例数量增长。接近体量上限时，先把细节迁到 references；
+  `tests/package.test.ts` 校验行数上限，防止提示层变成案例堆积。
+- 这与设计原则一致：不为单个题目增加题型分支或命令包装；在 Skill 里堆案例，
+  等同于在提示层增加题型分支，同样会削弱通用性和可维护性。
+
 ## 文档职责
 
 每个事实只有一个解释位置，其他文档用链接引用：
@@ -82,4 +94,4 @@
 | `skills/ggb-construction/references/` | `capabilities.md` 是字段与谓词契约，`patterns.md` 是可复用构法参考 |
 | `codex/docs/`、`dsh/docs/` 下的验收记录 | 各客户端的测试与验收证据 |
 
-规则：Skill 只写通用工作方式，具体命令、公式与样例放到 references 与 examples；README 与 AGENTS 不重复维护项目结构、技术栈或架构；字段与调用细节以能力契约为准，安装细节只在安装说明，测试数量与证据只在验收记录。
+规则：README 与 AGENTS 不重复维护项目结构、技术栈或架构；字段与调用细节以能力契约为准，安装细节只在安装说明，测试数量与证据只在验收记录。

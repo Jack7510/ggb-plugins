@@ -34,7 +34,7 @@ test('DSH tarball carries its own skill, references and the identical compiled r
     for (const module of ['cli','doctor','server','browser','schema','compile','verify','delivery']) {
       assert.deepEqual(await readFile(join(bundle, 'dist/src', module + '.js')), await readFile(join(root, 'dist/src', module + '.js')));
     }
-    for (const file of ['SKILL.md', 'worker.md', 'references/capabilities.md', 'references/command-coverage.md']) {
+    for (const file of ['SKILL.md', 'worker.md', 'references/capabilities.md', 'references/command-coverage.md', 'references/patterns.md']) {
       assert.deepEqual(await readFile(join(bundle, 'skills/ggb-construction', file)), await readFile(join(root, 'skills/ggb-construction', file)));
     }
     assert.deepEqual(await readFile(join(bundle, 'capabilities.json')), await readFile(join(root, 'capabilities.json')));
@@ -121,10 +121,14 @@ test('plugin ZIP contains a standalone compiled tool and discoverable skill, not
       assert(!code.includes('/Users/'), 'Compiled tool must not depend on a developer path');
       for (const [, target] of code.matchAll(/from ['"]\.\/([^'"]+)['"]/g)) assert((await stat(join(plugin, 'dist/src', target!))).isFile());
     }
-    for (const file of ['viewer/index.html', 'runtime.lock.json', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'scripts/setup-plugin.mjs', 'scripts/setup-runtime.mjs', 'capabilities.json', 'skills/ggb-construction/worker.md', 'skills/ggb-construction/references/capabilities.md', 'skills/ggb-construction/references/command-coverage.md']) {
+    for (const file of ['viewer/index.html', 'runtime.lock.json', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'scripts/setup-plugin.mjs', 'scripts/setup-runtime.mjs', 'capabilities.json', 'skills/ggb-construction/worker.md', 'skills/ggb-construction/references/capabilities.md', 'skills/ggb-construction/references/command-coverage.md', 'skills/ggb-construction/references/patterns.md']) {
       assert((await stat(join(plugin, file))).size > 0);
     }
     assert.deepEqual(await readFile(join(plugin, 'pnpm-lock.yaml')), await readFile(join(root, 'pnpm-lock.yaml')));
+    const skillSource = await readFile(
+      join(root, 'skills/ggb-construction/SKILL.md'), 'utf8');
+    assert(skillSource.split('\n').length <= 100,
+      'Keep the skill general: move recipes and examples to references');
     assert(!pkg.scripts.build && !pkg.scripts.demo, 'Release must not advertise unbundled development inputs');
     assert.match(await readFile(join(plugin, 'README.md'), 'utf8'), /installed-plugin/);
   } finally { await rm(directory, { recursive: true, force: true }); }
