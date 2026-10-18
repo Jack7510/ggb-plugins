@@ -58,7 +58,7 @@ A successful run writes one delivery directory:
 
 | File | Purpose |
 | --- | --- |
-| `result.ggb` | Native GeoGebra file you can open, inspect, and keep editing |
+| `<title>.ggb` | Native GeoGebra file named after the problem; open, inspect, and keep editing |
 | `verification.json` | Per-condition results: construction, reload, and interaction samples |
 | `preview.png` | Screenshot of the delivered configuration |
 | `request.json`, `manifest.json` | Archived input and delivery manifest |
@@ -66,9 +66,13 @@ A successful run writes one delivery directory:
 Reports state which checks ran and how far finite interaction samples reach; they never claim a
 general proof.
 
+The delivery directory sits at `<outputDir>/<title>/delivery/`. `<title>` comes from the problem
+and also names the GGB file; a repeated title gets `-2`, `-3` instead of overwriting an earlier
+delivery.
+
 ## Interactive preview
 
-The preview loads the same `result.ggb` and supports applicable point dragging, parameter changes,
+The preview loads the same delivered GGB and supports applicable point dragging, parameter changes,
 and zooming without writing back to the delivery. Keep the preview process running (Ctrl+C ends
 it); a one-shot host may terminate it on exit. Use `--headless` for automated checks.
 

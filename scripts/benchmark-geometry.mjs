@@ -102,7 +102,8 @@ async function runAttempt(name, repeat, attempt, input) {
       samples: report.interaction.samples.length,
       statuses: [report.construction.status, report.reload.status,
         report.interaction.status] };
-    row.fileSha256 = hash(await readFile(join(delivery, 'result.ggb')));
+    row.fileSha256 = hash(await readFile(join(delivery,
+      JSON.parse(await readFile(join(delivery, 'manifest.json'))).file)));
   }
   rows.push(row);
   await writeFile(checkpoint, json(rows));

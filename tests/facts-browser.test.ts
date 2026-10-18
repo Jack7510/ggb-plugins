@@ -35,9 +35,8 @@ test('unrelated native movement cannot deliver; relevant input passes',
       error instanceof ToolError
         && /No relevant interaction/.test(error.message));
     for (const run of await readdir(directory)) {
-      const file = join(directory, run, 'delivery/result.ggb');
-      await assert.rejects(readFile(file),
-        /ENOENT/);
+      // A rejected run leaves its journal but never commits a delivery.
+      await assert.rejects(readdir(join(directory, run, 'delivery')), /ENOENT/);
     }
     request.outputDir = join(output, 'coverage-positive');
     request.plan.interactions = [{ point: 'A', dx: 40, dy: -30 }];

@@ -3,7 +3,7 @@
  */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rename, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { dragPoint, interact, execute, exportGgb, loadGgb, openBrowser, openDefaultBrowser, runtimeVersion, snapshot, observe, zoom, applyEdits, applyStyles, applyUpdates, type Snapshot } from './browser.js';
 import { unsupportedType, type GgbSummary } from './ggbfile.js';
@@ -19,6 +19,7 @@ import {
   validateModifyStyles, validateUpdates, type BaseFact,
 } from './modify.js';
 import { limits, parseRequest, ToolError, toolError, type Request, type Style } from './schema.js';
+import { claimRunDirectory, requestedName } from './naming.js';
 import { compareSnapshots, snapshotDifferences, equivalent, verify, type Verification } from './verify.js';
 
 export const sha256 = (data: Buffer) => createHash('sha256').update(data).digest('hex');
@@ -70,6 +71,8 @@ interface BuildContext {
   running: AbortSignal;
   run: string;
   temp: string;
+  /** GGB file name inside the delivery, derived from the delivery name. */
+  file: string;
   stage: string;
   session?: Engine;
   timings: PhaseTiming[];
@@ -101,7 +104,7 @@ function buildContext(input: unknown, signal?: AbortSignal): BuildContext {
     running: AbortSignal.any([
       AbortSignal.timeout(limits.buildMs), ...(signal ? [signal] : []),
     ]),
-    run: '', temp: '', stage: 'export_failed',
+    run: '', temp: '', file: '', stage: 'export_failed',
     timings, observationTimings: [], diagnostics: [],
     async timed<T>(phase: string, operation: () => Promise<T>): Promise<T> {
       const start = performance.now();
@@ -135,7 +138,10 @@ async function construct(context: BuildContext): Promise<{
 }> {
   const { request } = context;
   await mkdir(request.outputDir, { recursive: true });
-  context.run = await mkdtemp(join(resolve(request.outputDir), 'ggb-'));
+  const claimed = await claimRunDirectory(
+    resolve(request.outputDir), requestedName(request, limits.titleChars));
+  context.run = claimed.directory;
+  context.file = `${claimed.name}.ggb`;
   context.temp = join(context.run, 'delivery.tmp');
   await mkdir(context.temp);
   await writeFile(join(context.run, 'request.json'), context.requestBytes);
@@ -166,7 +172,7 @@ async function reload(
   assert(session);
   context.stage = 'reload_failed';
   const reloaded = await context.timed('reload.applet', () => session.page());
-  const bytes = await readFile(join(context.temp, 'result.ggb'));
+  const bytes = await readFile(join(context.temp, context.file));
   const data = bytes.toString('base64');
   await context.timed('reload.load', () => loadGgb(
     reloaded, data, context.request.prompt, context.request.plan.display,
@@ -303,7 +309,10 @@ async function editArchive(context: BuildContext) {
   const { archive, summary } = await loadBase(context.request.base!);
   const { request } = context;
   await mkdir(request.outputDir, { recursive: true });
-  context.run = await mkdtemp(join(resolve(request.outputDir), 'ggb-'));
+  const claimed = await claimRunDirectory(
+    resolve(request.outputDir), requestedName(request, limits.titleChars));
+  context.run = claimed.directory;
+  context.file = `${claimed.name}.ggb`;
   context.temp = join(context.run, 'delivery.tmp');
   await mkdir(context.temp);
   await writeFile(join(context.run, 'request.json'), context.requestBytes);
@@ -432,7 +441,7 @@ async function exportArtifact(context: BuildContext,
   const bytes = Buffer.from(await context.timed('export',
     () => exportGgb(page)), 'base64');
   // exportGgb owns the shared size and ZIP validation for every consumer.
-  await writeFile(join(context.temp, 'result.ggb'), bytes);
+  await writeFile(join(context.temp, context.file), bytes);
   return bytes;
 }
 
@@ -505,7 +514,7 @@ async function finishDelivery(context: BuildContext, input: {
   } } : {};
   await save(join(context.temp, 'manifest.json'), {
     protocolVersion: 2, milestone: 'M6',
-    runtimeVersion: await runtimeVersion(input.page), file: 'result.ggb',
+    runtimeVersion: await runtimeVersion(input.page), file: context.file,
     sha256: sha256(input.bytes), requestSha256: context.requestSha256,
     ...base, objects: input.objects,
   });
@@ -527,7 +536,7 @@ async function deliveryResult(context: BuildContext,
     warnings.push(
       'Delivery committed; run.json update failed: ' + String(error));
   }
-  return { delivery, file: join(delivery, 'result.ggb'),
+  return { delivery, file: join(delivery, context.file),
     report: join(delivery, 'verification.json'),
     ...(warnings.length ? { warnings } : {}) };
 }
@@ -935,7 +944,13 @@ async function preview(deliveryDir: string, headed: boolean, signal?: AbortSigna
   signal?.throwIfAborted();
   const delivery = resolve(deliveryDir);
   const manifest = await readJson(join(delivery, 'manifest.json'), 2 * 1024 * 1024) as any;
-  assert(manifest?.protocolVersion === 2 && manifest.milestone === 'M6' && manifest.file === 'result.ggb', 'Unsupported delivery format; regenerate with build');
+  assert(manifest?.protocolVersion === 2 && manifest.milestone === 'M6',
+    'Unsupported delivery format; regenerate with build');
+  // The manifest declares the GGB name; older deliveries say result.ggb.
+  const artifact = manifest.file;
+  assert(typeof artifact === 'string' && /^[^/\\]+\.ggb$/u.test(artifact)
+    && artifact !== '.' && artifact !== '..',
+  'Unsupported delivery format; regenerate with build');
   assert.match(manifest.sha256, /^[a-f0-9]{64}$/); assert.match(manifest.requestSha256, /^[a-f0-9]{64}$/);
   const request = parseRequest(await readJson(join(delivery, 'request.json')));
   assert.equal(sha256(await readFile(join(delivery, 'request.json'))), manifest.requestSha256, 'Request checksum mismatch');
@@ -947,9 +962,9 @@ async function preview(deliveryDir: string, headed: boolean, signal?: AbortSigna
     request.base && Array.isArray(baseline) ? snapshotFacts(baseline) : undefined);
   assert.equal(report?.milestone, 'M6'); assert.equal(report.requestSha256, manifest.requestSha256);
   validateDeliveryEvidence(request, report, manifest.objects);
-  const info = await stat(join(delivery, 'result.ggb'));
+  const info = await stat(join(delivery, artifact));
   assert(info.isFile() && info.size > 0 && info.size <= limits.ggbBytes, 'Invalid GGB file size');
-  const bytes = await readFile(join(delivery, 'result.ggb')); assert.equal(sha256(bytes), manifest.sha256, 'GGB checksum mismatch');
+  const bytes = await readFile(join(delivery, artifact)); assert.equal(sha256(bytes), manifest.sha256, 'GGB checksum mismatch');
   const session = await openBrowser(headed, signal);
   try {
     const page = await session.page(); await loadGgb(page, bytes.toString('base64'), request.prompt, request.plan.display);

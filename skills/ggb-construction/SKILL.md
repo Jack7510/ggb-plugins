@@ -61,12 +61,14 @@ description: 分析中英文文字或图片中的二维数学与代数题，生�
 
 ## 执行与交付
 
-保存 JSON，使用绝对路径：
+保存 JSON，使用绝对路径；`outputDir` 填用户工作目录根，并用 `title` 概括题目（不超过 60 字）：
 
 ```sh
 node <plugin>/dist/src/cli.js check --request <absolute-request.json>
 node <plugin>/dist/src/cli.js build --request <absolute-request.json>
 ```
+
+交付落在 `<outputDir>/<title>/delivery/<title>.ggb`：目录和文件名都取 `title`，缺少 `title` 时由 `prompt` 派生。同名交付已存在时自动加 `-2`、`-3`，不覆盖旧文件；把实际路径报告给用户，不要让用户自己找 `output/ggb-XXXXXX`。
 
 check 只做结构、来源和声明引用检查，不启动浏览器，不写交付，也不证明 GeoGebra 语法或数学关系成立。修正预检错误后再 build；两种命令的失败与修复均保留记录。
 
@@ -81,6 +83,6 @@ check 只做结构、来源和声明引用检查，不启动浏览器，不写�
 node <plugin>/dist/src/cli.js preview --delivery <absolute-delivery-dir>
 ```
 
-preview 使用系统默认浏览器，在本地 GeoGebra 页面加载同一 result.ggb；不直接打开可能被下载的 .ggb URL。保留前台进程，等待浏览器页面确认加载的就绪 JSON，再答复用户。页面“结束预览”按钮或进程取消会释放本地服务；仅关闭默认浏览器标签页不保证结束进程。自动化复核使用 --headless --once，复核后自动释放资源并退出；不能代替最终可见预览。预览失败保留文件并单独报告，不能声称已经打开。
+preview 使用系统默认浏览器，在本地 GeoGebra 页面加载同一交付 GGB；不直接打开可能被下载的 .ggb URL。保留前台进程，等待浏览器页面确认加载的就绪 JSON，再答复用户。页面“结束预览”按钮或进程取消会释放本地服务；仅关闭默认浏览器标签页不保证结束进程。自动化复核使用 --headless --once，复核后自动释放资源并退出；不能代替最终可见预览。预览失败保留文件并单独报告，不能声称已经打开。
 
 交付 GGB、报告和截图，说明已验证条件及有限样本。覆盖记录见 [固定 runtime 覆盖边界](references/command-coverage.md)。不宣称全部原生命令已验收，不把数值采样或未决 CAS 结果当作一般证明。旧协议 1 的请求与交付须按新契约重新生成。

@@ -11,6 +11,7 @@
   "protocolVersion": 2,
   "prompt": "绘制函数 y=x²-5x+6 的图像，用于观察与探索，不给出零点答案。",
   "locale": "zh-CN",
+  "title": "y=x²-5x+6 的图像",
   "outputDir": "/absolute/output",
   "plan": {
     "program": [
@@ -30,6 +31,8 @@
   }
 }
 ```
+
+`title` 可选，最长 60 字，不能含控制字符：它决定交付目录名和 GGB 文件名。省略时由 `prompt` 派生；两者都会清洗路径分隔符与非法字符，按码点截断，空结果回退为 `ggb-construction`。`outputDir` 建议填用户工作目录根。交付路径为 `<outputDir>/<title>/delivery/<title>.ggb`；同名交付已存在时目录与文件名同时追加 `-2`、`-3`，绝不覆盖。旧交付（`result.ggb`）仍可预览：预览按清单声明的文件名校验。
 
 工作语言由 Agent 选择中文或英文；新请求 locale 使用 zh-CN 或 en，最终预览据此显示说明与结束按钮。caption 和 Text 由 Agent 用所选语言编写。locale 不翻译来源、命令、协议字段或原始诊断；其他既有 locale 值仍可解析，预览以英文回退。
 
@@ -82,7 +85,7 @@ inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`byt
 4. 差异白名单：edited 文件的字段级差异必须落在声明的 `object:field` 集合内，否则返回 `preservation_violation`。多边形与其边对象共享外观：改多边形颜色或描边时，GeoGebra 会把同一值同步到边对象；工具允许这类传播，条件是 XML 输出组确认多边形对边的描边归属，且变化字段为 color／lineStyle／lineThickness 并取到同一请求值；数学依赖不能授权 visible、filling 或其他外观传播，并把这些传播变化写入 `diff.json` 的 `changes`。
 5. 重载一致：导出文件在新 applet 中重载后，事实与编辑后状态完全一致，并重跑 requirement 检查。
 
-**交付**：除 result.ggb、request.json、verification.json、preview.png、manifest.json 外，另含 base.ggb（基线副本）、manifest 的 `base` 块与 diff.json（`baseSha256`、`allowed`、`changes`）。preview 会重新加载 base.ggb、重算差异，并核对报告中的 `changes`；报告中删改差异即预览失败。
+**交付**：除按题目命名的 GGB、request.json、verification.json、preview.png、manifest.json 外，另含 base.ggb（基线副本）、manifest 的 `base` 块与 diff.json（`baseSha256`、`allowed`、`changes`）。preview 会重新加载 base.ggb、重算差异，并核对报告中的 `changes`；报告中删改差异即预览失败。
 
 **错误码**：`base_invalid`（摘要不符）、`base_unsupported`（归档/脚本/宏/材料/对象不支持）、`unknown_edit_target`（对象不存在）、`invalid_edit`（属性与该类型不符）、`edit_no_effect`（读回未生效）、`preservation_violation`（出现未声明的变化）。
 
@@ -186,7 +189,7 @@ M1 回归的 freePoint/command 原语保留在协议 2，仍编译到同一执�
 
 ## 交付与失败
 
-构造、必需核验、GGB 重载及交互检查通过后，关闭资源，再原子提交 result.ggb、request.json、verification.json、preview.png 和 manifest.json。M6 清单协议为 2，milestone 为 M6；preview 复核报告、摘要和实际重载结果。构图与验证均 headless。自动预览复核使用 `preview --delivery <dir> --headless --once`，通过全部原有预览门禁后关闭资源并退出；`--once` 不得与可见预览组合。成功后必须以 preview 自动打开系统默认浏览器作为最后的工具动作，加载同一 GGB；页面确认加载后输出就绪。点击页面“结束预览”或取消进程释放服务，不回写文件；仅关闭默认浏览器标签页不保证结束进程。
+构造、必需核验、GGB 重载及交互检查通过后，关闭资源，再原子提交按题目命名的 GGB、request.json、verification.json、preview.png 和 manifest.json。M6 清单协议为 2，milestone 为 M6；preview 复核报告、摘要和实际重载结果。构图与验证均 headless。自动预览复核使用 `preview --delivery <dir> --headless --once`，通过全部原有预览门禁后关闭资源并退出；`--once` 不得与可见预览组合。成功后必须以 preview 自动打开系统默认浏览器作为最后的工具动作，加载同一 GGB；页面确认加载后输出就绪。点击页面“结束预览”或取消进程释放服务，不回写文件；仅关闭默认浏览器标签页不保证结束进程。
 
 容量和时限由 doctor/schema 给出。失败保留运行路径和原因；CAS 不就绪、语法错误、对象未定义、探针污染原对象和数学条件不满足均不能交付。最多三次新运行，保留要求；未验证必须说明能力缺口。
 

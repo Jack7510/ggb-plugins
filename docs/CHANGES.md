@@ -4,6 +4,8 @@
 
 ## 未发布
 
+- 交付命名改为按题目：请求新增可选 `title`（≤60 字），交付目录与 GGB 文件都取该名字，同名自动追加 `-2`、`-3`，不再使用随机 `ggb-XXXXXX` 与固定的 `result.ggb`；`outputDir` 建议填用户工作目录根。清单记录实际文件名，`preview` 按清单声明的文件名校验，旧交付仍可预览。新增离线命名回归。
+
 - 运行时改用本机已安装的 Chromium 内核浏览器（Chrome／Edge，或 `DSH_GGB_BROWSER` 指定的频道／绝对路径），不再下载 Chromium：`playwright install chromium` 从安装器移除，改为启动前解析并报告目标浏览器。`doctor` 的 browser 字段改为报告实际使用的浏览器（`label` 加 `executablePath` 或 `channel`）。新增离线回归 tests/browser-target.test.ts，安装器回归改走浏览器探测。
 
 - 修复验证截图的界面语言：新建、编辑、续构、重载和交互页面统一使用请求 locale，中文与英文共用 viewer 文案。就绪页面检查实际语言、标题、提示、页脚及结束按钮；文案不一致返回 viewer_language_mismatch 并阻止交付或预览。新增图形／代数视图、语言回退及错误文案回归。

@@ -37,7 +37,7 @@ dsh --profile ggb-plugins '用 GeoGebra 作三角形 ABC，取 AB 中点 M，连
 
 ## 运行与升级
 
-构造、核验、重载和自动预览均 headless。文件写在工作区，不能写入安装包。交付目录包含 result.ggb、request.json、verification.json、preview.png 和 manifest.json。失败或未验证阻止正式交付，规则见包内 Skill 引用。
+构造、核验、重载和自动预览均 headless。文件写在工作区，不能写入安装包。交付目录包含按题目命名的 GGB、request.json、verification.json、preview.png 和 manifest.json。失败或未验证阻止正式交付，规则见包内 Skill 引用。
 
 成功后，持续运行的调用方可以在系统默认浏览器打开已生成文件：
 

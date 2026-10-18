@@ -12,7 +12,7 @@ export function toolError(error: unknown, code: string, signal?: AbortSignal): T
   return error instanceof ToolError ? error : new ToolError(code, error instanceof Error ? error.message : String(error));
 }
 
-export const limits = { requestBytes: 128 * 1024, reportBytes: 16 * 1024 * 1024, promptChars: 12000, steps: 64, requirements: 64, checks: 256, samples: 12, coordinate: 10000, ggbBytes: 10 * 1024 * 1024, operationMs: 30_000, buildMs: 120_000, doctorMs: 45_000 };
+export const limits = { requestBytes: 128 * 1024, reportBytes: 16 * 1024 * 1024, promptChars: 12000, titleChars: 60, steps: 64, requirements: 64, checks: 256, samples: 12, coordinate: 10000, ggbBytes: 10 * 1024 * 1024, operationMs: 30_000, buildMs: 120_000, doctorMs: 45_000 };
 export const commands: Record<string, { signatures: string[][]; output: string; native?: string; variadic?: boolean }> = {
   Segment: { signatures: [['point', 'point']], output: 'segment' },
   Line: { signatures: [['point', 'point'], ['point', 'line']], output: 'line' },
@@ -60,6 +60,7 @@ export const evidencePurposes = [
 export type EvidencePurpose = typeof evidencePurposes[number];
 export interface Request {
   protocolVersion: 2; prompt: string; locale: string; outputDir: string;
+  title?: string;
   base?: { path: string; sha256: string };
   clarifications?: { question: string; answer: string }[];
   plan: {
@@ -470,12 +471,17 @@ function validateInteractions(p: Fields, base: boolean): void {
 /** Validate the full envelope before a browser starts or output is written. */
 export function parseRequest(value: unknown): Request {
   const r = record(value, ['protocolVersion', 'prompt', 'locale', 'outputDir',
-    'clarifications', 'plan', 'base']);
+    'title', 'clarifications', 'plan', 'base']);
   assert.equal(r.protocolVersion, 2,
     'Unsupported request protocol; regenerate with protocolVersion 2');
   text(r.prompt, limits.promptChars);
   text(r.locale, 32);
   text(r.outputDir);
+  if ('title' in r) {
+    text(r.title, limits.titleChars);
+    assert(!/[\u0000-\u001f\u007f]/u.test(r.title),
+      'Invalid title: remove control characters');
+  }
   const base = 'base' in r ? baseInput(r.base) : undefined;
   const sources = requestSources(r);
   const p = record(r.plan, ['program', 'requirements', 'styles', 'interactions',

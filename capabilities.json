@@ -13,6 +13,7 @@
     "requestBytes": 131072,
     "reportBytes": 16777216,
     "promptChars": 12000,
+    "titleChars": 60,
     "steps": 64,
     "requirements": 64,
     "checks": 256,

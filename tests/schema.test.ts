@@ -174,6 +174,21 @@ test('stray expression fields and bad expected values are named', () => {
     /Expected boolean, number or nested list, got "x"/);
 });
 
+test('delivery title is bounded and free of control characters', () => {
+  const titled = structuredClone(fixture);
+  titled.title = '三角形外接圆';
+  assert.equal(parseRequest(titled).title, '三角形外接圆');
+  const tooLong = structuredClone(fixture);
+  tooLong.title = '题'.repeat(61);
+  assert.throws(() => parseRequest(tooLong), /Invalid text/);
+  const control = structuredClone(fixture);
+  control.title = 'a\u0000b';
+  assert.throws(() => parseRequest(control), /Invalid title/);
+  const blank = structuredClone(fixture);
+  blank.title = '   ';
+  assert.throws(() => parseRequest(blank), /Invalid text/);
+});
+
 test('predicate errors name the expected type and the actual one', () => {
   const facts = [
     { name: 'A', type: 'point', defined: true, independent: true, moveable: true,

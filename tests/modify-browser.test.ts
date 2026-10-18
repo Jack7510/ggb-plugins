@@ -66,9 +66,9 @@ test('three construction-modification rounds preserve the base chain',
       const firstPreview = await openPreview(first.delivery, false);
       await firstPreview.close();
 
-      const firstBytes = await readFile(join(first.delivery, 'result.ggb'));
+      const firstBytes = await readFile(first.file);
       const second = await build(request(directory,
-        { path: join(first.delivery, 'result.ggb'),
+        { path: first.file,
           sha256: sha256(firstBytes) },
         '把圆心 O 移到 (0.5,0.5)，再在圆上添加点 T，连接 R 到 T 的线段 t，把圆改成绿色', {
           program: [
@@ -108,9 +108,9 @@ test('three construction-modification rounds preserve the base chain',
       const secondPreview = await openPreview(second.delivery, false);
       await secondPreview.close();
 
-      const secondBytes = await readFile(join(second.delivery, 'result.ggb'));
+      const secondBytes = await readFile(second.file);
       const third = await build(request(directory,
-        { path: join(second.delivery, 'result.ggb'),
+        { path: second.file,
           sha256: sha256(secondBytes) },
         '把 R 移到 (-2,1)，把滑块 n 的值设为 3，在圆上再添加点 U，连接 O 到 U 的线段 u 并改成蓝色，隐藏 P 的标签', {
           program: [
