@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { root } from '../src/server.js';
 import { commands, limits, predicates } from '../src/schema.js';
@@ -47,3 +47,47 @@ test('host skill and reference state the same capability rules', () => {
   assert.match(hostReference, /pointOn.*圆锥曲线/s);
   assert.match(hostReference, /expected.*独立/s);
 });
+
+/** Bytes prevent a long line from bypassing the entrypoint line budget. */
+function assertPromptBudget(text: string, bytes: number): void {
+  assert(text.split('\n').length <= 100, 'Prompt exceeds 100 lines');
+  assert(Buffer.byteLength(text) <= bytes, 'Prompt exceeds byte budget');
+}
+
+test('both prompt entrypoints and references stay within context budgets',
+  async () => {
+    assertPromptBudget(hostSkill, 9_000);
+    assertPromptBudget(worker.toString('utf8'), 6_500);
+    assert(Buffer.byteLength(hostSkill) + worker.length <= 14_000);
+    assert(Buffer.byteLength(hostReference) <= 32_000);
+    const patterns = await readFile(join(root,
+      'skills/ggb-construction/references/patterns.md'));
+    assert(patterns.length <= 6_000);
+  });
+
+test('long lines and extra lines cannot bypass prompt budgets', () => {
+  assert.throws(() => assertPromptBudget('x'.repeat(9_001), 9_000));
+  assert.throws(() => assertPromptBudget('中'.repeat(3_001), 9_000));
+  assert.throws(() => assertPromptBudget('\n'.repeat(100), 9_000));
+});
+
+/** Matches generated Markdown heading anchors used by the entrypoint. */
+function headingAnchor(heading: string): string {
+  return heading.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, '')
+    .replace(/\s/g, '-');
+}
+
+test('entrypoint references resolve to packaged files and section anchors',
+  async () => {
+    const skillPath = join(root, 'skills/ggb-construction/SKILL.md');
+    for (const [, target] of hostSkill.matchAll(/\]\(([^)]+)\)/g)) {
+      assert(target && !target.includes('://'), 'Use local skill resources');
+      const [file, anchor] = target.split('#');
+      assert(file);
+      const text = await readFile(join(dirname(skillPath), file), 'utf8');
+      if (!anchor) continue;
+      const anchors = [...text.matchAll(/^#+ (.+)$/gm)]
+        .map(([, heading]) => headingAnchor(heading ?? ''));
+      assert(anchors.includes(anchor), `Missing section: ${target}`);
+    }
+  });

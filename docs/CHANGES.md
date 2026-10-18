@@ -4,9 +4,11 @@
 
 ## 未发布
 
+- 精简主 Skill 与 Worker，删除固定顶点、反射坐标和输出保留名豁免等冲突配方，保留来源、独立期望、动态证据及交付门禁。Skill 按操作读取契约章节；Worker 保留无文件权限的宿主边界。维护准入规则放在 AGENTS，提示体量检查覆盖两入口的行数、字节量与参考预算，不再只限制主 Skill 行数。修复两种安装包漏带 patterns.md，使按需参考在安装后也可读取。
+
 - locale 跟随题目语言：构建/核验页与预览页都按请求 locale 显示提示与结束按钮，页面语言不符会拒绝；此前只有发布页跟随 locale，构建截图固定为英文。Skill 与能力契约同步约定中文题目用 zh-CN、英文题目用 en。
 
-- Skill 只保留通用规则：动态是默认（可变量用滑块或可拖点，核验覆盖参数变化，给定数值时才固定）。具体构法与聚合核验移到新增的 `references/patterns.md`，`capabilities.md` 只规定字段与谓词；`examples/v2-cases/slider-polygon.json` 作为可变边数的回归样例。 AGENTS 声明 Skill 只描述通用解、案例与配方放 references/examples 的原则，并由打包测试校验 Skill 行数上限。
+- Skill 只保留通用规则：动态是默认（可变量用滑块或可拖点，核验覆盖参数变化，给定数值时才固定）。具体构法与聚合核验移到新增的 `references/patterns.md`，`capabilities.md` 只规定字段与谓词；`examples/v2-cases/slider-polygon.json` 作为可变边数的回归样例。
 
 - 交付命名改为按题目：请求新增可选 `title`（≤60 字），交付目录与 GGB 文件都取该名字，同名自动追加 `-2`、`-3`，不再使用随机 `ggb-XXXXXX` 与固定的 `result.ggb`；`outputDir` 建议填用户工作目录根。清单记录实际文件名，`preview` 按清单声明的文件名校验，旧交付仍可预览。新增离线命名回归。
 

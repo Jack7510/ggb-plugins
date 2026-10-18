@@ -125,10 +125,6 @@ test('plugin ZIP contains a standalone compiled tool and discoverable skill, not
       assert((await stat(join(plugin, file))).size > 0);
     }
     assert.deepEqual(await readFile(join(plugin, 'pnpm-lock.yaml')), await readFile(join(root, 'pnpm-lock.yaml')));
-    const skillSource = await readFile(
-      join(root, 'skills/ggb-construction/SKILL.md'), 'utf8');
-    assert(skillSource.split('\n').length <= 100,
-      'Keep the skill general: move recipes and examples to references');
     assert(!pkg.scripts.build && !pkg.scripts.demo, 'Release must not advertise unbundled development inputs');
     assert.match(await readFile(join(plugin, 'README.md'), 'utf8'), /installed-plugin/);
   } finally { await rm(directory, { recursive: true, force: true }); }
