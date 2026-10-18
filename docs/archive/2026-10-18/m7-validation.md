@@ -1,12 +1,14 @@
 # M7 验收记录
 
+> 历史归档（2026-10-18）：仅说明文中版本与验收范围，不代表当前代码或安装包状态。见[归档索引](../README.md)。
+
 日期：2026-10-16。版本：0.7.0。环境：macOS arm64、Node 26.5.1、pnpm 11.7.0、Codex CLI 0.162.1、Chromium 156.0.8078.4、GeoGebra 5.4.932.1。
 
 ## 实现与覆盖
 
 八个生产模块保持不变，没有新增运行依赖、题型分支或数学命令包装。M7 增加开发工具 `scripts/command-coverage.mjs`、目录快照、覆盖记录、Skill 边界说明和客户端生成的输入回归。请求仍为协议 2，交付仍标记 M6；发布阶段不改变数学交付格式。
 
-[官方目录](https://geogebra.github.io/docs/manual/en/commands/All_Commands/)快照包含 502 个名称，保存获取日期及 HTML SHA-256。它包含三维和脚本等范围，不是二维支持清单。与实际固定 runtime 关联的[覆盖记录](command-coverage.json)中，28 个名称出现在六个成功交付的程序或检查中，474 个未实测。不推断未实测项是否可用，也不宣称已覆盖这些命令的全部重载。
+[官方目录](https://geogebra.github.io/docs/manual/en/commands/All_Commands/)快照包含 502 个名称，保存获取日期及 HTML SHA-256。它包含三维和脚本等范围，不是二维支持清单。与实际固定 runtime 关联的[覆盖记录](../../command-coverage.json)中，28 个名称出现在六个成功交付的程序或检查中，474 个未实测。不推断未实测项是否可用，也不宣称已覆盖这些命令的全部重载。
 
 运行 `pnpm coverage:commands` 重建证据。名称检索不是数学解析器；记录保留通道、程序／检查角色、原语句、请求和 GGB 摘要、交付路径。构造、独立检查、真实重载、适用的交互样本及 headless preview 均走既有统一管线。检查调用不等于交付了该命令对象；数学正确性的范围仍以 requirement 和报告为准。
 
@@ -20,7 +22,7 @@
 
 结果：构造、重载各 29 项检查通过，1 个真实鼠标拖动样本通过，均值和中位数均为 6。切线和路径点保留真实依赖。独立 headless preview 复核通过；关闭页面后浏览器和服务退出，文件 SHA-256 保持 `2cd37e00989d3a4bbda8434aad35a0d69726d7d717ec21d3529ac757d7926854`。
 
-证据：`output/m7-client/events.jsonl`、`final.md`、`ellipse-acceptance/delivery/ggb-BHtVcm/delivery/`，以及运行目录的 `preview-acceptance.json`。请求保留为 [client-ellipse.json](../tests/fixtures/client-ellipse.json)，可通过相同管线重复构造。最终可见 Chrome 由持续运行的调用方打开；一次性 exec 不承担答复后保留窗口。
+证据：`output/m7-client/events.jsonl`、`final.md`、`ellipse-acceptance/delivery/ggb-BHtVcm/delivery/`，以及运行目录的 `preview-acceptance.json`。请求保留为 [client-ellipse.json](../../../tests/fixtures/client-ellipse.json)，可通过相同管线重复构造。最终可见 Chrome 由持续运行的调用方打开；一次性 exec 不承担答复后保留窗口。
 
 ## 失败与剩余缺口
 

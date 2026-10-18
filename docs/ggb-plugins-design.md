@@ -86,9 +86,38 @@ flowchart LR
 | server／viewer | 供应固定本地资源与本次受控预览，不提供任意磁盘读取或远程构图 API |
 | facts | 校验引擎依赖证据、表示外观归属，供重算授权与采样覆盖共同消费 |
 
-提示入口只保留模式选择、稳定决策约束和宿主调用差异。文件型 Skill 按操作读取契约章节；无文件权限的 Worker 使用宿主提供的工具参数定义，不通过本地引用假装获得字段契约。具体构法放在按需参考中，不指定某类题必须逐顶点展开或使用固定坐标。维护准入规则见 [AGENTS](../AGENTS.md#skill-与参考文档)，字段与阅读索引见 [能力契约](../skills/ggb-construction/references/capabilities.md#按需阅读)。
-
 模型输入跨入执行边界后仍需检查。自动浏览器限制请求来源、禁用材料 JavaScript 与下载，并在执行后审计对象与脚本。服务仅监听回环地址，检查请求来源和资源路径。这些措施不构成对任意外部 GGB 或脚本的安全认证；用户浏览器也不受 Playwright 的网络控制。
+
+### 3.1 提示入口与能力契约
+
+四个文件分别面向工作决策、受限调用、请求编写与机器接入，不各自维护一套数学规则。
+
+| 文件 | 消费者 | 负责内容 |
+| --- | --- | --- |
+| [SKILL.md](../skills/ggb-construction/SKILL.md) | 能读取文件、执行 CLI 的宿主 Agent | 适用范围、模式选择、通用分析与核验原则、修复上限、最终交付；按操作指向契约章节 |
+| [worker.md](../skills/ggb-construction/worker.md) | 由接入宿主限制权限的 Worker | 共同决策约束及工具调用流程；路径、基线和展示由宿主管理，不调用 shell 或读取本地文件 |
+| [references/capabilities.md](../skills/ggb-construction/references/capabilities.md) | 编写请求的 Agent | 人可读的字段、类型、命名、操作限制、检查与交付契约；按章节读取，不复制进两份提示入口 |
+| [capabilities.json](../capabilities.json) | 构建检查及 Worker 接入方 | 机器可读的版本、能力清单与 Worker 哈希，提供兼容性和提示词一致性校验依据 |
+
+文件型宿主读取 SKILL.md，按当前操作读取 capabilities.md，再编写请求调用 CLI。DSH 的 Skill provider 也加载这份 SKILL.md 并注入本地路径，不自动转成 Worker 流程。
+
+Worker 接入方加载 worker.md 与 capabilities.json，向模型提供工具参数定义和 ggb_inspect、ggb_check、ggb_build 的调用能力，再由接入方转接底层 CLI。Worker 使用宿主提供的契约与诊断，不依赖读取本地 Markdown，也不虚构读取工具。JSON 中列出工具名称不等于插件注册了 MCP 服务。
+
+```mermaid
+flowchart LR
+  A[文件型宿主 Agent] -->|读取| S[SKILL.md]
+  S -->|按操作指向章节| R[capabilities.md]
+  A -->|请求| C[CLI 与核验核心]
+  H[Worker 接入宿主] -->|加载| W[worker.md]
+  H -->|消费能力与校验依据| J[capabilities.json]
+  H -->|工具调用转接| C
+  I[schema 包版本 Worker 原文] --> B[构建生成器]
+  B --> J
+```
+
+capabilities.json 由 [构建生成器](../scripts/build-capabilities.mjs) 从编译后的 schema、包版本和 Worker 原文生成；修改 Worker 后须同步生成哈希。它不是 capabilities.md 的全文转换，也不替代完整请求契约。实际输入检查、引擎执行和交付门禁仍由代码实施，不能由提示词或能力清单自行判为通过。
+
+提示入口只保留稳定决策与宿主差异；具体构法放在按需参考与样例中。维护准入和体量规则见 [AGENTS](../AGENTS.md#skill-与参考文档)，阅读入口见 [契约索引](../skills/ggb-construction/references/capabilities.md#按需阅读)。
 
 ## 4 输入与导入策略
 
@@ -246,7 +275,7 @@ Codex 和 DSH 分别满足宿主插件格式，共用 Skill 与编译核心。�
 
 delivery 在外层 run.json 记录总耗时和阶段计时；browser 细分观察中的 CAS 就绪、原生探针、复杂值读取及快照采集耗时。verify 不访问计时器或写文件。计时属于诊断，不进入要求判定或交付摘要；已有请求、清单和正式报告协议不变。
 
-预加载阶段可以与其他阶段重叠，不能把阶段时长相加当作端到端耗时。成功与可处理失败均尽可能保存计时；强制退出不保证写入。比较优化效果需使用同一输入、相同检查和独立重载，交替运行基线与当前实现。阶段口径、实测数据和剩余瓶颈集中在 [性能验收记录](performance-validation.md)，不将机器耗时写成产品保证。
+预加载阶段可以与其他阶段重叠，不能把阶段时长相加当作端到端耗时。成功与可处理失败均尽可能保存计时；强制退出不保证写入。比较优化效果需使用同一输入、相同检查和独立重载，交替运行基线与当前实现。阶段口径、实测数据和剩余瓶颈集中在 [性能验收记录](archive/2026-10-18/performance-validation.md)，不将机器耗时写成产品保证。
 
 当前优化限于减少无效重试、会话内复用环境冒烟结果、预加载一份独立页面及删除丢弃截图。没有引入常驻服务、跨运行浏览器池或数学结果缓存。CAS 和复杂列表仍按真实结果读取；细分计时不足以支持删除核验步骤。
 
@@ -263,7 +292,7 @@ delivery 在外层 run.json 记录总耗时和阶段计时；browser 细分观�
 
 ### 9.1 验证宿主的分工
 
-核心回归继续使用固定输入和统一 CLI。端到端验收以 DSH 的独立 headless profile 为主，安装当前构建的完整 TGZ，不借用 Codex 缓存。受影响案例通过后，每题三次使用不同新会话，仅提供文字题，不提供现成程序；宿主模型与工具耗时分别记录。Codex 保留安装、技能发现和代表案例兼容检查。实际结果与限制见 [DSH 主验证记录](../dsh/docs/dsh-primary-validation.md)。
+核心回归继续使用固定输入和统一 CLI。端到端验收以 DSH 的独立 headless profile 为主，安装当前构建的完整 TGZ，不借用 Codex 缓存。受影响案例通过后，每题三次使用不同新会话，仅提供文字题，不提供现成程序；宿主模型与工具耗时分别记录。Codex 保留安装、技能发现和代表案例兼容检查。实际结果与限制见 [DSH 主验证记录](../dsh/docs/archive/2026-10-18/dsh-primary-validation.md)。
 
 ## 10 文档依据与设计覆盖
 

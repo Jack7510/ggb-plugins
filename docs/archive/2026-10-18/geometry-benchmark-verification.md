@@ -1,6 +1,8 @@
 # examples/geometry-benchmark 用例验证报告
 
-日期：2026-10-16。验证对象：[examples/geometry-benchmark](../examples/geometry-benchmark/) 的 10 份请求。代码基线：commit `e88a96f` 加工作区未提交改动（`src/browser.ts`、`src/cli.ts`、`src/delivery.ts`）；`dist` 构建时间 23:07，晚于上述源码的最后修改 23:03。插件版本 0.8.0。
+> 历史归档（2026-10-18）：仅说明文中版本与验收范围，不代表当前代码或安装包状态。见[归档索引](../README.md)。
+
+日期：2026-10-16。验证对象：[examples/geometry-benchmark](../../../examples/geometry-benchmark/) 的 10 份请求。代码基线：commit `e88a96f` 加工作区未提交改动（`src/browser.ts`、`src/cli.ts`、`src/delivery.ts`）；`dist` 构建时间 23:07，晚于上述源码的最后修改 23:03。插件版本 0.8.0。
 
 本报告只做验证与原因分析，未修改用例、执行器或核验门禁。所有断言都有本轮新产生的证据，不引用历史结论代替。
 
@@ -29,7 +31,7 @@
 | 数值容差 | 1e-8（未放宽容差，未删条件） |
 | 单步／构建上限 | operationMs 30000、buildMs 120000 |
 
-`doctor` 在本轮执行一次：`smoke`、`casSmoke` 均通过，通道为 algebra 与 cas，命令白名单关闭。环境记录见 [environment.json](../output/geometry-benchmark-verify-20261016/environment.json)。
+`doctor` 在本轮执行一次：`smoke`、`casSmoke` 均通过，通道为 algebra 与 cas，命令白名单关闭。环境记录见 [environment.json](../../../output/geometry-benchmark-verify-20261016/environment.json)。
 
 验证口径：
 
@@ -46,31 +48,31 @@ CLI 为墙钟毫秒中位数，含进程启动与请求读取；预览就绪为 
 
 | 题目 | CLI 中位数 | 预览就绪中位数 | 检查数 | 对象数 | 交互样本 | 结果 |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| [01 外接圆与外心](../examples/geometry-benchmark/01-circumcircle.json) | 2910 | 565 | 49 | 18 | 3 拖动 | 通过 |
-| [02 内切圆与内心](../examples/geometry-benchmark/02-incircle.json) | 2910 | 557 | 51 | 18 | 3 拖动 | 通过 |
-| [03 中线与重心](../examples/geometry-benchmark/03-centroid.json) | 3029 | 586 | 70 | 28 | 3 拖动 | 通过 |
-| [04 欧拉线](../examples/geometry-benchmark/04-euler-line.json) | 2909 | 567 | 56 | 22 | 3 拖动 | 通过 |
-| [05 圆心角与圆周角](../examples/geometry-benchmark/05-inscribed-angle.json) | 3031 | 606 | 51 | 15 | 3 拖动 | 通过 |
-| [06 圆外点两切线](../examples/geometry-benchmark/06-tangents.json) | 2952 | 564 | 57 | 18 | 3 拖动 | 通过 |
-| [07 相交弦定理](../examples/geometry-benchmark/07-intersecting-chords.json) | 2921 | 558 | 54 | 16 | 3 拖动 | 通过 |
-| [08 滑块内接正多边形](../examples/geometry-benchmark/08-regular-polygon.json) | 2799 | 613 | 120 | 53 | 3 参数（含回退） | 通过 |
-| [09 将军饮马最短路径](../examples/geometry-benchmark/09-shortest-path.json) | 2970 | 565 | 61 | 20 | 3 拖动 | 通过 |
-| [10 弦中点轨迹](../examples/geometry-benchmark/10-midpoint-locus.json) | 2917 | 566 | 38 | 10 | 3 拖动 | 通过 |
+| [01 外接圆与外心](../../../examples/geometry-benchmark/01-circumcircle.json) | 2910 | 565 | 49 | 18 | 3 拖动 | 通过 |
+| [02 内切圆与内心](../../../examples/geometry-benchmark/02-incircle.json) | 2910 | 557 | 51 | 18 | 3 拖动 | 通过 |
+| [03 中线与重心](../../../examples/geometry-benchmark/03-centroid.json) | 3029 | 586 | 70 | 28 | 3 拖动 | 通过 |
+| [04 欧拉线](../../../examples/geometry-benchmark/04-euler-line.json) | 2909 | 567 | 56 | 22 | 3 拖动 | 通过 |
+| [05 圆心角与圆周角](../../../examples/geometry-benchmark/05-inscribed-angle.json) | 3031 | 606 | 51 | 15 | 3 拖动 | 通过 |
+| [06 圆外点两切线](../../../examples/geometry-benchmark/06-tangents.json) | 2952 | 564 | 57 | 18 | 3 拖动 | 通过 |
+| [07 相交弦定理](../../../examples/geometry-benchmark/07-intersecting-chords.json) | 2921 | 558 | 54 | 16 | 3 拖动 | 通过 |
+| [08 滑块内接正多边形](../../../examples/geometry-benchmark/08-regular-polygon.json) | 2799 | 613 | 120 | 53 | 3 参数（含回退） | 通过 |
+| [09 将军饮马最短路径](../../../examples/geometry-benchmark/09-shortest-path.json) | 2970 | 565 | 61 | 20 | 3 拖动 | 通过 |
+| [10 弦中点轨迹](../../../examples/geometry-benchmark/10-midpoint-locus.json) | 2917 | 566 | 38 | 10 | 3 拖动 | 通过 |
 
 30 次成功 `build` 的 CLI 墙钟合计 88252 ms。9 题的真实鼠标拖动每次约 320–340 ms；08 题的原生参数设置约 2–3 ms，参数回退核验另计约 25 ms，两者检验的行为不同，不能互相替代。
 
-十份预览截图已合成[总览图](../output/geometry-benchmark-verify-20261016/contact-sheet.png)并逐张目视检查：十个图形均按题意渲染，标注与数值显示正常；08 题初始 n=3 显示“边数=3 边长=5.2 周长=15.59”。
+十份预览截图已合成[总览图](../../../output/geometry-benchmark-verify-20261016/contact-sheet.png)并逐张目视检查：十个图形均按题意渲染，标注与数值显示正常；08 题初始 n=3 显示“边数=3 边长=5.2 周长=15.59”。
 
 ### 2.2 补充边界
 
 | 边界用例 | 内容 | 结果 |
 | --- | --- | --- |
-| [04-right](../output/geometry-benchmark-20261016/edge-inputs/04-right.json) | 欧拉线直角初态 | 构造、重载、3 拖动、预览复核全部通过 |
-| [04-obtuse](../output/geometry-benchmark-20261016/edge-inputs/04-obtuse.json) | 欧拉线钝角初态 | 同上，通过 |
-| [10-coincident](../output/geometry-benchmark-20261016/edge-inputs/10-coincident.json) | A、B 重合的弦中点轨迹 | 构造、重载、2 拖动（O、R）、预览复核全部通过；不声称能用鼠标区分重合的 A/B |
-| [08 往返](../output/geometry-benchmark-verify-20261016/round-trip.json) | 独立重载会话中 n=12 → n=3 | 两步各 120 项检查全部通过，53 个对象全部有定义 |
+| [04-right](../../../output/geometry-benchmark-20261016/edge-inputs/04-right.json) | 欧拉线直角初态 | 构造、重载、3 拖动、预览复核全部通过 |
+| [04-obtuse](../../../output/geometry-benchmark-20261016/edge-inputs/04-obtuse.json) | 欧拉线钝角初态 | 同上，通过 |
+| [10-coincident](../../../output/geometry-benchmark-20261016/edge-inputs/10-coincident.json) | A、B 重合的弦中点轨迹 | 构造、重载、2 拖动（O、R）、预览复核全部通过；不声称能用鼠标区分重合的 A/B |
+| [08 往返](../../../output/geometry-benchmark-verify-20261016/round-trip.json) | 独立重载会话中 n=12 → n=3 | 两步各 120 项检查全部通过，53 个对象全部有定义 |
 
-往返实验的原始事实见 [round-trip.json](../output/geometry-benchmark-verify-20261016/round-trip.json) 与截图 [n=12](../output/geometry-benchmark-verify-20261016/edges/polygon-return-n12.png)、[n=3](../output/geometry-benchmark-verify-20261016/edges/polygon-return-n3.png)；原交付文件 `result.ggb` 摘要实验前后未变。
+往返实验的原始事实见 [round-trip.json](../../../output/geometry-benchmark-verify-20261016/round-trip.json) 与截图 [n=12](../../../output/geometry-benchmark-verify-20261016/edges/polygon-return-n12.png)、[n=3](../../../output/geometry-benchmark-verify-20261016/edges/polygon-return-n3.png)；原交付文件 `result.ggb` 摘要实验前后未变。
 
 ## 3 原因分析
 
@@ -82,7 +84,7 @@ CLI 为墙钟毫秒中位数，含进程启动与请求读取；预览就绪为 
 
 ### 3.2 历史 9 次失败的根因
 
-数据来源：[归档 attempts.json](../output/geometry-benchmark-20261016/attempts.json)，每题失败的原始请求保留在对应 `attempt-N/request.json`。下表把“首次失败输入”与“通过输入”做了逐行对比，机制一列标注了命中的代码位置。
+数据来源：[归档 attempts.json](../../../output/geometry-benchmark-20261016/attempts.json)，每题失败的原始请求保留在对应 `attempt-N/request.json`。下表把“首次失败输入”与“通过输入”做了逐行对比，机制一列标注了命中的代码位置。
 
 | 题／尝试 | 错误码 | 原始证据 | 机制 | 最终修复 |
 | --- | --- | --- | --- | --- |
@@ -136,15 +138,15 @@ CLI 为墙钟毫秒中位数，含进程启动与请求读取；预览就绪为 
 
 ## 5 证据与复现
 
-证据目录：[output/geometry-benchmark-verify-20261016](../output/geometry-benchmark-verify-20261016/)（455 个文件，89 MB）。按仓库规则 `output` 不进入 Git；已另存整体证据包 [geometry-benchmark-verify-20261016-evidence.zip](../output/geometry-benchmark-verify-20261016-evidence.zip)（10526731 字节，sha256 `400bfcd8f81d16362c4637ef158b10ec9bead5b179f9a5f5592c50a2c6f0c699`）与同名 `.sha256` 文件。
+证据目录：[output/geometry-benchmark-verify-20261016](../../../output/geometry-benchmark-verify-20261016/)（455 个文件，89 MB）。按仓库规则 `output` 不进入 Git；已另存整体证据包 [geometry-benchmark-verify-20261016-evidence.zip](../../../output/geometry-benchmark-verify-20261016-evidence.zip)（10526731 字节，sha256 `400bfcd8f81d16362c4637ef158b10ec9bead5b179f9a5f5592c50a2c6f0c699`）与同名 `.sha256` 文件。
 
 | 路径 | 内容 |
 | --- | --- |
-| [verify-results.json](../output/geometry-benchmark-verify-20261016/verify-results.json) | 30 次主用例运行的逐次结果：耗时、门禁状态、检查数、交付文件摘要 |
-| [three-pass.log](../output/geometry-benchmark-verify-20261016/three-pass.log) | 30 次运行的原始 CLI 输出 |
-| [verify-results-single-pass.json](../output/geometry-benchmark-verify-20261016/verify-results-single-pass.json) | 先行单轮全量运行（10/10 通过），与三轮结果对照；两次合计 40 次 build 无失败 |
-| [extras-results.json](../output/geometry-benchmark-verify-20261016/extras-results.json) | 3 个补充边界用例与往返实验汇总 |
-| [round-trip.json](../output/geometry-benchmark-verify-20261016/round-trip.json) | 12→3 往返的逐步事实 |
+| [verify-results.json](../../../output/geometry-benchmark-verify-20261016/verify-results.json) | 30 次主用例运行的逐次结果：耗时、门禁状态、检查数、交付文件摘要 |
+| [three-pass.log](../../../output/geometry-benchmark-verify-20261016/three-pass.log) | 30 次运行的原始 CLI 输出 |
+| [verify-results-single-pass.json](../../../output/geometry-benchmark-verify-20261016/verify-results-single-pass.json) | 先行单轮全量运行（10/10 通过），与三轮结果对照；两次合计 40 次 build 无失败 |
+| [extras-results.json](../../../output/geometry-benchmark-verify-20261016/extras-results.json) | 3 个补充边界用例与往返实验汇总 |
+| [round-trip.json](../../../output/geometry-benchmark-verify-20261016/round-trip.json) | 12→3 往返的逐步事实 |
 | `<题目>/repeat-N/` | 每轮的 request.json、cli.json 与 `runs/<run>/` 中的 run.json、交付（result.ggb、verification.json、manifest.json、preview.png） |
 | `<题目>/repeat-N/preview-check.png` | 生产 openPreview 的 headless 复核截图 |
 
@@ -157,7 +159,7 @@ node output/geometry-benchmark-verify-20261016/verify-cases.mjs 3
 node output/geometry-benchmark-verify-20261016/verify-extras.mjs
 ```
 
-`verify-cases.mjs` 串行调用真实 CLI 并在每题每轮后写入检查点；`verify-extras.mjs` 需要 `verify-results.json` 中已有 08 题的通过交付。两者都在 `output` 下运行，不修改用例与生产代码。脚本依赖仓库 runtime 与匹配的 Chromium，首次准备见 [AGENTS.md](../AGENTS.md)。
+`verify-cases.mjs` 串行调用真实 CLI 并在每题每轮后写入检查点；`verify-extras.mjs` 需要 `verify-results.json` 中已有 08 题的通过交付。两者都在 `output` 下运行，不修改用例与生产代码。脚本依赖仓库 runtime 与匹配的 Chromium，首次准备见 [AGENTS.md](../../../AGENTS.md)。
 
 ## 6 与前一份报告的关系
 

@@ -1,5 +1,7 @@
 # DSH 端到端求解稳定性 pilot 报告（4 题 × 1 轮）
 
+> 历史归档（2026-10-18）：仅说明文中版本与验收范围，不代表当前代码或安装包状态。见[归档索引](../../../../docs/archive/README.md)。
+
 日期：2026-10-16/17。目的：用 `examples/geometry-benchmark` 的**题干**测「DSH 已安装插件把题解出来」的稳定性，而不是重放固定请求。本轮 4 题各 1 个全新宿主会话，共 4 次会话、0 次复用。
 
 ## 0 结论
@@ -20,9 +22,9 @@
 | --- | --- |
 | 被测包 | `output/plugin/ggb-plugin-ySrPCk/ggb-plugins-dsh-0.8.0.tgz`，sha256 `db6f321d…decc` |
 | 安装位置 | `~/.dsh/profiles/ggb-plugins-validation/node_modules/@local/ggb-plugins-dsh` |
-| 包内版本核对 | `dist/src/delivery.js`、`SKILL.md`、`references/capabilities.md` 与工作区逐字节一致（[reinstall.json](../../output/dsh-stability-prep/reinstall-pilot.json)、[doctor-after-reinstall.json](../../output/dsh-stability-prep/doctor-after-reinstall-pilot.json)） |
+| 包内版本核对 | `dist/src/delivery.js`、`SKILL.md`、`references/capabilities.md` 与工作区逐字节一致（[reinstall.json](../../../../output/dsh-stability-prep/reinstall-pilot.json)、[doctor-after-reinstall.json](../../../../output/dsh-stability-prep/doctor-after-reinstall-pilot.json)） |
 | 安装自检 | doctor `ok:true`，`smoke`、`casSmoke` 通过 |
-| 题干预 | 唯一来源 `examples/geometry-benchmark/*.json` 的 `prompt` 字段（70–124 字），`plan` 不读不传；逐题摘要见 [provenance.json](../../output/dsh-stability-pilot/provenance.json) |
+| 题干预 | 唯一来源 `examples/geometry-benchmark/*.json` 的 `prompt` 字段（70–124 字），`plan` 不读不传；逐题摘要见 [provenance.json](../../../../output/dsh-stability-pilot/provenance.json) |
 | 宿主 | `dsh 0.2.0-rc.2 --profile ggb-plugins-validation`，每题新会话、工作目录在仓库外 `/private/tmp` 且初始为空 |
 | 凭据 | 复用 DSH 自身的 `DEEPSEEK_API_KEY`（从运行中的应用进程环境注入子进程），未写入任何文件 |
 | 门禁 | 与生产一致：`check` 预检、构造、独立重载、交互样本、参数往返、headless 预览复核；容差 1e-8 未放宽 |
@@ -61,7 +63,7 @@ allPts=Sequence((x(O)+r*cos(2*pi*(k-1)/n), y(O)+r*sin(2*pi*(k-1)/n)), k, 1, 12)
 active=Take(allPts,1,n) → poly=Polygon(active) → side=… → peri=…
 ```
 
-但三次都把文字锚点命名为小写开头的点（`aN`、`aNl`、`bN`、`pN`）并写成 `tN=Text("边数 n = " + n, aN)`。**本地零模型成本复现**（[probe/](../../output/dsh-stability-pilot/probe/)，13 个变体）把触发条件收窄为一条：
+但三次都把文字锚点命名为小写开头的点（`aN`、`aNl`、`bN`、`pN`）并写成 `tN=Text("边数 n = " + n, aN)`。**本地零模型成本复现**（[probe/](../../../../output/dsh-stability-pilot/probe/)，13 个变体）把触发条件收窄为一条：
 
 | 变体 | 程序 | 结果 |
 | --- | --- | --- |
@@ -86,7 +88,7 @@ active=Take(allPts,1,n) → poly=Polygon(active) → side=… → peri=…
 
 原因：会话为表达"A、B 重合"的退化情形，额外定义了 `Bd=Point(c)`、`initial=[3,0]`、样式 `fixed:true`，与可拖动的 `A`（同样 `initial=[3,0]`）**完全同址且可见、且后创建**。真实鼠标按下命中的是压在上层的 `Bd`，于是被监视的 `A` 坐标不变 → 等待超时。
 
-工具当前的重叠诊断只统计**可移动**的可见点（[browser.ts:387](../../src/browser.ts#L387)），因此固定在原地的 `Bd` 未进入 `overlaps`，属于诊断盲区：能捕获按下的对象不只限于可移动点。会话随后把该样本的拖动目标从 `A` 换成 `O`（保留 3 个样本），第二次 build 交付；这不改变任何数学条件。
+工具当前的重叠诊断只统计**可移动**的可见点（[browser.ts:387](../../../../src/browser.ts#L387)），因此固定在原地的 `Bd` 未进入 `overlaps`，属于诊断盲区：能捕获按下的对象不只限于可移动点。会话随后把该样本的拖动目标从 `A` 换成 `O`（保留 3 个样本），第二次 build 交付；这不改变任何数学条件。
 
 ## 4 与旧 smoke 的对照
 
@@ -112,11 +114,11 @@ active=Take(allPts,1,n) → poly=Polygon(active) → side=… → peri=…
 
 | 路径 | 内容 |
 | --- | --- |
-| [dsh-smoke-results.json](../../output/dsh-stability-pilot/dsh-smoke-results.json) | 4 次会话的完整行：交付、首次 build、修复次数、run 状态与错误码、token 用量、命令次数、外层复核结果 |
-| [smoke/<题>/repeat-1/](../../output/dsh-stability-pilot/smoke/) | 每题的 `events.jsonl`、`timeline.jsonl`、`stderr.log`、`prompt.txt`；`artifacts/` 为会话工作目录副本（含每次尝试的 `request.json`、`run.json`） |
-| [probe/](../../output/dsh-stability-pilot/probe/)、[summary.json](../../output/dsh-stability-pilot/probe/summary.json)、[summary-names.json](../../output/dsh-stability-pilot/probe/summary-names.json) | 13 个本地复现变体及其结果（零模型成本） |
-| [blocked.json](../../output/dsh-stability-pilot/blocked.json) | 首次被凭据挡住的那一轮（0 token、无请求被编写），说明本报告不含那批数据 |
-| [provenance.json](../../output/dsh-stability-pilot/provenance.json) | 被测版本、逐题题干摘要 |
+| [dsh-smoke-results.json](../../../../output/dsh-stability-pilot/dsh-smoke-results.json) | 4 次会话的完整行：交付、首次 build、修复次数、run 状态与错误码、token 用量、命令次数、外层复核结果 |
+| [smoke/<题>/repeat-1/](../../../../output/dsh-stability-pilot/smoke/) | 每题的 `events.jsonl`、`timeline.jsonl`、`stderr.log`、`prompt.txt`；`artifacts/` 为会话工作目录副本（含每次尝试的 `request.json`、`run.json`） |
+| [probe/](../../../../output/dsh-stability-pilot/probe/)、[summary.json](../../../../output/dsh-stability-pilot/probe/summary.json)、[summary-names.json](../../../../output/dsh-stability-pilot/probe/summary-names.json) | 13 个本地复现变体及其结果（零模型成本） |
+| [blocked.json](../../../../output/dsh-stability-pilot/blocked.json) | 首次被凭据挡住的那一轮（0 token、无请求被编写），说明本报告不含那批数据 |
+| [provenance.json](../../../../output/dsh-stability-pilot/provenance.json) | 被测版本、逐题题干摘要 |
 
 ```sh
 # 题干与版本核对（零会话）
@@ -148,15 +150,15 @@ node scripts/benchmark-dsh.mjs output/dsh-stability-pilot2 <installed> smoke /pr
 
 | 验证 | 结果 |
 | --- | --- |
-| 场景复现（[probe-fixed-overlap.sh](../../output/dsh-stability-pilot/probe-fixed-overlap.sh)，[fixed-overlap/](../../output/dsh-stability-pilot/fixed-overlap/)） | 复刻 10 题原始场景（`A` 与 `fixed:true` 的 `Bd` 同址于 `(3,0)`）：**2.0 s 内拒绝**，原为 30 s 超时；错误 `Ambiguous drag target: overlapping fixed points`，诊断 `{"name":"Bd","moveable":false,"fixed":true}`，屏幕坐标与原失败一致 |
-| 10 题夹具 1 轮（[interaction-regression-dragfix](../../output/interaction-regression-dragfix/verify-results.json)） | 10/10 通过（构造、重载、交互、headless 预览），**无误拒** |
-| 边界输入（[extras-results.json](../../output/interaction-regression-dragfix/extras-results.json)） | 04-right、04-obtuse、10-coincident 全部通过；08 的 12→3 往返仍通过，原交付摘要未变 |
+| 场景复现（[probe-fixed-overlap.sh](../../../../output/dsh-stability-pilot/probe-fixed-overlap.sh)，[fixed-overlap/](../../../../output/dsh-stability-pilot/fixed-overlap/)） | 复刻 10 题原始场景（`A` 与 `fixed:true` 的 `Bd` 同址于 `(3,0)`）：**2.0 s 内拒绝**，原为 30 s 超时；错误 `Ambiguous drag target: overlapping fixed points`，诊断 `{"name":"Bd","moveable":false,"fixed":true}`，屏幕坐标与原失败一致 |
+| 10 题夹具 1 轮（[interaction-regression-dragfix](../../../../output/interaction-regression-dragfix/verify-results.json)） | 10/10 通过（构造、重载、交互、headless 预览），**无误拒** |
+| 边界输入（[extras-results.json](../../../../output/interaction-regression-dragfix/extras-results.json)） | 04-right、04-obtuse、10-coincident 全部通过；08 的 12→3 往返仍通过，原交付摘要未变 |
 | 真实浏览器回归 | `pnpm test:browser` 全绿；单跑 interaction 三项通过，含 `overlapping movable points reject before the long movement timeout`；故障与启动 54 项通过 |
-| 重新打包与安装 | 新包 sha256 `9a94b5f5…b7ce`；用 pnpm 11.7.0 装回验证 profile，doctor `smoke`／`casSmoke` 通过；包内 `dist/src/browser.js`、`SKILL.md`、`capabilities.md` 与工作区逐字节一致（[reinstall.json](../../output/dsh-stability-prep/reinstall.json)、[provenance.json](../../output/dsh-stability-prep/provenance.json)）；pilot 当次安装证据另存为 `*-pilot.json` |
+| 重新打包与安装 | 新包 sha256 `9a94b5f5…b7ce`；用 pnpm 11.7.0 装回验证 profile，doctor `smoke`／`casSmoke` 通过；包内 `dist/src/browser.js`、`SKILL.md`、`capabilities.md` 与工作区逐字节一致（[reinstall.json](../../../../output/dsh-stability-prep/reinstall.json)、[provenance.json](../../../../output/dsh-stability-prep/provenance.json)）；pilot 当次安装证据另存为 `*-pilot.json` |
 
 ### 8.3 08 单题复验（新会话，1 轮）
 
-结果：**已交付**（[dsh-smoke-results.json](../../output/dsh-stability-08fix/dsh-smoke-results.json)）。
+结果：**已交付**（[dsh-smoke-results.json](../../../../output/dsh-stability-08fix/dsh-smoke-results.json)）。
 
 | 项 | 值 |
 | --- | --- |

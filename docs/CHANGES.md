@@ -4,6 +4,8 @@
 
 ## 未发布
 
+- 归档 M1–M7、历史性能与基准记录及客户端阶段验收，共 16 份文档和数据文件；保留原结论与配套数据，调整仓库内引用。现行说明和历史证据通过 [阶段归档索引](archive/README.md) 区分，不改动源码、示例、核验门禁或被忽略的目录。
+
 - 精简主 Skill 与 Worker，删除固定顶点、反射坐标和输出保留名豁免等冲突配方，保留来源、独立期望、动态证据及交付门禁。Skill 按操作读取契约章节；Worker 保留无文件权限的宿主边界。维护准入规则放在 AGENTS，提示体量检查覆盖两入口的行数、字节量与参考预算，不再只限制主 Skill 行数。修复两种安装包漏带 patterns.md，使按需参考在安装后也可读取。
 
 - locale 跟随题目语言：构建/核验页与预览页都按请求 locale 显示提示与结束按钮，页面语言不符会拒绝；此前只有发布页跟随 locale，构建截图固定为英文。Skill 与能力契约同步约定中文题目用 zh-CN、英文题目用 en。
@@ -20,7 +22,7 @@
 
 - 修复代码审查发现的六处边界问题：等长谓词只接受真实线段；编辑和续构的初次核验未通过时禁止导出；ZIP 解压在分配内存时限制单条目与剩余总量；外部 GGB 和实际快照拒绝 XML 三维类型，防止 API 类型别名隐藏维度；条件来源不再接受 Agent 的提问；允许沿已声明更新依赖重算圆锥系数。三种构图模式共用导出、重载与原子提交，提交和预览共用证据复验。新增离线、真实 applet 与故障回归，保留不相关字段变化的拒绝和原文件只读规则。
 
-- 将军饮马案例的可见文字改为构图和观察提示，保留全部数学检查与拖动样本。viewer 保留题干原文并支持长标题换行，不再自制 LaTeX 解释。Codex 安装副本复跑结果见 [验证报告](../codex/docs/codex-v2-validation.md)。
+- 将军饮马案例的可见文字改为构图和观察提示，保留全部数学检查与拖动样本。viewer 保留题干原文并支持长标题换行，不再自制 LaTeX 解释。Codex 安装副本复跑结果见 [验证报告](../codex/docs/archive/2026-10-18/codex-v2-validation.md)。
 
 - 新增 `capabilities.json` 与 `skills/ggb-construction/worker.md`：插件是 Worker 提示词与能力契约的唯一来源。`capabilities.json` 由 `src/schema.ts` 和 `worker.md` 生成，包含请求协议版本、`pointOn` 支持的圆锥曲线类型、检查谓词、限额与 `workerSkillSha256`；ggb-agent Worker 启动时校验该哈希与 profile 版本，不匹配即拒绝启动。ggb-dsh 不再保存第二份完整 Skill。
 - `check` 与交付报告明确执行证据的边界；当前使用 purpose 与 verificationNotes 记录证据目的，不按命令名认证独立性，见 [能力契约](../skills/ggb-construction/references/capabilities.md#通用核验)。
@@ -35,7 +37,7 @@
 
 - 新增已有 GGB 的构造修改：同一 `base` 下用 `plan.program` 增加原生对象、`plan.updates` 修改独立数值或可移动点坐标、`plan.styles` 同时设置基线与新对象。门禁允许声明的输出、声明的值与样式、样式传播，以及由更新对象触发的传递重算；拒绝删除、重命名、未声明新增、未声明字段变化和依赖对象变为未定义。`inspect --ggb` 摘要增加 `x`、`y`、`value` 与 `slider`，供模型在更新前读取当前状态。交付的 `diff.json` 记录 `mode:"modify"`、`added`、`allowed` 与 `changes`，preview 重载基线并重算同一门禁。真实浏览器三轮（增加对象、样式、坐标更新、数值更新）通过，见[设计 4.5](ggb-plugins-design.md#45-ggb-构造修改)。
 
-- 增加无浏览器的请求 check、参数同副本往返核验及预览证据门禁，headless 预览可用 --once 自动收束；真实拖动提前诊断重叠点与同址固定点（`fixed:true`）并保留失败截图。采用 DSH 独立安装包进行主要端到端验收，见 [验证记录](../dsh/docs/dsh-primary-validation.md) 与 [求解稳定性 pilot](../dsh/docs/dsh-solve-stability-pilot.md)。
+- 增加无浏览器的请求 check、参数同副本往返核验及预览证据门禁，headless 预览可用 --once 自动收束；真实拖动提前诊断重叠点与同址固定点（`fixed:true`）并保留失败截图。采用 DSH 独立安装包进行主要端到端验收，见 [验证记录](../dsh/docs/archive/2026-10-18/dsh-primary-validation.md) 与 [求解稳定性 pilot](../dsh/docs/archive/2026-10-18/dsh-solve-stability-pilot.md)。
 
 - examples 仅保留几何题；代数、函数、统计及椭圆／统计混合输入移至 tests/fixtures，保留原始内容和回归覆盖。
 
@@ -47,11 +49,11 @@
 
 - 样式新增 `filling`（0–1 填充不透明度），用于"填充图形"类要求；样式比较对 `filling` 用容差，其余字段仍精确比较。`examples/v2-cases` 新增两个用例：`general-horse.json`（翻折原理说明图）与 `dashed-blue-circle.json`（虚线圆 + 半透明蓝色填充）。
 
-- 明确插件只分析题意与作图，不提供题目答案；宿主回复与可见产物遵循 [Skill 输出边界](../skills/ggb-construction/SKILL.md#分析与作图边界)，内部计算、证据和核验门禁保留。开发包安装验证见 [Codex 验证](../codex/docs/codex-v2-validation.md)，不代表公开发布包已更新。
+- 明确插件只分析题意与作图，不提供题目答案；宿主回复与可见产物遵循 [Skill 输出边界](../skills/ggb-construction/SKILL.md#分析与作图边界)，内部计算、证据和核验门禁保留。开发包安装验证见 [Codex 验证](../codex/docs/archive/2026-10-18/codex-v2-validation.md)，不代表公开发布包已更新。
 
 - 支持由 Agent 选择中文或英文工作语言，最终预览跟随请求 locale。README.md 默认英文，README.zh-CN.md 提供中文；两种分发包携带双语入口和中文 INSTALL.md，其余文档保留中文。
 
-- 优化构图运行：固定文本默认展示属性、保存重载字段差异与阶段计时；采样预加载下一份独立 applet，删除每次加载后丢弃的截图。Skill 在同一会话及未变化的安装副本内复用 doctor，数学核验和文件提交门禁保持不变。[性能验收](performance-validation.md)。
+- 优化构图运行：固定文本默认展示属性、保存重载字段差异与阶段计时；采样预加载下一份独立 applet，删除每次加载后丢弃的截图。Skill 在同一会话及未变化的安装副本内复用 doctor，数学核验和文件提交门禁保持不变。[性能验收](archive/2026-10-18/performance-validation.md)。
 - 文档按用途分工：AGENTS 管工程构建与维护，README 管项目用途与用户用法，本文管变更，设计文档管需求与设计取舍；字段、安装和测试明细通过链接引用。
 - 工作区已实现系统默认浏览器预览：先 headless 复核，再发布本地页面并等待加载确认；通过页面“结束预览”或取消释放服务。该改动尚未包含在下列 0.8.0 发布包中；这里不声明新增客户端验收已经完成。
 
@@ -63,7 +65,7 @@
 - 分别完成 Codex CLI 与 DSH 独立 headless profile 的安装、自动技能调用、新题交付及关页清理验证。该版本的可见预览使用专用 Google Chrome，与未发布的默认浏览器改动不同。
 - 请求协议和 M6 交付格式保持不变。
 
-[发布说明](releases/v0.8.0.md) · [双生态验收](dual-ecosystem-validation.md)
+[发布说明](releases/v0.8.0.md) · [双生态验收](archive/2026-10-18/dual-ecosystem-validation.md)
 
 ## 0.7.0 — 固定 runtime 覆盖记录
 
@@ -71,7 +73,7 @@
 - 增加可重跑覆盖工具和客户端生成的椭圆／统计输入。
 - 通过新 Codex 回合验证安装后自动选用 Skill 到 GGB 交付，独立 ZIP 运行及清理也完成验收。
 
-[发布说明](releases/v0.7.0.md) · [M7 验收](m7-validation.md)
+[发布说明](releases/v0.7.0.md) · [M7 验收](archive/2026-10-18/m7-validation.md)
 
 ## 0.6.0 — 通用事实与交互扩展
 
@@ -79,14 +81,14 @@
 - 增加嵌套数值／布尔列表与矩阵、显式符号假设、多输出和参数采样证据；区分真实鼠标动作与原生参数赋值。
 - 保留协议 2 请求，交付格式升级为 M6；旧交付须重新构造以补齐证据。
 
-[发布说明](releases/v0.6.0.md) · [M6 验收](m6-validation.md)
+[发布说明](releases/v0.6.0.md) · [M6 验收](archive/2026-10-18/m6-validation.md)
 
 ## 早期里程碑（M1–M5）
 
 | 阶段 | 重要变化 | 证据 |
 | --- | --- | --- |
-| M5 | 接入原生二维 Algebra／CAS 程序及表达式核验；修复独立数学定义比较、按需等待 CAS 和条件表达式结果判定 | [M5 验收](m5-validation.md) |
-| M4 | 增加可安装插件和安装器；修复旧／部分 dist 导致源码安装跳过重建的问题 | [M4 验收](m4-validation.md) |
-| M3 | 补齐 doctor、超时取消、错误清理和原子提交；保留原始错误优先级及提交后 warning 语义 | [M3 验收](m3-validation.md) |
-| M2 | 将固定构造移为可组合输入，共用执行与核验接口 | [M2 验收](m2-validation.md) |
-| M1 | 跑通三角形、中线、导出、真实重载及交互预览；随后保留为回归输入 | [M1 验收](m1-validation.md) |
+| M5 | 接入原生二维 Algebra／CAS 程序及表达式核验；修复独立数学定义比较、按需等待 CAS 和条件表达式结果判定 | [M5 验收](archive/2026-10-18/m5-validation.md) |
+| M4 | 增加可安装插件和安装器；修复旧／部分 dist 导致源码安装跳过重建的问题 | [M4 验收](archive/2026-10-18/m4-validation.md) |
+| M3 | 补齐 doctor、超时取消、错误清理和原子提交；保留原始错误优先级及提交后 warning 语义 | [M3 验收](archive/2026-10-18/m3-validation.md) |
+| M2 | 将固定构造移为可组合输入，共用执行与核验接口 | [M2 验收](archive/2026-10-18/m2-validation.md) |
+| M1 | 跑通三角形、中线、导出、真实重载及交互预览；随后保留为回归输入 | [M1 验收](archive/2026-10-18/m1-validation.md) |

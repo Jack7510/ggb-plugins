@@ -1,6 +1,8 @@
 # 运行性能验收
 
-日期：2026-10-16。基线：`d82abfa`。范围：本地已安装依赖的工作区实现；这些优化尚未发布。设计取舍见 [设计文档](ggb-plugins-design.md#81-性能证据与优化边界)，本文只记录方法、结果与限制。
+> 历史归档（2026-10-18）：仅说明文中版本与验收范围，不代表当前代码或安装包状态。见[归档索引](../README.md)。
+
+日期：2026-10-16。基线：`d82abfa`。范围：本地已安装依赖的工作区实现；这些优化尚未发布。设计取舍见 [设计文档](../../ggb-plugins-design.md#81-性能证据与优化边界)，本文只记录方法、结果与限制。
 
 ## 测量方法
 
@@ -55,7 +57,7 @@
 
 ## 复现入口
 
-开发脚本 [benchmark.mjs](../scripts/benchmark.mjs) 只用于离线性能验收，不进入插件运行管线。先执行 pnpm build，并准备固定 runtime。传入同一批请求文件，例如：
+开发脚本 [benchmark.mjs](../../../scripts/benchmark.mjs) 只用于离线性能验收，不进入插件运行管线。先执行 pnpm build，并准备固定 runtime。传入同一批请求文件，例如：
 
 ```sh
 node scripts/benchmark.mjs --baseline d82abfa --repeats 5 \

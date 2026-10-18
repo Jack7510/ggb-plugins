@@ -87,7 +87,7 @@ pnpm demo
 - `codex/`、`dsh/`：各宿主的插件资产、安装说明与验收记录。
 - `examples/`、`tests/`：可运行输入与回归用例。
 - `scripts/`：依赖准备、两种打包与覆盖记录工具。
-- `docs/`：[需求与设计](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md)、[重要修改记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)与跨客户端验收记录。
+- `docs/`：[需求与设计](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md)、[重要修改记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)与跨客户端验收记录；历史阶段结果见[归档索引](docs/archive/README.md)。
 
 ## 支持范围与边界
 

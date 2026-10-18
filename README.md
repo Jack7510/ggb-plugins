@@ -118,7 +118,8 @@ commands, the working rules for coding agents, and the release process live in
 - `scripts/` — dependency setup, packaging, and coverage tools.
 - `docs/` — [requirements and design](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md),
   [change record](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md), and
-  cross-client validation records.
+  cross-client validation records. Historical records are indexed in the
+  [stage archive](docs/archive/README.md).
 
 ## Scope and limits
 

@@ -1,18 +1,20 @@
 # 常见二维几何运行对比
 
+> 历史归档（2026-10-18）：仅说明文中版本与验收范围，不代表当前代码或安装包状态。见[归档索引](../README.md)。
+
 日期：2026-10-16。生产代码：`5e167d9`，插件版本：0.8.0。本次只新增基准输入、运行脚本和报告，未修改生产执行器或门禁。
 
 10 题各完成 3 次正式逻辑运行，主样本共调用 build 39 次，产生 30 份通过主样本门禁的交付。6 题在首轮需要修复，共增加 9 次尝试。额外的正多边形 12→3 往返检查失败，因此不能将主样本的 30/30 解读为全部题意和交互状态已覆盖。
 
-逐次阶段数据、输入摘要和交付文件摘要见 [结果数据](geometry-benchmark-results.json)。原始文件保存在 [本机证据目录](../output/geometry-benchmark-20261016/)。output 按仓库规则不进入 Git；复制或清理工作区前应保存该目录。
+逐次阶段数据、输入摘要和交付文件摘要见 [结果数据](geometry-benchmark-results.json)。原始文件保存在 [本机证据目录](../../../output/geometry-benchmark-20261016/)。output 按仓库规则不进入 Git；复制或清理工作区前应保存该目录。
 
-后续代码与案例已更新；历史计时对应的不可变输入以证据 ZIP 的 final-inputs 和记录摘要为准，不能用当前 examples 代替历史版本。修复与新的宿主验收见 [DSH 主验证记录](../dsh/docs/dsh-primary-validation.md)。
+后续代码与案例已更新；历史计时对应的不可变输入以证据 ZIP 的 final-inputs 和记录摘要为准，不能用当前 examples 代替历史版本。修复与新的宿主验收见 [DSH 主验证记录](../../../dsh/docs/archive/2026-10-18/dsh-primary-validation.md)。
 
 ## 1 方法与统计口径
 
 使用当前仓库编译得到的 `dist/src/cli.js`，不借用客户端缓存或另一份 checkout。环境为 macOS arm64、Node.js v26.5.1、Chromium 156.0.8078.4、GeoGebra 5.4.932.1。固定 runtime 摘要保存在结果数据的 environment 中。
 
-完整 doctor 在本会话执行一次，smoke 和 casSmoke 均通过。首次普通权限调用因回环监听被阻止；获准在所需权限下运行后通过。这是环境准备事件，不算数学题失败。原输出摘录见 [doctor 记录](../output/geometry-benchmark-20261016/doctor-observation.json)。doctor 未单独精确计时。
+完整 doctor 在本会话执行一次，smoke 和 casSmoke 均通过。首次普通权限调用因回环监听被阻止；获准在所需权限下运行后通过。这是环境准备事件，不算数学题失败。原输出摘录见 [doctor 记录](../../../output/geometry-benchmark-20261016/doctor-observation.json)。doctor 未单独精确计时。
 
 按题号串行运行，每题连续执行三轮。每次 build 都启动新的浏览器会话。原构造、重载及三个样本各有独立 applet；采样副本从原文件加载，不承接上一样本。九题使用真实鼠标拖动，08 题使用 n=4、6、12 的原生参数设置。每次交付再执行生产 openPreview 的 headless 复核，保存复核截图并关闭资源。
 
@@ -40,7 +42,7 @@ flowchart TD
   G --> H[关闭资源 保存检查点和耗时]
 ```
 
-图源已静态核对，未执行 Mermaid 渲染。构造状态机和提交不变量沿用 [设计第 5—7 节](ggb-plugins-design.md#5-流程与画布生命周期)，本文不另建状态协议。
+图源已静态核对，未执行 Mermaid 渲染。构造状态机和提交不变量沿用 [设计第 5—7 节](../../ggb-plugins-design.md#5-流程与画布生命周期)，本文不另建状态协议。
 
 ## 2 各题结果
 
@@ -48,16 +50,16 @@ flowchart TD
 
 | 题目／可复现输入 | 第一次 | 第二次 | 第三次 | CLI 中位数 | 预览就绪中位数 | 首次通过 | 修复次数 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| [01 外接圆与外心](../examples/geometry-benchmark/01-circumcircle.json) | 3005 | 2888 | 2865 | 2888 | 505 | 2/3 | 2 |
-| [02 内切圆与内心](../examples/geometry-benchmark/02-incircle.json) | 2879 | 2942 | 2872 | 2879 | 518 | 3/3 | 0 |
-| [03 中线与重心](../examples/geometry-benchmark/03-centroid.json) | 2956 | 2880 | 2917 | 2917 | 547 | 2/3 | 1 |
-| [04 欧拉线](../examples/geometry-benchmark/04-euler-line.json) | 3055 | 2970 | 2877 | 2970 | 532 | 3/3 | 0 |
-| [05 圆心角与圆周角](../examples/geometry-benchmark/05-inscribed-angle.json) | 2919 | 2901 | 2952 | 2919 | 555 | 2/3 | 1 |
-| [06 圆外点两切线](../examples/geometry-benchmark/06-tangents.json) | 2855 | 2900 | 2886 | 2886 | 514 | 3/3 | 0 |
-| [07 相交弦定理](../examples/geometry-benchmark/07-intersecting-chords.json) | 2840 | 2894 | 2843 | 2843 | 509 | 3/3 | 0 |
-| [08 滑块内接正多边形](../examples/geometry-benchmark/08-regular-polygon.json) | 2636 | 2559 | 2566 | 2566 | 543 | 2/3 | 2 |
-| [09 将军饮马最短路径](../examples/geometry-benchmark/09-shortest-path.json) | 2970 | 2867 | 2899 | 2899 | 531 | 2/3 | 1 |
-| [10 弦中点轨迹](../examples/geometry-benchmark/10-midpoint-locus.json) | 3025 | 2951 | 2913 | 2951 | 547 | 2/3 | 2 |
+| [01 外接圆与外心](../../../examples/geometry-benchmark/01-circumcircle.json) | 3005 | 2888 | 2865 | 2888 | 505 | 2/3 | 2 |
+| [02 内切圆与内心](../../../examples/geometry-benchmark/02-incircle.json) | 2879 | 2942 | 2872 | 2879 | 518 | 3/3 | 0 |
+| [03 中线与重心](../../../examples/geometry-benchmark/03-centroid.json) | 2956 | 2880 | 2917 | 2917 | 547 | 2/3 | 1 |
+| [04 欧拉线](../../../examples/geometry-benchmark/04-euler-line.json) | 3055 | 2970 | 2877 | 2970 | 532 | 3/3 | 0 |
+| [05 圆心角与圆周角](../../../examples/geometry-benchmark/05-inscribed-angle.json) | 2919 | 2901 | 2952 | 2919 | 555 | 2/3 | 1 |
+| [06 圆外点两切线](../../../examples/geometry-benchmark/06-tangents.json) | 2855 | 2900 | 2886 | 2886 | 514 | 3/3 | 0 |
+| [07 相交弦定理](../../../examples/geometry-benchmark/07-intersecting-chords.json) | 2840 | 2894 | 2843 | 2843 | 509 | 3/3 | 0 |
+| [08 滑块内接正多边形](../../../examples/geometry-benchmark/08-regular-polygon.json) | 2636 | 2559 | 2566 | 2566 | 543 | 2/3 | 2 |
+| [09 将军饮马最短路径](../../../examples/geometry-benchmark/09-shortest-path.json) | 2970 | 2867 | 2899 | 2899 | 531 | 2/3 | 1 |
+| [10 弦中点轨迹](../../../examples/geometry-benchmark/10-midpoint-locus.json) | 3025 | 2951 | 2913 | 2951 | 547 | 2/3 | 2 |
 
 主样本成功 CLI 累计 86.483 秒；失败尝试累计 37.971 秒；headless 预览复核、额外截图和资源关闭累计 17.621 秒。三项合计约 142.075 秒。这不是本次 Agent 工作的总历时，不包含编写、诊断、工具往返、审批、doctor 和补充实验。
 
@@ -114,11 +116,11 @@ build 内部 totalMs 的中位数为 2387–2794 ms。CLI 墙钟与 totalMs 的�
 | A、B 重合的弦中点轨迹 | 通过 | 新 build、独立重载、O/R 两个拖动、预览复核；没有声称能用鼠标区分重叠 A/B |
 | 正多边形 3→12→3 连续变化 | 失败 | 12 边时通过；回到 3 边时留下 18 个隐藏且未定义的附属对象，objects_defined 拒绝 |
 
-三个额外 build 的原始输入与交付见 [边界证据目录](../output/geometry-benchmark-20261016/edge-results/)，连续参数实验见 [polygon-return.json](../output/geometry-benchmark-20261016/polygon-return.json)。回到 3 边时，三条有效边和显示公式均正确，但仍有九个旧顶点及九条旧边未定义。保留了完整事实、12/3 边截图，并确认原正式 GGB 文件摘要未变。
+三个额外 build 的原始输入与交付见 [边界证据目录](../../../output/geometry-benchmark-20261016/edge-results/)，连续参数实验见 [polygon-return.json](../../../output/geometry-benchmark-20261016/polygon-return.json)。回到 3 边时，三条有效边和显示公式均正确，但仍有九个旧顶点及九条旧边未定义。保留了完整事实、12/3 边截图，并确认原正式 GGB 文件摘要未变。
 
 正多边形主样本的三个参数测试都从 n=3 的原文件独立开始，所以没有覆盖增长后的收缩。主样本通过与往返失败同时成立。不能删除全对象已定义检查，或忽略所有隐藏对象来消除这个失败。该题交付只证明已记录的独立采样，不应宣称任意滑块往返均通过核验。
 
-等边三角形欧拉线不唯一、圆周角跨弧分支、切线点进入圆内、三角形共线、任意次数往返和全部参数域未验收。有限采样不能证明这些范围。十份代表截图已合成 [总览](../output/geometry-benchmark-20261016/contact-sheet.png)，并完成目视检查；这是观察证据，不代替数学判定。
+等边三角形欧拉线不唯一、圆周角跨弧分支、切线点进入圆内、三角形共线、任意次数往返和全部参数域未验收。有限采样不能证明这些范围。十份代表截图已合成 [总览](../../../output/geometry-benchmark-20261016/contact-sheet.png)，并完成目视检查；这是观察证据，不代替数学判定。
 
 ## 6 下一步优化方向
 
@@ -139,7 +141,7 @@ build 内部 totalMs 的中位数为 2387–2794 ms。CLI 墙钟与 totalMs 的�
 
 ## 7 证据、复现与限制
 
-每次正式成功交付包含 result.ggb、request.json、verification.json、manifest.json 和 preview.png。数据文件的 evidence 数组列出 150 个文件的路径、大小和 SHA-256。完整原始证据另存为 [ZIP 包](../output/geometry-benchmark-20261016-evidence.zip) 和 [SHA-256](../output/geometry-benchmark-20261016-evidence.zip.sha256)，可整体复制保存。逐次 CLI 输出在各 attempt 的 cli.json，细分阶段在 run.json；另有 headless 预览复核截图。
+每次正式成功交付包含 result.ggb、request.json、verification.json、manifest.json 和 preview.png。数据文件的 evidence 数组列出 150 个文件的路径、大小和 SHA-256。完整原始证据另存为 [ZIP 包](../../../output/geometry-benchmark-20261016-evidence.zip) 和 [SHA-256](../../../output/geometry-benchmark-20261016-evidence.zip.sha256)，可整体复制保存。逐次 CLI 输出在各 attempt 的 cli.json，细分阶段在 run.json；另有 headless 预览复核截图。
 
 30 份交付均重新检查构造、重载和三个样本状态；同题三轮的初始对象快照按生产 compareSnapshots 比较一致。初始核验结果数包含自动对象检查，分别为 49、51、70、56、51、57、54、44、61、38，不代表每题自然语言条件数。
 
