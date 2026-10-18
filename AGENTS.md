@@ -79,7 +79,7 @@
 | `docs/ggb-plugins-design.md` | 需求、设计思路、责任边界与取舍 |
 | `docs/CHANGES.md` | 已发布与未发布的重要修改记录 |
 | `codex/README.md`、`dsh/README.md` | 各客户端安装与运行说明 |
-| `skills/ggb-construction/references/capabilities.md` | 请求字段与检查谓词的准确契约 |
+| `skills/ggb-construction/references/` | `capabilities.md` 是字段与谓词契约，`patterns.md` 是可复用构法参考 |
 | `codex/docs/`、`dsh/docs/` 下的验收记录 | 各客户端的测试与验收证据 |
 
-规则：README 与 AGENTS 不重复维护项目结构、技术栈或架构；字段与调用细节以能力契约为准，安装细节只在安装说明，测试数量与证据只在验收记录。
+规则：Skill 只写通用工作方式，具体命令、公式与样例放到 references 与 examples；README 与 AGENTS 不重复维护项目结构、技术栈或架构；字段与调用细节以能力契约为准，安装细节只在安装说明，测试数量与证据只在验收记录。
