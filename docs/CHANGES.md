@@ -4,6 +4,8 @@
 
 ## 未发布
 
+- Skill 与能力契约补充：正多边形的边数是变量——未给边数时用滑块 `n` 与 `Polygon(Sequence(Rotate(...)))` 表达并只声明 `poly`，核验用面积、周长、顶点半径与边长的聚合最大偏差，并在采样 n 下复验；给定边数时才固定，固定顶点形式仅在需要逐点核验时使用。Skill 同时把「动态」设为默认：可变量用滑块或可拖点表达，并在采样的参数值下复验；新增 `examples/v2-cases/slider-polygon.json` 作为可变边数回归样例。
+
 - 交付命名改为按题目：请求新增可选 `title`（≤60 字），交付目录与 GGB 文件都取该名字，同名自动追加 `-2`、`-3`，不再使用随机 `ggb-XXXXXX` 与固定的 `result.ggb`；`outputDir` 建议填用户工作目录根。清单记录实际文件名，`preview` 按清单声明的文件名校验，旧交付仍可预览。新增离线命名回归。
 
 - 运行时改用本机已安装的 Chromium 内核浏览器（Chrome／Edge，或 `DSH_GGB_BROWSER` 指定的频道／绝对路径），不再下载 Chromium：`playwright install chromium` 从安装器移除，改为启动前解析并报告目标浏览器。`doctor` 的 browser 字段改为报告实际使用的浏览器（`label` 加 `executablePath` 或 `channel`）。新增离线回归 tests/browser-target.test.ts，安装器回归改走浏览器探测。

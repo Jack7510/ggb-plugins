@@ -36,7 +36,7 @@
 
 工作语言由 Agent 选择中文或英文；新请求 locale 使用 zh-CN 或 en，最终预览据此显示说明与结束按钮。caption 和 Text 由 Agent 用所选语言编写。locale 不翻译来源、命令、协议字段或原始诊断；其他既有 locale 值仍可解析，预览以英文回退。
 
-保留用户原文、可选 `clarifications: [{question,answer}]`。每个 requirement 有唯一 ID、用户 prompt 或澄清 answer 中的原文 source 和非空 checks。Agent 的 question 保留为问答记录，但不能单独作为条件来源。不得写入检查结果、容差或未知字段。图片由宿主读取并转述题意；把来源和歧义澄清保存在 prompt/clarifications，不把图片当脚本输入。
+保留用户原文、可选 `clarifications: [{question,answer}]`；边数等构图参数用滑块表达为变量；用户明确指定时按给定值构造。每个 requirement 有唯一 ID、用户 prompt 或澄清 answer 中的原文 source 和非空 checks。Agent 的 question 保留为问答记录，但不能单独作为条件来源。不得写入检查结果、容差或未知字段。图片由宿主读取并转述题意；把来源和歧义澄清保存在 prompt/clarifications，不把图片当脚本输入。
 
 ## 编辑已有 GGB（P0）
 
@@ -120,6 +120,10 @@ inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`byt
 - 可选 `initial:[x,y]` 只初始化该步可移动点，适用于准线等路径上的点。原生约束仍生效，不把初始化坐标当作题目给定条件。
 
 ID 最长 32 字符，首位为 ASCII 字母，后续为字母、数字或下划线，可包含原生末尾下标花括号，如 `B_{1}`。保留字与内置名称约束见下方命名规则。中文显示名用 caption。源文本不会拼接到 shell，也不会作为 JavaScript 执行。小数写普通十进制或 `10^(-7)`；不要写会被解释为欧拉常数表达式的 `1e-7`。
+
+动态构造是默认做法：可变量用滑块或可拖点表达，核验在采样的参数值下复验；固定取值仅用于题目给定具体数值或需要逐点核验的场合，并说明取舍。
+
+可变边数的正多边形用滑块 `n=Slider(3,10,1)` 与 `poly=Polygon(Sequence(Rotate(A, 2*pi*k/n, O), k, 0, n-1))`，只声明 `poly`；顶点与边标签随 n 动态生成，不逐点声明。核验用返回数值的聚合表达式：面积 `Area(poly)-n/2*Distance(O,A)^2*sin(2*pi/n)`、周长 `Perimeter(poly)-2*n*Distance(O,A)*sin(pi/n)`、顶点半径最大偏差 `Max(Sequence(abs(Distance(O,Vertex(poly,k))-Distance(O,A)),k,1,n))`、边长最大偏差 `Max(Sequence(abs(Distance(Vertex(poly,k),Vertex(poly,Mod(k,n)+1))-2*Distance(O,A)*sin(pi/n)),k,1,n))`，并在采样的 n 下复验。固定顶点形式 `Polygon(A,v1,...)` 的自动边名可能含受保护名 `e`、`i`，仅在题目给定边数且需要逐点核验时改用 `Rotate` + 显式 `Segment`。
 
 构造和探针使用固定 runtime 的异步输入接口，等待引擎按需加载数学模块，每次等待上限 30 秒；CAS 仍按实际使用等待。新数学命令不需新增 TypeScript 包装。任意 JavaScript、脚本触发器、外部资源、文件操作和三维材料不在开放范围；呈现通过结构化 styles 设置。未知命令、计算未决及超时返回真实错误，不允许降级为已通过。
 

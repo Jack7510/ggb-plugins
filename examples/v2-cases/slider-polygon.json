@@ -1,0 +1,51 @@
+{
+  "protocolVersion": 2,
+  "prompt": "画一个圆，并在圆内作一个内接正多边形（边数由滑块控制）",
+  "locale": "zh-CN",
+  "title": "圆与内接正多边形（滑块）",
+  "outputDir": "output/ggb",
+  "plan": {
+    "program": [
+      { "id": "O", "op": "native", "mode": "algebra", "source": "O=(0,0)" },
+      { "id": "A", "op": "native", "mode": "algebra", "source": "A=(3,0)" },
+      { "id": "circ", "op": "native", "mode": "algebra", "source": "circ=Circle(O,A)" },
+      { "id": "n", "op": "native", "mode": "algebra", "source": "n=Slider(3,10,1)" },
+      { "id": "poly", "op": "native", "mode": "algebra", "source": "poly=Polygon(Sequence(Rotate(A, 2*pi*k/n, O), k, 0, n-1))", "outputs": ["poly"] }
+    ],
+    "requirements": [
+      {
+        "id": "circle",
+        "source": "画一个圆",
+        "checks": [
+          { "kind": "type", "subjects": ["circ"], "objectType": "circle", "scope": "initial" },
+          { "kind": "center", "subjects": ["circ", "O"], "scope": "initial" },
+          { "kind": "radius", "subjects": ["circ"], "value": 3, "scope": "initial" },
+          { "kind": "style", "subjects": ["circ"], "properties": { "visible": true }, "scope": "initial" }
+        ]
+      },
+      {
+        "id": "polygon",
+        "source": "在圆内作一个内接正多边形（边数由滑块控制）",
+        "checks": [
+          { "kind": "type", "subjects": ["poly"], "objectType": "polygon", "scope": "initial" },
+          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Area(poly)-n/2*Distance(O,A)^2*sin(2*pi/n)", "mode": "algebra", "expected": 0, "scope": "initial" },
+          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Perimeter(poly)-2*n*Distance(O,A)*sin(pi/n)", "mode": "algebra", "expected": 0, "scope": "initial" },
+          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Max(Sequence(abs(Distance(O,Vertex(poly,k))-Distance(O,A)),k,1,n))", "mode": "algebra", "expected": 0, "scope": "sampled" },
+          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Max(Sequence(abs(Distance(Vertex(poly,k),Vertex(poly,Mod(k,n)+1))-2*Distance(O,A)*sin(pi/n)),k,1,n))", "mode": "algebra", "expected": 0, "scope": "sampled" },
+          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Area(poly)-n/2*Distance(O,A)^2*sin(2*pi/n)", "mode": "algebra", "expected": 0, "scope": "sampled" },
+          { "kind": "style", "subjects": ["poly"], "properties": { "visible": true }, "scope": "initial" }
+        ]
+      }
+    ],
+    "styles": [
+      { "object": "circ", "properties": { "visible": true, "color": "#1E5ABE", "lineThickness": 3 } },
+      { "object": "poly", "properties": { "visible": true, "color": "#C0392B", "lineThickness": 3 } }
+    ],
+    "interactions": [
+      { "parameter": "n", "value": 7 },
+      { "parameter": "n", "value": 4 }
+    ],
+    "view": { "xMin": -4.5, "xMax": 4.5, "yMin": -4.5, "yMax": 4.5 },
+    "display": "graphics"
+  }
+}
