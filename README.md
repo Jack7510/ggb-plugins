@@ -2,43 +2,79 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-Turn a 2D math problem, given as text or an image, into an interactive GeoGebra file. Supports Codex and DeepSeek Harness (DSH): the host agent interprets the problem and writes native Algebra/CAS commands; the local tool executes, verifies, exports, and reloads them to deliver a `.ggb` file, a verification report, and a screenshot.
+Turn a 2D math problem — given as text or an image — into an interactive GeoGebra file.
+A host agent (Codex or DeepSeek Harness) reads the problem and writes a native Algebra/CAS
+program; this project runs it locally, verifies every stated condition, exports the `.ggb`,
+reloads it, and delivers the file with a verification report and a screenshot.
 
-Chinese and English are supported. The agent chooses the working language from your preferences and context, including explanations and diagram text. Original problem statements and condition sources are preserved.
+Chinese and English are supported. The agent picks the working language from your preferences
+and context, keeps the original problem text, and never invents answers: it analyses conditions
+and builds the construction only.
 
-The plugin adds no model service or extra model API key. New problems use different programs and checks, covering geometry, functions, equations, calculus, lists, matrices, and statistics. External GGB continuation, 3D construction, and general mathematical proofs are outside the current scope. Accepting native commands does not mean every command or overload has been validated.
+## What you need
+
+| Requirement | Why |
+| --- | --- |
+| Codex or DeepSeek Harness (DSH) | Interprets the problem and writes the native GeoGebra program |
+| Node.js 22+ with pnpm 11 | Runs the local CLI and prepares dependencies |
+| `curl` and `unzip` | Download and unpack the pinned GeoGebra runtime |
+| Google Chrome or Microsoft Edge | Drives the applet headless during verification |
+
+No extra model API key is required. Installation needs network access; GeoGebra and the browser
+are not redistributed with the package. Building release packages additionally uses `zip`, `tar`,
+and `npm`.
 
 ## Installation
 
-[GitHub Releases](https://github.com/Jack7510/ggb-plugins/releases) provides a Codex ZIP, a DSH TGZ, and checksums. Install the complete package and prepare its runtime dependencies:
+[GitHub Releases](https://github.com/Jack7510/ggb-plugins/releases) provides a Codex ZIP, a DSH
+TGZ, and their checksums. Install the complete package, then prepare its runtime in the installed
+copy:
 
-- Codex: [installation and upgrade guide](docs/installation.md), in Chinese.
+- Codex: [installation and upgrade guide](codex/README.md), in Chinese.
 - DSH: [independent headless profile guide](dsh/README.md), in Chinese.
 
-Each client installs independently and uses the same execution and verification pipeline. For source development, start with [AGENTS.md](https://github.com/Jack7510/ggb-plugins/blob/main/AGENTS.md). Supporting documentation remains in Chinese.
+The two clients install independently and share one execution and verification pipeline. Both
+guides end with runtime preparation (`setup-plugin`, which also reports the browser it will use)
+and a readiness check (`doctor`).
 
-## Submit a problem
+## Your first problem
 
-After enabling the plugin, start a new host session and describe the problem. You can attach an image. For example:
+Enable the plugin, start a new host session, and describe the problem. Images can be attached.
 
-> Use GeoGebra to construct triangle ABC, mark the midpoint M of AB, and connect CM. Color the median red. Drag A to verify that the midpoint and median update, save the file, and open the interactive preview.
+> Use GeoGebra to construct triangle ABC, mark the midpoint M of AB, and connect CM. Colour the
+> median red. Drag A to verify that the midpoint and median stay linked, save the file, and open
+> the interactive preview.
 
-The plugin analyzes given conditions and construction methods without providing answers to the problem. For example, ask: “Plot y=x²−5x+6 for exploration without giving the roots.” The agent asks when necessary conditions are missing or ambiguous. If you do not specify coordinates, it explains the initial configuration it chooses. See the [Skill output boundary](skills/ggb-construction/SKILL.md).
+Construction, reload, and every automated check run headless without intermediate windows. A
+condition that fails or cannot be verified blocks delivery instead of being skipped; failures keep
+their diagnostics so the next attempt can be corrected. If necessary conditions are missing or
+ambiguous the agent asks first, and when you do not give coordinates it explains the initial
+configuration it chose. The [Skill](skills/ggb-construction/SKILL.md) defines what the agent may
+and may not decide on its own.
 
-Construction, reloading, and automated checks run headless, without intermediate windows. Failures retain diagnostics. A required condition that fails or remains unverified blocks delivery. Successful reports state the checks performed and the scope of finite interaction samples.
+## What you get
 
-## Delivery and preview
-
-A successful run produces a complete delivery directory:
+A successful run writes one delivery directory:
 
 | File | Purpose |
 | --- | --- |
-| result.ggb | Native GeoGebra file that you can open and edit |
-| verification.json | Mathematical, reload, and interaction verification report |
-| preview.png | Screenshot of the delivered configuration |
-| request.json, manifest.json | Archived input and delivery manifest |
+| `result.ggb` | Native GeoGebra file you can open, inspect, and keep editing |
+| `verification.json` | Per-condition results: construction, reload, and interaction samples |
+| `preview.png` | Screenshot of the delivered configuration |
+| `request.json`, `manifest.json` | Archived input and delivery manifest |
 
-The interactive preview loads the same GGB file. It supports applicable point dragging, parameter changes, and zooming, without overwriting the delivered file. For manual calls or integration with other local tools:
+Reports state which checks ran and how far finite interaction samples reach; they never claim a
+general proof.
+
+## Interactive preview
+
+The preview loads the same `result.ggb` and supports applicable point dragging, parameter changes,
+and zooming without writing back to the delivery. Keep the preview process running (Ctrl+C ends
+it); a one-shot host may terminate it on exit. Use `--headless` for automated checks.
+
+## Use the CLI directly
+
+Hosts call this CLI for you, but other local tools can drive it too:
 
 ```sh
 node <installed-plugin>/dist/src/cli.js doctor
@@ -47,17 +83,49 @@ node <installed-plugin>/dist/src/cli.js build --request /absolute/request.json
 node <installed-plugin>/dist/src/cli.js preview --delivery /absolute/delivery
 ```
 
-Pass `base` in the request to change an existing GGB's colors, line styles, filling, or visibility, or to continue its construction by adding objects and updating independent values or coordinates. `inspect` lists the objects, current values and the digest that the request must declare. Deleting, renaming and view changes are not supported. Request authoring is documented in the [Skill capability contract](skills/ggb-construction/references/capabilities.md), in Chinese. Use `--headless` for automated preview checks. The caller must keep the preview process running; a one-shot host may terminate it when the host exits.
+To change an existing GGB, declare `base` in the request: edit colours, line styles, filling, or
+visibility, add objects, or update independent values and coordinates. `inspect` lists objects,
+current values, and the digest the request must declare. Deleting, renaming, and view changes are
+not supported. Request authoring is documented in the
+[capability contract](skills/ggb-construction/references/capabilities.md), in Chinese.
 
-Press Ctrl+C to end the preview session. Browser selection and tab-close behavior depend on the version. See the [change record](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md) for released behavior and pending changes.
+## Run from source
 
-## Repository guide
+With the requirements above installed:
 
-- `src/`, `viewer/`: local execution, verification, and the viewer.
-- `skills/`, `dsh/`: shared Skill and host integration.
-- `examples/`, `tests/`: runnable inputs and regression tests.
-- `scripts/`: dependency setup, packaging, and coverage tools.
-- [Requirements and design](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md): responsibility boundaries and verification gates.
-- [Change record](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md): version history and validation evidence.
+```sh
+pnpm install --frozen-lockfile
+pnpm setup:runtime
+pnpm build
+pnpm demo
+```
 
-The project uses the MIT license. GeoGebra has separate licensing and attribution requirements; see [third-party notices](THIRD_PARTY_NOTICES.md).
+`pnpm demo` constructs the bundled triangle example into `output/`. Verification and maintenance
+commands, the working rules for coding agents, and the release process live in
+[AGENTS.md](https://github.com/Jack7510/ggb-plugins/blob/main/AGENTS.md); do not duplicate them here.
+
+## Repository map
+
+- `src/` — CLI, execution, verification, and delivery pipeline.
+- `viewer/` — the local page that hosts the GeoGebra applet.
+- `skills/` — the shared Skill both hosts load.
+- `codex/`, `dsh/` — host-specific plugin assets, install guides, and acceptance records.
+- `examples/`, `tests/` — runnable inputs and regression tests.
+- `scripts/` — dependency setup, packaging, and coverage tools.
+- `docs/` — [requirements and design](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md),
+  [change record](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md), and
+  cross-client validation records.
+
+## Scope and limits
+
+- Supported: 2D geometry, functions, equations, calculus, lists, matrices, and statistics, in
+  Chinese or English.
+- Not supported: 3D construction, continuing an external GGB file you cannot declare, and general
+  mathematical proofs.
+- Accepting native commands does not mean every command or overload has been validated; the
+  [command coverage record](skills/ggb-construction/references/command-coverage.md) states the
+  boundaries.
+- Numeric sampling and unresolved CAS results are evidence, not proof.
+
+The project uses the MIT license. GeoGebra has separate licensing and attribution requirements;
+see [third-party notices](THIRD_PARTY_NOTICES.md).

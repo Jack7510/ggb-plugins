@@ -2,43 +2,58 @@
 
 [English](README.md) | **简体中文**
 
-把文字或图片中的二维数学题变成可交互的 GeoGebra 文件。支持 Codex 与 DeepSeek Harness（DSH）：宿主 Agent 理解题意并编写原生 Algebra／CAS 程序，本地工具执行、核验、导出并重新加载，交付 `.ggb`、报告和截图。
+把文字或图片中的二维数学题变成可交互的 GeoGebra 文件。宿主 Agent（Codex 或 DeepSeek Harness）理解题意并编写原生 Algebra／CAS 程序；本项目在本地执行、逐条件核验、导出 `.ggb`、重新加载，并交付文件、核验报告和截图。
 
-支持中文和英文工作语言。Agent 根据用户偏好和上下文自行选择回复、讲解及图中文字的语言，并保留题目原文和条件来源。
+支持中文和英文。Agent 根据你的偏好和上下文选择工作语言，保留题目原文，且只分析条件与构图方法，不替你给出题目答案。
 
-本插件不增加模型服务或额外模型密钥。新题通过程序和检查组合表达，适用于二维几何、函数、方程、微积分、列表矩阵和统计等问题。它不提供外部 GGB 续题、三维构图或一般数学证明；原生命令开放也不表示全部命令及重载已经验收。
+## 需要什么
+
+| 依赖 | 用途 |
+| --- | --- |
+| Codex 或 DeepSeek Harness（DSH） | 理解题意并编写原生 GeoGebra 程序 |
+| Node.js 22+ 与 pnpm 11 | 运行本地 CLI、准备依赖 |
+| `curl` 与 `unzip` | 下载并解压固定版本的 GeoGebra 运行时 |
+| Google Chrome 或 Microsoft Edge | 核验时以 headless 方式驱动 applet |
+
+不需要额外模型密钥。安装需要网络；GeoGebra 与浏览器不随包再分发。构建发布包时另外使用 `zip`、`tar` 与 `npm`。
 
 ## 安装
 
-[GitHub Releases](https://github.com/Jack7510/ggb-plugins/releases) 提供 Codex ZIP、DSH TGZ 和各自校验文件。安装完整包，并在实际安装副本中准备运行依赖：
+[GitHub Releases](https://github.com/Jack7510/ggb-plugins/releases) 提供 Codex ZIP、DSH TGZ 及各自校验文件。安装完整包后，在**实际安装副本**中准备运行依赖：
 
-- Codex：[安装与升级说明](docs/installation.md)。
+- Codex：[安装与升级说明](codex/README.md)。
 - DSH：[独立 headless profile 安装说明](dsh/README.md)。
 
-两个客户端各自安装，同样使用一套数学执行与核验管线。源码开发从 [AGENTS.md](https://github.com/Jack7510/ggb-plugins/blob/main/AGENTS.md) 开始。
+两个客户端各自安装，共用同一套执行与核验管线。两份说明都以运行依赖准备（`setup-plugin`，会报告实际使用的浏览器）和就绪检查（`doctor`）结束。
 
-## 提交一道题
+## 第一道题
 
-插件启用后，在新的宿主会话中直接提出题目，图片可以随题附上。例如：
+启用插件后，在新的宿主会话中直接描述题目，图片可以随题附上。
 
-> 用 GeoGebra 作三角形 ABC，取 AB 的中点 M，连接 CM，将中线标红。拖动 A 验证中点和中线联动，保存文件并打开交互预览。
+> 用 GeoGebra 作三角形 ABC，取 AB 的中点 M，连接 CM，把中线标红。拖动 A 验证中点和中线联动，保存文件并打开交互预览。
 
-本插件只分析条件和构图方法，不提供题目答案。例如可以要求“绘制函数 y=x²−5x+6 的图像，用于观察与探索，不给出零点答案”。没有必要条件时 Agent 会澄清；未指定坐标时应说明自行选择的初始构型。具体输出边界见 [Skill](skills/ggb-construction/SKILL.md)。
+构造、重载和全部自动核验都以 headless 运行，不打开中间窗口。失败或无法核验的必需条件会阻止交付，而不是被跳过；失败会保留诊断，便于下一轮修正。必要条件缺失或歧义时 Agent 先澄清；未指定坐标时它会说明自行选择的初始构型。Agent 可以自行决定什么、不能决定什么，见 [Skill](skills/ggb-construction/SKILL.md)。
 
-构造、重载和自动核验使用 headless 浏览器，过程中不打开中间窗口。失败时保留诊断；无法核验的必需条件不能作为成功交付。对成功结果，报告会说明实际检查与有限交互样本的范围。
+## 你会得到什么
 
-## 交付与预览
-
-成功后得到一个完整 delivery 目录：
+成功运行写出一个交付目录：
 
 | 文件 | 用途 |
 | --- | --- |
-| result.ggb | 可在 GeoGebra 中打开和编辑的原生文件 |
-| verification.json | 数学条件、重载及交互核验报告 |
-| preview.png | 原始交付构型截图 |
-| request.json、manifest.json | 输入留档和交付清单 |
+| `result.ggb` | 可在 GeoGebra 中打开、查看并继续编辑的原生文件 |
+| `verification.json` | 逐条件结果：构造、重载与交互样本 |
+| `preview.png` | 交付构型截图 |
+| `request.json`、`manifest.json` | 输入留档与交付清单 |
 
-交互预览加载同一 GGB，支持适用的点拖动、参数变化及缩放，不回写交付文件。需要手动调用或接入其他本地工具时：
+报告会说明实际执行了哪些检查、有限交互样本覆盖到哪里，不会声称构成一般性证明。
+
+## 交互预览
+
+预览加载同一份 `result.ggb`，支持适用的点拖动、参数变化与缩放，且不回写交付文件。请保留预览进程（Ctrl+C 结束）；一次性宿主退出后进程可能被回收。自动复核加 `--headless`。
+
+## 直接使用 CLI
+
+宿主会替你调用这个 CLI，其他本地工具也可以直接驱动：
 
 ```sh
 node <installed-plugin>/dist/src/cli.js doctor
@@ -47,17 +62,36 @@ node <installed-plugin>/dist/src/cli.js build --request /absolute/request.json
 node <installed-plugin>/dist/src/cli.js preview --delivery /absolute/delivery
 ```
 
-已有 GGB 需要改颜色、线型、填充、可见性，或继续构造（增加对象、修改独立数值或坐标）时，在请求中声明 `base`；`inspect` 列出对象清单、当前值与请求必须写入的摘要。删除、重命名和视图修改不支持。请求编写方式见 [Skill 能力契约](skills/ggb-construction/references/capabilities.md)。自动复核预览加 `--headless`。预览需要持续运行的调用方保留进程；一次性宿主退出后，窗口不保证继续可用。
+已有 GGB 需要改颜色、线型、填充、可见性，或继续构造（增加对象、修改独立数值或坐标）时，在请求中声明 `base`；`inspect` 列出对象清单、当前值以及请求必须写入的摘要。删除、重命名和视图修改不支持。请求编写方式见 [能力契约](skills/ggb-construction/references/capabilities.md)。
 
-保持预览进程，按 Ctrl+C 可结束会话。浏览器选择和关页退出行为以所用版本为准，发布版本与未发布预览改动的区别只在 [修改记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)维护。
+## 从源码运行
 
-## 仓库入口
+先满足上表依赖，然后：
 
-- `src/`、`viewer/`：本地执行、核验与页面。
-- `skills/`、`dsh/`：共享 Skill 和宿主接入。
+```sh
+pnpm install --frozen-lockfile
+pnpm setup:runtime
+pnpm build
+pnpm demo
+```
+
+`pnpm demo` 会把内置三角形示例构造到 `output/`。验证与维护命令、Agent 的工作规则以及发布流程都在 [AGENTS.md](https://github.com/Jack7510/ggb-plugins/blob/main/AGENTS.md)，这里不重复。
+
+## 仓库结构
+
+- `src/`：CLI、执行、核验与交付管线。
+- `viewer/`：承载 GeoGebra applet 的本地页面。
+- `skills/`：两个宿主共用的 Skill。
+- `codex/`、`dsh/`：各宿主的插件资产、安装说明与验收记录。
 - `examples/`、`tests/`：可运行输入与回归用例。
-- `scripts/`：依赖准备、两种打包和覆盖记录工具。
-- [需求与设计](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md)：为什么采用这些边界与门禁。
-- [重要修改记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)：版本演进及对应验收证据。
+- `scripts/`：依赖准备、两种打包与覆盖记录工具。
+- `docs/`：[需求与设计](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md)、[重要修改记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)与跨客户端验收记录。
 
-项目采用 MIT 许可，GeoGebra 的独立许可和归属见 [第三方说明](THIRD_PARTY_NOTICES.md)。
+## 支持范围与边界
+
+- 支持：二维几何、函数、方程、微积分、列表矩阵与统计，中英文均可。
+- 不支持：三维构图、无法声明基线的外部 GGB 续题、一般数学证明。
+- 原生命令可以接入，不等于全部命令与重载都已验收；边界见 [命令覆盖记录](skills/ggb-construction/references/command-coverage.md)。
+- 数值采样与未决 CAS 结果是证据，不是证明。
+
+项目采用 MIT 许可。GeoGebra 的独立许可与归属见 [第三方说明](THIRD_PARTY_NOTICES.md)。
