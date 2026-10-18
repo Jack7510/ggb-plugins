@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { chromium } from 'playwright';
+import { browserTarget } from './browser-target.js';
 import { exportGgb, loadGgb, openBrowser, runtimeVersion, snapshot, waitForCAS } from './browser.js';
 import { commands, limits, predicates, toolError } from './schema.js';
 import { root } from './server.js';
@@ -30,8 +30,10 @@ export async function doctor(signal?: AbortSignal) {
     assert(objects.length === 2 && point?.defined && point.x === 0 && point.y === 0, 'GGB reload failed');
     await waitForCAS(reloaded);
     assert(await reloaded.evaluate(() => window.ggb.isDefined('DoctorCAS') && window.ggb.evalCommandCAS('Simplify(DoctorCAS(x)-(x^2-1))') === '0'), 'CAS reload failed');
+    const target = browserTarget();
     const result = { toolVersion: pkg.version, nodeVersion: process.version,
-      browser: { version: session.browser.version(), executablePath: chromium.executablePath() },
+      browser: { version: session.browser.version(), label: target.label,
+        ...(target.executablePath === undefined ? { channel: target.channel } : { executablePath: target.executablePath }) },
       runtime: { version: await runtimeVersion(reloaded), url: lock.url, sha256: lock.sha256 },
       smoke: 'passed', casSmoke: 'passed', native: { channels: ['algebra', 'cas'], mathematicalCommandWhitelist: false, casMaterialization: 'named native result' }, limits, tolerance, commands, predicates };
     await session.close(); session = undefined;

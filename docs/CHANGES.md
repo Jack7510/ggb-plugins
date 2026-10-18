@@ -4,6 +4,8 @@
 
 ## 未发布
 
+- 运行时改用本机已安装的 Chromium 内核浏览器（Chrome／Edge，或 `DSH_GGB_BROWSER` 指定的频道／绝对路径），不再下载 Chromium：`playwright install chromium` 从安装器移除，改为启动前解析并报告目标浏览器。`doctor` 的 browser 字段改为报告实际使用的浏览器（`label` 加 `executablePath` 或 `channel`）。新增离线回归 tests/browser-target.test.ts，安装器回归改走浏览器探测。
+
 - 修复验证截图的界面语言：新建、编辑、续构、重载和交互页面统一使用请求 locale，中文与英文共用 viewer 文案。就绪页面检查实际语言、标题、提示、页脚及结束按钮；文案不一致返回 viewer_language_mismatch 并阻止交付或预览。新增图形／代数视图、语言回退及错误文案回归。
 
 - 统一对象身份、引擎依赖证据与外观归属；native／旧原语共用采样覆盖门禁。移除命令式“同义反复”检测和自制 LaTeX 标题转换，证据目的仅作记录。新建对象集中校验官方禁用标签和内置名称遮蔽，所有 id 与显式 outputs 共用，保留引擎核验。核验门禁与反例复验见 [统一门禁验证](unified-validation.md)。

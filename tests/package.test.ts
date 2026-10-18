@@ -65,6 +65,8 @@ for (const scenario of ['stale dist', 'partial dist', 'compiled release']) {
         await writeFile(join(directory, 'src/cli.ts'), 'updated');
       }
       if (scenario !== 'partial dist') await writeFile(join(directory, 'dist/src/implementation.js'), `export default '${source ? 'stale' : 'release'}';`);
+      // A browser-aware installer resolves the system browser, never downloads one.
+      await writeFile(join(directory, 'dist/src/browser-target.js'), `export const browserTarget = () => ({ label: 'Google Chrome', executablePath: '/fixture/chrome' });\n`);
       // Run the real installer with a package-tool stub and a fixture CLI.
       await writeFile(join(directory, 'bin/pnpm'), `#!${process.execPath}
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
@@ -84,7 +86,6 @@ if (args.includes('build')) {
       assert.deepEqual(commands, [
         ['--ignore-workspace', 'install', ...(source ? [] : ['--prod']), '--frozen-lockfile', '--ignore-scripts'],
         ...(source ? [['--ignore-workspace', 'build']] : []),
-        ['--ignore-workspace', 'exec', 'playwright', 'install', 'chromium'],
       ]);
       assert.equal(await readFile(join(directory, 'dist/src/cli.js'), 'utf8'), cli);
       if (!source) assert.equal(await readFile(join(directory, 'dist/src/implementation.js'), 'utf8'), "export default 'release';");

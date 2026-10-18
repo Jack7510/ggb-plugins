@@ -8,6 +8,7 @@ import { readFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { resolve } from 'node:path';
+import { browserTarget } from './browser-target.js';
 import { root, serve } from './server.js';
 import {
   dependencyFacts, presentationOwner, type ObjectMetadata, type ReferenceFact,
@@ -95,9 +96,12 @@ async function launchBrowser(headed: boolean, signal?: AbortSignal) {
   startup.addEventListener('abort', abortStartup, { once: true });
   try {
     startup.throwIfAborted();
+    // Drive an installed Chromium browser; no browser download is required.
+    const target = browserTarget();
     const launch = chromium.launch({
       timeout: limits.operationMs,
-      channel: headed ? 'chrome' : undefined,
+      ...(target.channel === undefined ? {} : { channel: target.channel }),
+      ...(target.executablePath === undefined ? {} : { executablePath: target.executablePath }),
       headless: !headed, handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false,
     }).then(async opened => {
       // launch has no AbortSignal API. This handler owns any late result even
