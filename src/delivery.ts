@@ -176,6 +176,7 @@ async function reload(
   const data = bytes.toString('base64');
   await context.timed('reload.load', () => loadGgb(
     reloaded, data, context.request.prompt, context.request.plan.display,
+    context.request.locale,
   ));
   const result = await collect(context, reloaded, 'reload', 'initial');
   await save(join(context.run, 'verification.json'), {
@@ -277,7 +278,8 @@ async function sampleOne(
 ): Promise<void> {
   const { request } = context;
   await context.timed('sample.load',
-    () => loadGgb(page, data, request.prompt, request.plan.display));
+    () => loadGgb(page, data, request.prompt, request.plan.display,
+      request.locale));
   const before = await snapshot(page);
   const method = await context.timed(
     'point' in sample ? 'sample.drag' : 'sample.parameter',
@@ -461,7 +463,8 @@ async function buildBase(context: BuildContext): Promise<DeliveryResult> {
   context.session = session;
   const page = await context.timed('base.applet', () => session.page());
   await context.timed('base.load', () => loadGgb(page,
-    archive.bytes.toString('base64'), request.prompt, request.plan.display));
+    archive.bytes.toString('base64'), request.prompt, request.plan.display,
+    request.locale));
   const input = compiled.mode === 'edit'
     ? { mode: 'edit' as const, gates: await editGates(context, page, summary) }
     : { mode: 'modify' as const,
@@ -847,7 +850,7 @@ async function recheckEdits(
   const page = await session.page();
   try {
     await loadGgb(page, bytes.toString('base64'), request.prompt,
-      request.plan.display);
+      request.plan.display, request.locale);
     const baseline = await snapshot(page);
     compareSnapshots(baseline, report.edit.baseline);
     const differences = snapshotDifferences(objects, baseline);
@@ -920,7 +923,7 @@ async function recheckModify(
   const page = await session.page();
   try {
     await loadGgb(page, bytes.toString('base64'), request.prompt,
-      request.plan.display);
+      request.plan.display, request.locale);
     const baseline = await snapshot(page);
     compareSnapshots(baseline, report.modify.baseline);
     const differences = snapshotDifferences(objects, baseline);
@@ -967,7 +970,9 @@ async function preview(deliveryDir: string, headed: boolean, signal?: AbortSigna
   const bytes = await readFile(join(delivery, artifact)); assert.equal(sha256(bytes), manifest.sha256, 'GGB checksum mismatch');
   const session = await openBrowser(headed, signal);
   try {
-    const page = await session.page(); await loadGgb(page, bytes.toString('base64'), request.prompt, request.plan.display);
+    const page = await session.page();
+    await loadGgb(page, bytes.toString('base64'), request.prompt,
+      request.plan.display, request.locale);
     const actualFacts = await observe(page, request, 'initial');
     const actual = verify(request, actualFacts.objects, 'initial', actualFacts.observations); requirePassed(actual);
     compareSnapshots(actual.objects, manifest.objects);

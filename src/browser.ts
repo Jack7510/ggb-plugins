@@ -183,7 +183,7 @@ export async function exportGgb(page: Page): Promise<string> {
 /** Loads exported bytes, waits for data readiness and updates viewer text. */
 export async function loadGgb(
   page: Page, base64: string, prompt?: string,
-  display?: 'graphics' | 'algebra',
+  display?: 'graphics' | 'algebra', locale?: string,
 ): Promise<void> {
   await page.evaluate(({ data, timeout }) => new Promise<void>((done, reject) => {
     const timer = setTimeout(() => {
@@ -210,9 +210,17 @@ export async function loadGgb(
   });
   // setBase64 completion is the data gate. Mouse interactions wait for painting
   // at their own boundary; the one retained screenshot waits for its own frame.
-  await page.evaluate(display => {
-    window.setViewerLocale(document.documentElement.lang, display);
-  }, display);
+  await page.evaluate(({ display, locale }) => {
+    window.setViewerLocale(locale ?? document.documentElement.lang, display);
+  }, { display, locale });
+  if (locale) {
+    const expected = locale.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en';
+    const actual = await page.evaluate(() => document.documentElement.lang);
+    if (actual !== expected) {
+      throw new ToolError('viewer_language_mismatch',
+        `Viewer language ${actual} does not match ${expected}`);
+    }
+  }
 }
 
 /** Reads canonical XML metadata without interpreting mathematical source. */

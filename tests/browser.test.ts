@@ -143,7 +143,13 @@ test('viewer follows Chinese or English locale and preserves GGB facts', {
       request.locale = locale;
       const result = await build(request);
       const session = await openPreview(result.delivery, false);
-      try { await assertViewerLanguage(session, locale); }
+      try {
+        // The build/preview page follows the request locale, not the UI default.
+        assert.equal(await session.page.evaluate(
+          () => document.documentElement.lang),
+        locale === 'zh-CN' ? 'zh-CN' : 'en');
+        await assertViewerLanguage(session, locale);
+      }
       finally { await session.close(); }
     }
   } finally { await rm(directory, { recursive: true, force: true }); }

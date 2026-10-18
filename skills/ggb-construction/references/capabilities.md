@@ -34,7 +34,7 @@
 
 `title` 可选，最长 60 字，不能含控制字符：它决定交付目录名和 GGB 文件名。省略时由 `prompt` 派生；两者都会清洗路径分隔符与非法字符，按码点截断，空结果回退为 `ggb-construction`。`outputDir` 建议填用户工作目录根。交付路径为 `<outputDir>/<title>/delivery/<title>.ggb`；同名交付已存在时目录与文件名同时追加 `-2`、`-3`，绝不覆盖。旧交付（`result.ggb`）仍可预览：预览按清单声明的文件名校验。
 
-工作语言由 Agent 选择中文或英文；新请求 locale 使用 zh-CN 或 en，最终预览据此显示说明与结束按钮。caption 和 Text 由 Agent 用所选语言编写。locale 不翻译来源、命令、协议字段或原始诊断；其他既有 locale 值仍可解析，预览以英文回退。
+工作语言由 Agent 选择中文或英文；locale 必须与 prompt 语言一致，构建页与预览页都据此显示说明与结束按钮，页面语言不符会被拒绝。caption 和 Text 由 Agent 用所选语言编写。locale 不翻译来源、命令、协议字段或原始诊断；其他既有 locale 值仍可解析，预览以英文回退。
 
 保留用户原文、可选 `clarifications: [{question,answer}]`；边数等构图参数用滑块表达为变量；用户明确指定时按给定值构造。每个 requirement 有唯一 ID、用户 prompt 或澄清 answer 中的原文 source 和非空 checks。Agent 的 question 保留为问答记录，但不能单独作为条件来源。不得写入检查结果、容差或未知字段。图片由宿主读取并转述题意；把来源和歧义澄清保存在 prompt/clarifications，不把图片当脚本输入。
 
