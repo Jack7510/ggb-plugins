@@ -28,10 +28,17 @@ try {
     'LICENSE', 'THIRD_PARTY_NOTICES.md', 'viewer/index.html', 'scripts/setup-plugin.mjs', 'scripts/setup-runtime.mjs',
     'skills/ggb-construction/SKILL.md', 'skills/ggb-construction/worker.md',
     'skills/ggb-construction/references/capabilities.md', 'skills/ggb-construction/references/command-coverage.md',
-    ...(target === 'codex' ? ['plugin.json', '.agents/plugins/marketplace.json', 'skills/ggb-construction/agents/openai.yaml'] : [])];
+    ...(target === 'codex' ? ['plugin.json', '.agents/plugins/marketplace.json'] : [])];
   for (const file of files) {
     const target = join(plugin, file); await mkdir(dirname(target), { recursive: true });
     await cp(join(root, file), target, { dereference: true });
+  }
+  // Codex discovers implicit invocation through plugin-root skill metadata that
+  // lives with the Codex client assets, outside the shared skill directory.
+  if (target === 'codex') {
+    const asset = 'skills/ggb-construction/agents/openai.yaml';
+    await mkdir(dirname(join(plugin, asset)), { recursive: true });
+    await cp(join(root, 'codex/agents/openai.yaml'), join(plugin, asset));
   }
   const scripts = Object.fromEntries(['ggb', 'preview', 'setup:plugin', 'setup:runtime'].map(key => [key, pkg.scripts[key]]));
   // Keep dependency metadata aligned with the frozen lockfile; --prod omits dev tools.
@@ -44,11 +51,11 @@ try {
     for (const file of ['index.js', 'cordis.patch.yml', 'locale']) await cp(join(root, 'dsh', file), join(plugin, file), { recursive: true });
   }
   await writeFile(join(plugin, 'package.json'), JSON.stringify(metadata, null, 2) + '\n');
-  const guide = target === 'codex' ? 'docs/installation.md' : 'dsh/README.md';
+  const guide = target === 'codex' ? 'codex/README.md' : 'dsh/README.md';
   await cp(join(root, guide), join(plugin, 'INSTALL.md'));
   for (const file of ['README.md', 'README.zh-CN.md']) {
     let text = await readFile(join(plugin, file), 'utf8');
-    for (const path of ['docs/installation.md', 'dsh/README.md']) {
+    for (const path of ['codex/README.md', 'dsh/README.md']) {
       const link = path === guide ? 'INSTALL.md' :
         'https://github.com/Jack7510/ggb-plugins/blob/main/' + path;
       text = text.replaceAll('](' + path + ')', '](' + link + ')');

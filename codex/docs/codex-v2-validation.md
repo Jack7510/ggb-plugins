@@ -52,7 +52,7 @@ pnpm check、构建和 76 项离线测试通过。离线测试初次受到沙箱
 
 ## 证据与复现
 
-证据目录：[output/codex-v2-validation](../output/codex-v2-validation/)。文件位于本机，未提交产物。
+证据目录：[output/codex-v2-validation](../../output/codex-v2-validation/)。文件位于本机，未提交产物。
 
 | 证据 | 内容 |
 | --- | --- |
@@ -63,7 +63,7 @@ pnpm check、构建和 76 项离线测试通过。离线测试初次受到沙箱
 | summary.json | 汇总及各交付的 GGB 摘要 |
 | offline-tests.log、offline-tests-final.log | 沙箱限制与最终 76 项通过记录 |
 
-后续复现先确认当前插件目录和源码摘要，再使用新的输出目录。CLI 与核验协议见 [Skill 能力契约](../skills/ggb-construction/references/capabilities.md)，安装方法见 [安装说明](installation.md)。
+后续复现先确认当前插件目录和源码摘要，再使用新的输出目录。CLI 与核验协议见 [Skill 能力契约](../../skills/ggb-construction/references/capabilities.md)，安装方法见 [安装说明](../README.md)。
 
 ## 展示修复复验
 
@@ -99,7 +99,7 @@ pnpm check、构建和 76 项离线测试通过。离线测试初次受到沙箱
 
 ### 新证据
 
-[output/codex-v2-display-fix](../output/codex-v2-display-fix/) 包含本轮证据：
+[output/codex-v2-display-fix](../../output/codex-v2-display-fix/) 包含本轮证据：
 
 | 文件 | 内容 |
 | --- | --- |
@@ -114,4 +114,4 @@ pnpm check、构建和 76 项离线测试通过。离线测试初次受到沙箱
 
 ## 后续统一修复
 
-本报告保留两轮历史数据。之后的对象依赖、样式归属、采样覆盖及原文标题统一修复，以 [统一门禁验证](unified-validation.md) 为准；不把历史包或旧事实报告当作当前版本验收证据。
+本报告保留两轮历史数据。之后的对象依赖、样式归属、采样覆盖及原文标题统一修复，以 [统一门禁验证](../../docs/unified-validation.md) 为准；不把历史包或旧事实报告当作当前版本验收证据。

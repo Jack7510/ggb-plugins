@@ -261,7 +261,7 @@ delivery 在外层 run.json 记录总耗时和阶段计时；browser 细分观�
 
 ### 9.1 验证宿主的分工
 
-核心回归继续使用固定输入和统一 CLI。端到端验收以 DSH 的独立 headless profile 为主，安装当前构建的完整 TGZ，不借用 Codex 缓存。受影响案例通过后，每题三次使用不同新会话，仅提供文字题，不提供现成程序；宿主模型与工具耗时分别记录。Codex 保留安装、技能发现和代表案例兼容检查。实际结果与限制见 [DSH 主验证记录](dsh-primary-validation.md)。
+核心回归继续使用固定输入和统一 CLI。端到端验收以 DSH 的独立 headless profile 为主，安装当前构建的完整 TGZ，不借用 Codex 缓存。受影响案例通过后，每题三次使用不同新会话，仅提供文字题，不提供现成程序；宿主模型与工具耗时分别记录。Codex 保留安装、技能发现和代表案例兼容检查。实际结果与限制见 [DSH 主验证记录](../dsh/docs/dsh-primary-validation.md)。
 
 ## 10 文档依据与设计覆盖
 

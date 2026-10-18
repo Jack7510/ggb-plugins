@@ -1,6 +1,6 @@
 # GeoGebra Construction 安装与使用
 
-本插件处理文字或图片中的二维数学与代数题。Codex 生成 GeoGebra 原生程序，本地工具执行、核验并交付可交互 GGB。需要支持插件的本地 Codex 客户端、Node.js 22+、pnpm 11、curl 和 unzip。安装依赖时需要网络；不需要额外模型 API Key。
+本插件处理文字或图片中的二维数学与代数题。Codex 生成 GeoGebra 原生程序，本地工具执行、核验并交付可交互 GGB。需要支持插件的本地 Codex 客户端、Node.js 22+、pnpm 11、curl 和 unzip，以及一个 Chromium 内核浏览器（Google Chrome 或 Microsoft Edge）；工具直接使用已安装的浏览器，不再下载 Chromium。安装依赖时需要网络；不需要额外模型 API Key。
 
 ## 安装 ZIP
 

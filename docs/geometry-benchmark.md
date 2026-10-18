@@ -6,7 +6,7 @@
 
 逐次阶段数据、输入摘要和交付文件摘要见 [结果数据](geometry-benchmark-results.json)。原始文件保存在 [本机证据目录](../output/geometry-benchmark-20261016/)。output 按仓库规则不进入 Git；复制或清理工作区前应保存该目录。
 
-后续代码与案例已更新；历史计时对应的不可变输入以证据 ZIP 的 final-inputs 和记录摘要为准，不能用当前 examples 代替历史版本。修复与新的宿主验收见 [DSH 主验证记录](dsh-primary-validation.md)。
+后续代码与案例已更新；历史计时对应的不可变输入以证据 ZIP 的 final-inputs 和记录摘要为准，不能用当前 examples 代替历史版本。修复与新的宿主验收见 [DSH 主验证记录](../dsh/docs/dsh-primary-validation.md)。
 
 ## 1 方法与统计口径
 

@@ -15,7 +15,7 @@ check 是结构预检，不证明原生命令语法、输出标签或数学结�
 
 多边形轮廓不使用填充面。辅助点数量由本题 n 的上限 12 决定，属于输入构法，不增加生产题型分支。周长由实际相邻点距离求和，不用 n×边长自证。闭合顶点、全部边长、圆上关系、周长及真实依赖继续核验。
 
-参数报告新增 sample.roundTrip，包含恢复值和恢复后事实。preview 缺少对应证据时拒绝旧参数交付，要求重新 build；没有参数样本的旧交付不受此项影响。请求协议仍为 2，字段细节见 [能力契约](../skills/ggb-construction/references/capabilities.md)。
+参数报告新增 sample.roundTrip，包含恢复值和恢复后事实。preview 缺少对应证据时拒绝旧参数交付，要求重新 build；没有参数样本的旧交付不受此项影响。请求协议仍为 2，字段细节见 [能力契约](../../skills/ggb-construction/references/capabilities.md)。
 
 交付编排按构造、磁盘重载、采样、提交和失败清理职责提取同模块函数。没有新增服务层、数学命令包装、浏览器池或数学结果缓存。关闭资源后才提交，提交后的日志错误仍不能撤销交付。
 
@@ -25,13 +25,13 @@ check 是结构预检，不证明原生命令语法、输出标签或数学结�
 
 新增回归包括旧动态多边形反例、新轮廓构法、删除参数往返证据时预览拒绝、重叠点提前失败与截图，以及无副作用结构预检。DSH 初版受影响案例的持续 headless 预览阻塞了宿主命令，随后增加 `preview --headless --once`。该模式通过全部原有预览门禁后释放资源；可见预览不允许 --once。额外交互回归三项及持续预览故障回归两项通过。初版中断日志单独保存，不计入最终包的验收。
 
-原始日志和交互证据保存在 [本机验证目录](../output/dsh-primary-validation/) 与 [回归产物](../output/interaction-regressions/)。
+原始日志和交互证据保存在 [本机验证目录](../../output/dsh-primary-validation/) 与 [回归产物](../../output/interaction-regressions/)。
 
 ## DSH 验收方法
 
 从当前构建生成完整 TGZ，安装到独立 profile，并执行安装副本自身的 setup-plugin。GeoGebra 从官方资源下载并校验固定摘要；没有复制开发仓库或 Codex 的 runtime。安装副本的八个编译模块、viewer、Skill、能力引用及 runtime 锁共 12 个文件与工作区逐字节一致。
 
-该一致性属于当次构建，随后一度漂移：Skill 与能力引用在工作区继续修改，安装副本曾与工作区不同（`dist` 始终一致）。同日已按当前构建重新打包并重装到同一 profile：`dist/src/delivery.js`、`SKILL.md`、`references/capabilities.md` 与工作区逐字节一致，安装副本 doctor 的 smoke 与 casSmoke 通过，runtime 5.4.932.1 与锁文件一致。记录见 [reinstall.json](../output/dsh-stability-prep/reinstall.json)；运行前的版本对比仍以 `provenance.json` 为准。
+该一致性属于当次构建，随后一度漂移：Skill 与能力引用在工作区继续修改，安装副本曾与工作区不同（`dist` 始终一致）。同日已按当前构建重新打包并重装到同一 profile：`dist/src/delivery.js`、`SKILL.md`、`references/capabilities.md` 与工作区逐字节一致，安装副本 doctor 的 smoke 与 casSmoke 通过，runtime 5.4.932.1 与锁文件一致。记录见 [reinstall.json](../../output/dsh-stability-prep/reinstall.json)；运行前的版本对比仍以 `provenance.json` 为准。
 
 受影响案例 01、05、08、10 先各执行一个新 DSH 会话。随后完整十题各执行三个新会话。每个工作目录初始为空，位于仓库外的 /private/tmp；不传已有请求，不复用会话 ID，不将成功草案提供给下一轮。模型与认证沿用 DSH 既有配置，不新增模型服务或凭据。
 
@@ -41,7 +41,7 @@ check 是结构预检，不证明原生命令语法、输出标签或数学结�
 
 记录宿主墙钟、step_end 的实际 token 用量、check／doctor／build 命令次数、逐次 run.json、参数往返证据及最终交付摘要。模型未提供 usage 时记录缺失，不能当作零。工具接收时间用于诊断；不能把事件间隔全部当作纯模型推理时间。失败、超时和不完整覆盖均保留。
 
-DSH 生成不同程序、对象和检查，不能直接与上一轮 Codex 编写固定请求的 CLI 耗时计算提速比例。既有 [十题报告](geometry-benchmark.md) 作为已知反例和工具成本基线。
+DSH 生成不同程序、对象和检查，不能直接与上一轮 Codex 编写固定请求的 CLI 耗时计算提速比例。既有 [十题报告](../../docs/geometry-benchmark.md) 作为已知反例和工具成本基线。
 
 ## DSH 实测结果
 
@@ -57,7 +57,7 @@ full（十题各三个新会话）尚未运行；未将计划中的 30 次计为
 
 ## 复现与证据
 
-开发脚本 [benchmark-dsh.mjs](../scripts/benchmark-dsh.mjs) 接受输出目录、实际安装包路径以及 `smoke`、`full` 或 `list`。`list` 只读取题干并写出 `provenance.json`，不启动任何宿主会话，可用于零模型成本的口径与版本核对。脚本不进入插件生产管线，不复制模型循环。再次实验需使用新的输出目录和独立工作目录，避免继承已完成会话。
+开发脚本 [benchmark-dsh.mjs](../../scripts/benchmark-dsh.mjs) 接受输出目录、实际安装包路径以及 `smoke`、`full` 或 `list`。`list` 只读取题干并写出 `provenance.json`，不启动任何宿主会话，可用于零模型成本的口径与版本核对。脚本不进入插件生产管线，不复制模型循环。再次实验需使用新的输出目录和独立工作目录，避免继承已完成会话。
 
 ```sh
 node scripts/benchmark-dsh.mjs output/dsh-stability-prep <installed-plugin> list
@@ -70,4 +70,4 @@ node scripts/benchmark-dsh.mjs output/dsh-stability-<n> <installed-plugin> full 
 
 重装该 profile 时使用插件固定的 pnpm 11.7.0（例如把 `/opt/homebrew/bin` 置于 PATH 首位）。若 PATH 首个 pnpm 为 12.x，安装副本的 setup-plugin 会以 `ERR_PNPM_PACKAGE_MANAGER_NO_IMPORTER` 拒绝包内 frozen lockfile；这是工具链版本问题，不是插件缺陷。
 
-完整架构、生命周期和提交不变量见 [设计](ggb-plugins-design.md#5-流程与画布生命周期)。本文只记录局部行为和验收，不重复维护状态协议。采用 STE 中文清晰写作原则，不声明 ASD-STE100 合规。
+完整架构、生命周期和提交不变量见 [设计](../../docs/ggb-plugins-design.md#5-流程与画布生命周期)。本文只记录局部行为和验收，不重复维护状态协议。采用 STE 中文清晰写作原则，不声明 ASD-STE100 合规。

@@ -2,7 +2,7 @@
 
 本文用于在 Codex 修改插件后，由 DSH Desktop 验证当前源码、保留证据并按失败原因修复。下方提示词可整段复制。默认允许 DSH 在保存修改前证据后修复当前仓库，不授权提交或发布。
 
-本文是操作约定，不代表 Desktop 端到端验收已完成。已确认的实现依据是 [DSH 适配器](../dsh/index.js)、[插件配置注册](../dsh/cordis.patch.yml) 和 [Skill](../skills/ggb-construction/SKILL.md)。中文采用 STE 清晰写作原则，不声明 ASD-STE100 合规。
+本文是操作约定，不代表 Desktop 端到端验收已完成。已确认的实现依据是 [DSH 适配器](../index.js)、[插件配置注册](../cordis.patch.yml) 和 [Skill](../../skills/ggb-construction/SKILL.md)。中文采用 STE 清晰写作原则，不声明 ASD-STE100 合规。
 
 ## 1. 准备当前版本
 
@@ -25,9 +25,9 @@ DSH 的工作目录与插件目录是两个独立配置。只打开当前仓库�
 
 这是适配器已支持的配置字段。Desktop 的具体配置入口随宿主版本而定，本文没有验收对应 UI 操作。不要把该 JSON 当作完整宿主配置文件。若同时配置旧字段 `skillRoot`，两字段必须指向同一目录。
 
-首次准备及必要检查按 [AGENTS.md](../AGENTS.md) 执行。Codex 修改 TypeScript 后，在仓库运行 `pnpm check` 和 `pnpm build`。DSH 修复源码后也要重新编译。Skill、插件配置或实现变化后，重载插件并新建会话。不要用 `--from-default-profile` 初始化已有 Desktop profile；该参数会重置同名 profile。
+首次准备及必要检查按 [AGENTS.md](../../AGENTS.md) 执行。Codex 修改 TypeScript 后，在仓库运行 `pnpm check` 和 `pnpm build`。DSH 修复源码后也要重新编译。Skill、插件配置或实现变化后，重载插件并新建会话。不要用 `--from-default-profile` 初始化已有 Desktop profile；该参数会重置同名 profile。
 
-最终独立包验收另行执行 `pnpm pack:dsh`，安装生成的 TGZ。副本依赖准备见 [DSH 安装说明](../dsh/README.md)。源码模式通过不能代替独立包安装验收。
+最终独立包验收另行执行 `pnpm pack:dsh`，安装生成的 TGZ。副本依赖准备见 [DSH 安装说明](../README.md)。源码模式通过不能代替独立包安装验收。
 
 ## 2. 责任与执行流程
 
@@ -201,7 +201,7 @@ node <实际 CLI 绝对路径> preview --delivery <交付绝对目录>
 
 ## 4. 日志契约与交回分析
 
-`session.md` 等文件是本流程要求 DSH 写入的记录，不是插件自动生成的宿主日志。插件自动生成文件的准确字段以 [能力契约](../skills/ggb-construction/references/capabilities.md) 为准。
+`session.md` 等文件是本流程要求 DSH 写入的记录，不是插件自动生成的宿主日志。插件自动生成文件的准确字段以 [能力契约](../../skills/ggb-construction/references/capabilities.md) 为准。
 
 | 记录 | 提供方 | 消费方与用途 |
 | --- | --- | --- |

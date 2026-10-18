@@ -1,6 +1,6 @@
 # 双生态封装契约
 
-本文只维护 Codex 与 DeepSeek Harness 的包结构、发现与路径契约。产品需求及设计取舍见[主设计](ggb-plugins-design.md#8-宿主兼容与依赖取舍)，构建发布见 [AGENTS](../AGENTS.md)，安装分别见[Codex 安装说明](installation.md)和 [DSH 随包说明](../dsh/README.md)，版本与验收见 [CHANGES](CHANGES.md)。
+本文只维护 Codex 与 DeepSeek Harness 的包结构、发现与路径契约。产品需求及设计取舍见[主设计](ggb-plugins-design.md#8-宿主兼容与依赖取舍)，构建发布见 [AGENTS](../AGENTS.md)，安装分别见[Codex 安装说明](../codex/README.md)和 [DSH 随包说明](../dsh/README.md)，版本与验收见 [CHANGES](CHANGES.md)。
 
 ## 包结构
 
