@@ -64,6 +64,6 @@ check 不证明引擎语法或数学关系。构造、重载、交互和截图�
 node <plugin>/dist/src/cli.js preview --delivery <absolute-delivery-dir>
 ```
 
-preview 用系统默认浏览器加载同一 GGB。保留前台进程，等待页面确认加载的就绪 JSON 再答复；失败保留文件并说明未打开。自动复核的 --headless --once 不能代替最终可见预览。服务释放及诊断细节见交付契约。
+preview 用系统默认浏览器加载同一 GGB，页面确认加载即输出就绪并释放服务、退出进程；applet 在窗口中独立运行，关闭窗口结束预览，刷新需重新执行 preview。失败保留文件并说明未打开。自动复核的 --headless --once 不能代替最终可见预览。服务释放及诊断细节见交付契约。
 
 交付 GGB、报告和截图，说明实际修改、已验条件、有限样本与未验项。满足要求后结束，不追加无关美化或重复核验；命令支持范围有疑问时再读 [覆盖边界](references/command-coverage.md)。

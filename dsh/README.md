@@ -108,7 +108,7 @@ dsh --profile ggb-plugins '用 GeoGebra 作三角形 ABC，取 AB 中点 M，连
 node <installed-plugin>/dist/src/cli.js preview --delivery /absolute/delivery
 ```
 
-自动验收使用 `preview --delivery <dir> --headless --once`，复核完成后退出并释放资源。一次性 headless 宿主退出可能回收子进程，不能依靠它保留最终窗口。通过页面“结束预览”或取消进程释放服务，不回写 GGB；仅关闭默认浏览器标签页不保证结束进程。
+自动验收使用 `preview --delivery <dir> --headless --once`，复核完成后退出并释放资源。一次性 headless 宿主退出可能回收子进程，不能依靠它保留最终窗口。通过页面“结束预览”或取消进程释放服务，不回写 GGB；页面加载后预览进程自动退出，窗口继续可用；关闭窗口结束预览。
 
 升级使用同一 profile 的 `dsh plugin --profile ggb-plugins add <new.tgz>`，然后在实际包目录重新执行安装器并重启该 profile。卸载使用 `dsh plugin --profile ggb-plugins remove @local/ggb-plugins-dsh`，不会删除工作区交付文件。
 

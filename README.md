@@ -77,8 +77,8 @@ delivery.
 ## Interactive preview
 
 The preview loads the same delivered GGB and supports applicable point dragging, parameter changes,
-and zooming without writing back to the delivery. Keep the preview process running (Ctrl+C ends
-it); a one-shot host may terminate it on exit. Use `--headless` for automated checks.
+and zooming without writing back to the delivery. The preview process exits once the page loads; the
+window keeps working, and running preview again reloads it. Use `--headless` for automated checks.
 
 ## Use the CLI directly
 

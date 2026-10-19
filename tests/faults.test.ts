@@ -137,7 +137,7 @@ mock.module('../src/browser.js', { namedExports: { ...browser,
     }
   },
 } });
-const { build, openPreview, openDefaultPreview, sha256 } =
+const { build, openDetachedPreview, openPreview, sha256 } =
   await import('../src/delivery.js');
 const { doctor } = await import('../src/doctor.js');
 const fixture = JSON.parse(await fs.readFile(join(root, 'examples/v2-cases/triangle.json'), 'utf8'));
@@ -344,7 +344,7 @@ test('committed files survive journal and preview errors; repeated calls remain 
     fault = '';
     const preview = await openPreview(first.delivery, false); await preview.close(); await released();
     const before = await fs.readFile(first.file);
-    await assert.rejects(openDefaultPreview(first.delivery), (error: any) => error.code === 'preview_failed' && /URL opener/.test(error.message));
+    await assert.rejects(openDetachedPreview(first.delivery), (error: any) => error.code === 'preview_failed' && /URL opener/.test(error.message));
     await released(); assert.deepEqual(await fs.readFile(first.file), before);
     fault = 'preview-load';
     await assert.rejects(openPreview(first.delivery, false), (error: any) => error.code === 'preview_failed');

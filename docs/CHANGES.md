@@ -4,6 +4,10 @@
 
 ## 未发布
 
+- 可见预览改为加载后自动退出：页面确认加载即释放本地服务并结束进程，已加载的 applet 在默认浏览器窗口中独立运行，避免后台常驻耗电；刷新页面需要重新执行 preview。
+
+- 准备 0.8.3 本机 Codex 插件包，纳入英文 Applet 展示改动；发布范围与资产见 [0.8.3 说明](releases/v0.8.3.md)。DSH 仅验证封装，本轮不更新 npm 发布。
+
 - Applet 原生界面固定为英文，代数区显示英文命令名；预览页面继续按 locale 显示状态和按钮，题目与 Text 内容保留原语言。数学核验与交付门禁不变。
 
 - DSH bundle 发布为 npm 包 `ggb-plugins-dsh`（0.8.2），安装命令改为 `dsh plugin --profile desktop add ggb-plugins-dsh@0.8.2`；新增 `docs/publish-npm.md` 记录构建、暂存、2FA、占位包与常见错误。

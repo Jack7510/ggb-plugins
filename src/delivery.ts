@@ -796,12 +796,14 @@ export async function openPreview(deliveryDir: string, headed = true, signal?: A
   catch (error) { throw toolError(error, 'preview_failed', signal); }
 }
 
-/** Opens a verified file in the default browser using the request locale. */
-export async function openDefaultPreview(
+/**
+ * Opens a verified file in the default browser and releases the local server
+ * once the page reports that the applet loaded. The applet runs client-side, so
+ * the released window keeps working without this process.
+ */
+export async function openDetachedPreview(
   deliveryDir: string, signal?: AbortSignal,
-): Promise<Awaited<ReturnType<typeof openPreview>> & {
-  closed: Promise<void>;
-}> {
+): Promise<{ url: string; delivery: string }> {
   const session = await openPreview(deliveryDir, false, signal);
   try {
     // Publish only after the normal file, report and real reload gates passed.
@@ -823,7 +825,9 @@ export async function openDefaultPreview(
       });
       if (waiting.aborted) abort();
     });
-    return { ...session, url: material.url, closed: material.closed };
+    // The page holds the applet in memory; stop the server and exit.
+    await session.close();
+    return { url: material.url, delivery: session.delivery };
   } catch (error) {
     const failure = toolError(error, 'preview_failed', signal);
     try { await session.close(); }

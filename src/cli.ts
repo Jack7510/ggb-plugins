@@ -1,7 +1,7 @@
 /** @fileoverview Owns CLI dispatch, structural preflight and process signals. */
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
-import { build, openPreview, openDefaultPreview, readJson } from './delivery.js';
+import { build, openPreview, openDetachedPreview, readJson } from './delivery.js';
 import { ToolError, parseRequest, type Request } from './schema.js';
 import { compile } from './compile.js';
 import { inspectGgb, loadBase } from './inspect.js';
@@ -47,21 +47,25 @@ try {
     input.outputDir = values.output ?? 'output/ggb';
     emit(await build(input, cancellation.signal));
   } else if (command === 'preview' && values.delivery && !values.request && !values.output) {
-    const session = values.headless ? await openPreview(values.delivery, false, cancellation.signal) : await openDefaultPreview(values.delivery, cancellation.signal);
-    try {
-      const closed = new Promise<void>(done => {
-        const finish = () => {
-          session.page.off('close', finish); session.browser.off('disconnected', finish); done();
-        };
-        session.page.once('close', finish); session.browser.once('disconnected', finish);
-        if (session.page.isClosed() || !session.browser.isConnected()) finish();
-      });
-      emit({ url: session.url, delivery: session.delivery }); ready = true;
-      if (!values.once) {
-        await ('closed' in session ? Promise.race([closed, session.closed]) : closed);
-      }
-      if (cancellation.signal.aborted) process.exitCode = 130;
-    } finally { await session.close(); }
+    if (!values.headless) {
+      // The visible window outlives this process once the applet has loaded.
+      emit(await openDetachedPreview(values.delivery, cancellation.signal));
+      ready = true;
+    } else {
+      const session = await openPreview(values.delivery, false, cancellation.signal);
+      try {
+        const closed = new Promise<void>(done => {
+          const finish = () => {
+            session.page.off('close', finish); session.browser.off('disconnected', finish); done();
+          };
+          session.page.once('close', finish); session.browser.once('disconnected', finish);
+          if (session.page.isClosed() || !session.browser.isConnected()) finish();
+        });
+        emit({ url: session.url, delivery: session.delivery }); ready = true;
+        if (!values.once) await closed;
+      } finally { await session.close(); }
+    }
+    if (cancellation.signal.aborted) process.exitCode = 130;
   } else throw new Error(usage);
 } catch (error) {
   const message = cancellation.signal.aborted ? 'Cancelled' : error instanceof Error ? error.message : String(error);
