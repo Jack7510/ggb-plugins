@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "toolVersion": "0.8.0",
+  "toolVersion": "0.8.2",
   "requestProtocolVersion": 2,
   "workerProfileVersion": "plugin-core-v1",
   "workerSkillSha256": "b9475b73ed21e94fd418801bce7017e58fe7566f1d4aedc7fa53e06f5b03f645",

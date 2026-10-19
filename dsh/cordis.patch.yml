@@ -1,5 +1,5 @@
 # Registers the skill from this bundle's own resources and compiled runtime.
 - insert:
     - id: ggb-plugins-dsh
-      name: '@local/ggb-plugins-dsh'
+      name: 'ggb-plugins-dsh'
       config: {}

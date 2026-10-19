@@ -24,6 +24,10 @@
 - Codex：[安装与升级说明](codex/README.md)。
 - DSH：[独立 headless profile 安装说明](dsh/README.md)。
 
+DSH bundle 也已发布到 npm：`dsh plugin --profile desktop add ggb-plugins-dsh@0.8.2`。
+
+桌面用户可以把[这一句安装指令](dsh/README.md#用一句对话安装桌面应用)粘贴到 DSH 对话框，由 DSH 代为安装。
+
 两个客户端各自安装，共用同一套执行与核验管线。两份说明都以运行依赖准备（`setup-plugin`，会报告实际使用的浏览器）和就绪检查（`doctor`）结束。
 
 ## 第一道题
@@ -87,7 +91,7 @@ pnpm demo
 - `codex/`、`dsh/`：各宿主的插件资产、安装说明与验收记录。
 - `examples/`、`tests/`：可运行输入与回归用例。
 - `scripts/`：依赖准备、两种打包与覆盖记录工具。
-- `docs/`：[需求与设计](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md)、[重要修改记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)与跨客户端验收记录；历史阶段结果见[归档索引](docs/archive/README.md)。
+- `docs/`：[需求与设计](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md)、[重要修改记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)与跨客户端验收记录；历史阶段结果见[归档索引](https://github.com/Jack7510/ggb-plugins/blob/main/docs/archive/README.md)。
 
 ## 支持范围与边界
 

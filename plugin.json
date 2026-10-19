@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "ggb-plugins",
-  "version": "0.8.0",
+  "version": "0.8.2",
   "description": "分析中英文二维数学题、作图并核验交付 GeoGebra 文件，不提供题目答案；Agent 自选中文或英文工作语言。",
   "author": {
     "name": "Jack7510"

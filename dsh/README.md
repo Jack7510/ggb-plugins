@@ -4,6 +4,69 @@
 
 源码工程中的 Desktop 验证、日志留存与修复提示词见 [操作流程](docs/dsh-desktop-validation.md)。该流程用于开发协作，不代替下文的独立安装包验收；随包阅读时请到源码仓库查阅此文档。
 
+## 从 npm 安装（推荐）
+
+DSH bundle 已发布为 npm 包 `ggb-plugins-dsh`。桌面应用安装：
+
+```sh
+dsh plugin --profile desktop add ggb-plugins-dsh@0.8.2
+node ~/.dsh/profiles/desktop/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
+```
+
+然后重启 DSH。升级时把 `@0.8.2` 换成新版本；版本列表见
+`npm view ggb-plugins-dsh versions`。发布流程见
+[发布到 npm](https://github.com/Jack7510/ggb-plugins/blob/main/docs/publish-npm.md)。
+
+不需要构建权限，也不需要校验压缩包；npm 分发的是预编译产物。
+
+## 用一句对话安装（桌面应用）
+
+给桌面用户发这一句，让他粘贴到 DSH 对话框；DSH 会自己下载、校验并安装：
+
+```text
+请安装 npm 包 ggb-plugins-dsh@0.8.2 到 desktop profile，运行安装副本里的
+setup-plugin，然后提醒我重启 DSH。
+```
+
+英文版：
+
+```text
+Install the npm package ggb-plugins-dsh@0.8.2 into the desktop profile, run
+setup-plugin in the installed copy, then remind me to restart DSH.
+```
+
+升级时把两处 `0.8.1` 换成新版本号即可；不要混用不同版本的包和校验文件。
+
+### DSH 需要执行的动作
+
+1. 检查前置：Node.js 22+、pnpm 11、`curl`、`unzip`，以及 Google Chrome 或
+   Microsoft Edge。
+2. 下载两个文件到临时目录，运行 `shasum -a 256 -c
+   ggb-plugins-dsh-0.8.1.tgz.sha256`；校验不通过就停止，不安装。
+3. 确认 profile：桌面应用使用 `desktop`（目录
+   `~/.dsh/profiles/desktop`）；若设置了 `DSH_PROFILE`，以它为准。
+4. 安装：`dsh plugin --profile desktop add <tgz 绝对路径>`。
+5. 解析实际安装目录：
+
+   ```sh
+   node -p "require.resolve('@local/ggb-plugins-dsh/package.json', {paths: ['$HOME/.dsh/profiles/desktop']})"
+   ```
+
+   取该路径所在目录作为 `<installed-plugin>`。
+6. 在安装副本里准备依赖与 runtime：
+   `node <installed-plugin>/scripts/setup-plugin.mjs`。
+7. 就绪检查：`node <installed-plugin>/dist/src/cli.js doctor`，必须返回
+   `ok: true`。
+8. 告诉用户**重启 DSH 桌面应用**；bundle 在启动时加载，重启前仍是旧版本。
+
+### 给 DSH 的约束
+
+- 只从本仓库的 Release 下载，不装第三方镜像；不跳过校验和。
+- 不改动用户已有的交付文件和工作区；安装失败时保留原始错误，不重复试错。
+- 桌面 profile 的插件由桌面应用管理；不要用
+  `--from-default-profile` 初始化它。
+- 校验和只证明文件完整，不代表公共目录审核通过。
+
 ## 安装到独立 headless profile
 
 下载同版本的 `ggb-plugins-dsh-<version>.tgz` 和 `.tgz.sha256`，先运行 `shasum -a 256 -c <file>.tgz.sha256`。需要本机 DSH、Node.js 22+、pnpm 11、curl 和 unzip，以及一个 Chromium 内核浏览器（Google Chrome 或 Microsoft Edge）；安装器直接使用该浏览器，不再下载 Chromium。

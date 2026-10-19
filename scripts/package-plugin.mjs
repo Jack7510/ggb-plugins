@@ -60,6 +60,7 @@ try {
       const link = path === guide ? 'INSTALL.md' :
         'https://github.com/Jack7510/ggb-plugins/blob/main/' + path;
       text = text.replaceAll('](' + path + ')', '](' + link + ')');
+      text = text.replaceAll('](' + path + '#', '](' + link + '#');
     }
     await writeFile(join(plugin, file), text);
   }

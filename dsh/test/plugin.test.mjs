@@ -152,6 +152,6 @@ test('the Codex plugin remains the shipped client contract', async () => {
   const marketplace = JSON.parse(await readFile(join(pluginRoot, '.agents/plugins/marketplace.json'), 'utf8'));
   assert.ok(marketplace.plugins.some(plugin => plugin.name === 'ggb-plugins'));
   const dshManifest = JSON.parse(await readFile(join(dshRoot, 'package.json'), 'utf8'));
-  assert.ok(dshManifest.name.startsWith('@local/'));
+  assert.equal(dshManifest.name, 'ggb-plugins-dsh');
   assert.equal(dshManifest.dsh.bundle.patch, './cordis.patch.yml');
 });

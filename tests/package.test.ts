@@ -26,7 +26,7 @@ test('DSH tarball carries its own skill, references and the identical compiled r
     const bundle = join(directory, 'package');
     const pkg = JSON.parse(await readFile(join(bundle, 'package.json'), 'utf8'));
     const shared = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
-    assert.equal(pkg.name, '@local/ggb-plugins-dsh');
+    assert.equal(pkg.name, 'ggb-plugins-dsh');
     assert.equal(pkg.version, shared.version);
     assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml');
     assert.deepEqual(pkg.dependencies, shared.dependencies);
@@ -155,7 +155,8 @@ test('both packages ship English and Chinese readmes and a Chinese guide',
         for (const text of [english, chinese]) {
           assert(text.includes('](INSTALL.md)'));
           for (const match of text.matchAll(/\]\(([^)]+)\)/g)) {
-            const link = match[1];
+            // Anchors address a section, not another packaged file.
+            const link = match[1]?.split('#')[0];
             assert(link);
             if (!link.includes('://')) {
               assert((await stat(join(plugin, link))).isFile());

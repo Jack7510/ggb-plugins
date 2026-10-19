@@ -1,9 +1,9 @@
 {
-  "name": "@local/ggb-plugins-dsh",
-  "version": "0.8.0",
-  "private": true,
+  "name": "ggb-plugins-dsh",
+  "version": "0.8.2",
+  "private": false,
   "type": "module",
-  "description": "Self-contained GeoGebra skill and native Algebra/CAS delivery runtime for DeepSeek Harness.",
+  "description": "GeoGebra construction Skill and verified delivery CLI for DeepSeek Harness",
   "exports": {
     ".": "./index.js",
     "./package.json": "./package.json"
@@ -35,6 +35,20 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">=22"
-  }
+    "node": ">=22",
+    "dsh": ">=0.2.1-rc.2"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepeek-harness",
+    "geogebra",
+    "geometry",
+    "education"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jack7510/ggb-plugins.git",
+    "directory": "dsh"
+  },
+  "homepage": "https://github.com/Jack7510/ggb-plugins/tree/main/dsh"
 }

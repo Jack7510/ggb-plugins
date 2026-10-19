@@ -4,11 +4,11 @@
 
 ## 安装 ZIP
 
-从 [0.8.0 Release](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.0) 下载 `ggb-plugins-0.8.0.zip` 和 `.zip.sha256`。不要将 GitHub 自动生成的 Source code ZIP 当作编译插件包。
+从 [0.8.2 Release](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.2) 下载 `ggb-plugins-0.8.2.zip` 和 `.zip.sha256`。不要将 GitHub 自动生成的 Source code ZIP 当作编译插件包。
 
 ```sh
-shasum -a 256 -c ggb-plugins-0.8.0.zip.sha256
-unzip ggb-plugins-0.8.0.zip
+shasum -a 256 -c ggb-plugins-0.8.2.zip.sha256
+unzip ggb-plugins-0.8.2.zip
 ```
 
 1. 校验下载 ZIP 的 SHA-256，并解压。下文 `<plugin>` 指解压后的 `ggb-plugins` 绝对路径。
@@ -26,7 +26,7 @@ codex plugin list --marketplace ggb-plugins-local --json
 node <installed-plugin>/scripts/setup-plugin.mjs
 ```
 
-ZIP 包含编译后的 CLI。安装器通过 frozen lockfile 安装生产依赖，下载匹配的 Chromium 和校验后的 GeoGebra，再运行 doctor。已有 runtime 不覆盖；版本不匹配时先移走旧目录。可将官方 runtime ZIP 的绝对路径作为安装器参数，以避免重复下载。GeoGebra 和 Chromium 不随插件再分发。
+ZIP 包含编译后的 CLI。安装器通过 frozen lockfile 安装生产依赖，使用本机 Chrome／Edge，并准备摘要校验后的 GeoGebra，再运行 doctor。已有 runtime 不覆盖；版本不匹配时先确认目录用途再处理。可将官方 runtime ZIP 的绝对路径作为安装器参数，以避免重复下载。GeoGebra 和浏览器不随插件再分发。
 
 4. 在新的 Codex 会话中提出文字题。无需手动提供 SKILL.md 路径；已启用插件的 `ggb-construction` Skill 应自动进入候选列表。可在 Skill 列表核对，或显式使用客户端显示的技能名称。
 
@@ -35,13 +35,13 @@ ZIP 包含编译后的 CLI。安装器通过 frozen lockfile 安装生产依赖�
 ## 从 GitHub 安装
 
 ```sh
-codex plugin marketplace add Jack7510/ggb-plugins --ref v0.8.0
+codex plugin marketplace add Jack7510/ggb-plugins --ref v0.8.2
 codex plugin add ggb-plugins@ggb-plugins-local --json
 ```
 
 Git 版本包含源码。只要存在 src/cli.ts，setup-plugin 就安装构建依赖并重新编译，即使 dist 已存在或不完整。只有无源码的 ZIP 发布包安装生产依赖并使用已有编译产物。已配置同名本地 marketplace 时，先移除该 marketplace 再添加 GitHub 来源，避免来源冲突。运行位置不依赖原仓库。发布新版本时同步更新 plugin.json 和 package.json 的 version。更新后重新获取 marketplace、安装副本及依赖；不要覆盖正在使用的交付目录。
 
-固定标签用于安装已发布版本。需要跟随开发分支时，可将 `--ref v0.8.0` 改为 `--ref main`。固定标签不会通过 marketplace upgrade 自动切换版本；升级时重新注册目标标签。
+固定标签用于安装已发布版本。需要跟随开发分支时，可将 `--ref v0.8.2` 改为 `--ref main`。固定标签不会通过 marketplace upgrade 自动切换版本；升级时重新注册目标标签。
 
 ## 其他本地工具
 
@@ -64,8 +64,8 @@ codex plugin remove ggb-plugins@ggb-plugins-local
 codex plugin marketplace remove ggb-plugins-local
 ```
 
-GeoGebra 的独立许可和归属见插件根目录 `THIRD_PARTY_NOTICES.md`。有限交互样本不能证明一般数学命题；图片由宿主读取并提取题干；外部 GGB 续题、三维、完整命令覆盖及通用证明不在已验收范围。
+GeoGebra 的独立许可和归属见插件根目录 `THIRD_PARTY_NOTICES.md`。有限交互样本不能证明一般数学命题；图片由宿主读取并提取题干。已有 GGB 支持声明基线后的显示属性编辑与受控续构；三维、删除／重命名、完整命令覆盖及通用证明不在支持承诺内。
 
 ## DeepSeek Harness
 
-Codex 使用上述 ZIP；DSH 使用同版本 `ggb-plugins-dsh-0.8.0.tgz`。两包共用 Skill、编译 CLI 和核验管线，分别注册宿主插件。DSH 包独立携带资源，不依赖 Codex 安装缓存。安装到独立 headless profile 的步骤见 [DSH 安装说明](https://github.com/Jack7510/ggb-plugins/blob/v0.8.0/dsh/README.md)，职责与验收边界见 [双生态兼容设计](https://github.com/Jack7510/ggb-plugins/blob/v0.8.0/docs/dual-ecosystem.md)。
+Codex 使用上述 ZIP；DSH 使用同版本 `ggb-plugins-dsh-0.8.2.tgz`。两包共用 Skill、编译 CLI 和核验管线，分别注册宿主插件。DSH 包独立携带资源，不依赖 Codex 安装缓存。安装到独立 headless profile 的步骤见 [DSH 安装说明](https://github.com/Jack7510/ggb-plugins/blob/v0.8.2/dsh/README.md)，职责与验收边界见 [双生态兼容设计](https://github.com/Jack7510/ggb-plugins/blob/v0.8.2/docs/dual-ecosystem.md)。

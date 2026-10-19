@@ -12,18 +12,25 @@
     #applet { margin: 0 24px; width: 1000px; background: white; }
     footer { padding: 12px 24px; font-size: 13px; }
     a { color: #3157a5; }
+    body.preview { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
+    .preview header { padding: 6px 12px; max-height: 20vh; overflow: auto; }
+    .preview h1 { font-size: 16px; max-width: none; }
+    .preview #workspace { min-width: 0; min-height: 0; overflow: hidden; }
+    .preview #applet { margin: 0; }
+    .preview footer { padding: 4px 12px; font-size: 12px; }
   </style>
   <script src="/runtime/GeoGebra/deployggb.js"></script>
 </head>
 <body>
   <header><h1>GeoGebra Construction</h1><p id="status">Loading…</p></header>
-  <div id="applet"></div>
+  <main id="workspace"><div id="applet"></div></main>
   <footer><a href="https://www.geogebra.org/" target="_blank" rel="noreferrer">Made with GeoGebra®</a> · <span id="closing">Close this browser window to end the preview.</span><button id="finish" hidden>End preview</button></footer>
   <script>
     /**
-     * @fileoverview Loads one GGB and owns localized, text-only viewer titles.
+     * @fileoverview Loads one GGB, localizes titles, and sizes teaching previews.
      */
     const material = window.previewMaterial;
+    document.body.classList.toggle('preview', Boolean(material));
     const translations = {
       en: {
         title: 'GeoGebra Construction',
@@ -78,19 +85,76 @@
         document.getElementById('status').textContent = messages.closed;
       };
     }
+    /** Captures the delivered graphics range before opening the algebra pane. */
+    function graphicsRange(api) {
+      const view = JSON.parse(api.getViewProperties(1));
+      return {
+        x: view.xMin + view.width * view.invXscale / 2,
+        y: view.yMin + view.height * view.invYscale / 2,
+        width: view.width * view.invXscale,
+        height: view.height * view.invYscale,
+      };
+    }
+    /** Fits the delivered range without stretching circles or changing objects. */
+    function fitGraphics(api, range) {
+      const view = JSON.parse(api.getViewProperties(1));
+      if (view.width <= 0 || view.height <= 0) return;
+      const unit = Math.max(range.width / view.width,
+        range.height / view.height);
+      const dx = unit * view.width / 2;
+      const dy = unit * view.height / 2;
+      api.setCoordSystem(range.x - dx, range.x + dx,
+        range.y - dy, range.y + dy);
+    }
+    /** Owns display sizing; deployment must not autoscale this container again. */
+    function fitPreview(api, range) {
+      const container = document.getElementById('workspace');
+      let width = 0;
+      let height = 0;
+      let frame = 0;
+      const resize = () => {
+        const nextWidth = Math.max(1, Math.floor(container.clientWidth));
+        const nextHeight = Math.max(1, Math.floor(container.clientHeight));
+        if (width === nextWidth && height === nextHeight) return;
+        width = nextWidth;
+        height = nextHeight;
+        api.setSize(width, height);
+        cancelAnimationFrame(frame);
+        if (range) frame = requestAnimationFrame(() => fitGraphics(api, range));
+      };
+      resize();
+      const observer = new ResizeObserver(resize);
+      observer.observe(container);
+      window.addEventListener('pagehide', () => {
+        observer.disconnect();
+        cancelAnimationFrame(frame);
+      }, { once: true });
+    }
     window.appletReady = new Promise(resolve => {
+      const container = document.getElementById('workspace');
       const applet = new GGBApplet({
         ...(material ? { ggbBase64: material.base64 } : {}),
-        appName: 'classic', id: 'ggb', width: 1000, height: 700,
+        appName: 'classic', id: 'ggb',
+        width: material ? Math.max(1, container.clientWidth) : 1000,
+        height: material ? Math.max(1, container.clientHeight) : 700,
         language: document.documentElement.lang.startsWith('zh') ? 'zh' : 'en',
-        perspective: 'G', showToolBar: false, showMenuBar: false,
+        perspective: 'G', showToolBar: Boolean(material), showMenuBar: false,
         showAlgebraInput: false, showZoomButtons: true,
+        preventFocus: Boolean(material),
+        disableAutoScale: Boolean(material),
         enableLabelDrags: false, enableShiftDragZoom: true,
         disableJavaScript: true, useBrowserForJS: true,
         randomize: false, errorDialogsActive: false,
-        appletOnLoad: api => {
+        appletOnLoad: async api => {
           window.ggb = api;
-          if (material?.display === 'algebra') api.setPerspective('A');
+          if (material) {
+            const range = material.display === 'algebra' ? null :
+              graphicsRange(api);
+            api.setPerspective(material.display === 'algebra' ? 'A' : 'AG');
+            fitPreview(api, range);
+            await new Promise(done => requestAnimationFrame(() =>
+              requestAnimationFrame(done)));
+          }
           setViewerLocale(document.documentElement.lang, material?.display);
           resolve(api);
           if (material) fetch('/preview-ready', { method: 'POST' }).catch(() => {

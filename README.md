@@ -33,6 +33,10 @@ copy:
 - Codex: [installation and upgrade guide](codex/README.md), in Chinese.
 - DSH: [independent headless profile guide](dsh/README.md), in Chinese.
 
+The DSH bundle is also on npm: `dsh plugin --profile desktop add ggb-plugins-dsh@0.8.2`.
+
+Desktop users can paste [one install message](dsh/README.md#用一句对话安装桌面应用) into the DSH chat instead of running the commands themselves.
+
 The two clients install independently and share one execution and verification pipeline. Both
 guides end with runtime preparation (`setup-plugin`, which also reports the browser it will use)
 and a readiness check (`doctor`).
@@ -119,7 +123,7 @@ commands, the working rules for coding agents, and the release process live in
 - `docs/` — [requirements and design](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md),
   [change record](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md), and
   cross-client validation records. Historical records are indexed in the
-  [stage archive](docs/archive/README.md).
+  [stage archive](https://github.com/Jack7510/ggb-plugins/blob/main/docs/archive/README.md).
 
 ## Scope and limits
 
