@@ -4,6 +4,8 @@
 
 ## 未发布
 
+- Applet 原生界面固定为英文，代数区显示英文命令名；预览页面继续按 locale 显示状态和按钮，题目与 Text 内容保留原语言。数学核验与交付门禁不变。
+
 - DSH bundle 发布为 npm 包 `ggb-plugins-dsh`（0.8.2），安装命令改为 `dsh plugin --profile desktop add ggb-plugins-dsh@0.8.2`；新增 `docs/publish-npm.md` 记录构建、暂存、2FA、占位包与常见错误。
 
 - 最终 preview 默认提供原生工具栏与代数窗口，方便教学展示变量；展示页使用剩余浏览器视口并响应窗口尺寸变化。自动核验页维持原有尺寸和视图基准，正式 GGB 不回写。新增图形／代数视图、窗口缩放及事实保持回归。

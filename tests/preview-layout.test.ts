@@ -18,6 +18,12 @@ async function layoutRequest(
   if (display === 'graphics') {
     const input = JSON.parse(await readFile(join(root,
       'examples/v2-cases/slider-polygon.json'), 'utf8'));
+    input.prompt += '，保留中文说明';
+    input.plan.program.push({ id: 'msg', op: 'native', mode: 'algebra',
+      source: 'msg=Text("中文说明",(-2,4))' });
+    input.plan.requirements.push({ id: 'text', source: '保留中文说明',
+      checks: [{ kind: 'type', subjects: ['msg'], objectType: 'text',
+        scope: 'initial' }] });
     return parseRequest({ ...input, outputDir });
   }
   return parseRequest({
@@ -82,6 +88,23 @@ async function assertCircleInView(page: Page): Promise<void> {
   });
 }
 
+/** Native commands stay English without translating page or object text. */
+async function assertPreviewLanguage(page: Page, request: Request): Promise<void> {
+  assert.equal(await page.locator('html').getAttribute('lang'), request.locale);
+  assert.equal(await page.locator('h1').textContent(), request.prompt);
+  const chinese = request.locale === 'zh-CN';
+  assert.equal(await page.locator('#finish').textContent(),
+    chinese ? '结束预览' : 'End preview');
+  if (!chinese) return;
+  const algebra = page.locator('.algebraPanel');
+  await algebra.waitFor({ state: 'visible' });
+  const text = await algebra.innerText();
+  assert.match(text, /中文说明/);
+  // Circles can display equations; query the current GUI language explicitly.
+  assert.match(await page.evaluate(
+    () => window.ggb.getCommandString('circ', true)), /Circle/);
+}
+
 /** Publishes only through the normal report and reload verification path. */
 async function checkTeachingPreview(
   request: Request, evidence: string,
@@ -99,6 +122,7 @@ async function checkTeachingPreview(
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(material.url);
     await material.loaded;
+    await assertPreviewLanguage(page, request);
     for (const size of [{ width: 1280, height: 900 },
       { width: 820, height: 680 }, { width: 1920, height: 1080 }]) {
       await page.setViewportSize(size);
