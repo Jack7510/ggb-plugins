@@ -134,7 +134,53 @@ Web 宿主使用公开子路径，不安装到用户 desktop profile，也不使
 宿主执行使用 `ggb-plugins-dsh/executor`，参数为 `--request <json>`、`--context <json>` 和
 `--package-integrity <发行包 SHA-256>`。`loadInstallation().executor` 指向此入口，`cli` 指向桌面 CLI。
 上下文必须由认证宿主生成。执行器不接受模型指定的输出路径或基线身份，不调用 Provider，不自动重试。
-成功与可分类的领域拒绝返回退出码 0、协议 2 envelope 和回执；意外执行错误以非零退出并写 stderr。
+成功与可分类的领域拒绝返回退出码 0、执行器协议 3 响应；意外执行错误以非零退出并写 stderr。
 每份回执包含宿主 buildId、安装身份及按 kind 声明的产物相对路径、字节数和摘要。
 宿主必须在进程退出确认后校验这些事实，调用公开的 `delivery-contract.validateHostDelivery`，
 保留原始报告与 manifest 字节，再进行原子提交。不得把文件存在或 SDK 初始化成功作为交付依据。
+
+
+### 受限参考与失败反馈
+
+服务端仍注册三个工具。`ggb_inspect({reference: topic})` 通过认证宿主读取当前
+安装包的固定主题：`request`、`program`、`verification`、`interactions`、`patterns`、
+`naming`。省略 `reference` 时仍检查宿主基线。接口不接受文件路径、URL 或任意章节。
+每次返回一个完整主题，上限为 24 KiB。模型不能读取宿主文件或其他 run。
+
+宿主在本次构建目录内提取 CLI 错误、`run.json` 和 `verification.json` 中的失败事实，
+脱敏后返回失败阶段、对象及检查证据。诊断信息不构成成功回执，不改变交付与清理门禁。
+
+
+### 三操作公开执行契约与额度
+
+宿主统一调用 `ggb-plugins-dsh/executor --operation check|inspect|build`，并提供
+`--request`、`--context`、`--package-integrity`。三操作均返回执行器协议 3，
+由 `ggb-plugins-dsh/execution-schemas` 的 `parseExecutionResult()` 校验。
+响应绑定 operation、contextSha256 和 packageIntegrity；宿主必须同时核对进程退出和这些绑定。
+桌面 CLI 继续使用 envelope 1；服务端不接受旧 CLI 或执行器 envelope 2 的回退。
+当前固定组合为工具协议 2、执行上下文 2、构建回执 2；API 内部通道由宿主固定为 5。
+
+| 操作 | 响应契约 | 浏览器与额度 |
+| --- | --- | --- |
+| check | 完整 structural 结果；与桌面 CLI 共享 checkRequest | 不启动浏览器，不消耗 build 次数 |
+| inspect | 完整 InspectData，绑定宿主基线摘要；投影由插件 projectInspect 提供 | 读取宿主基线，可能启动浏览器，不消耗 build 次数 |
+| build | 原构建回执，加明确 phase | 仅安全退出且绑定正确的 preflight 拒绝可退款；进入 execution 后不退款 |
+
+build 的 preflight 在调用 build 和配置浏览器之前完成。只有该分支能生成 preflight 拒绝证明。
+执行阶段中的 invalid_input、进程异常、超时、取消、输出超限或缺少清理确认均不能作为退款依据。
+check 和 inspect 的响应 schema 与 inspect 投影属于插件；宿主不解析桌面 CLI 私有形状。
+manifest 的文件名、runtime 和文件摘要语义由公开 validateHostMaterial 校验，宿主提供实际测量值。
+
+
+### 报告引用与可选预览
+
+成功回执的 `verification` 只包含 `reportSha256`、`reportBytes` 和有界 `summary`。
+完整报告单独作为 verification 产物交付。宿主必须核对原始报告字节摘要、长度及公开摘要投影。
+回执 schema 1 不再用于新的完成提交；不得把旧的完整报告字段当成 schema 2。
+
+GGB 上限为 6 MiB，preview 为 3 MiB，报告和 manifest 各为 1 MiB。
+`preview.png` 可以缺失；存在时必须是上限内的普通文件。损坏的预览不能按缺失处理。
+插件在执行前后检查宿主基线，宿主在接受交付前再次检查。
+
+开发 TGZ 的 `source/` 保存精确源码与构建输入。`source/dependencies.lock` 对应源码仓库
+`pnpm-lock.yaml`；npm 不会原样发行该文件名。宿主供应锁固定快照内每个文件的摘要。

@@ -460,7 +460,8 @@ function validateInteractions(p: Fields, base: boolean): void {
       finite(sample.dx, 120);
       finite(sample.dy, 120);
       assert(Math.hypot(sample.dx, sample.dy) >= 20,
-        'Drag sample is too small');
+        'Drag sample is too small: dx/dy are screen pixels; '
+        + 'Math.hypot(dx,dy) must be >= 20, each absolute component <= 120');
     }
     const key = 'parameter' in sample ? `${id}:${sample.value}` : id;
     assert(!points.has(key), 'Duplicate interaction sample');

@@ -5,11 +5,13 @@ import type {Snapshot} from './browser.js';
 import type {Request} from './schema.js';
 import {ToolError, parseRequest} from './schema.js';
 import {requireSampleCoverage} from './facts.js';
-import {compareSnapshots, equivalent, verify, type Verification} from './verify.js';
+import {compareSnapshots, equivalent, verify, type Verification}
+  from './verify.js';
 type Interaction = Request['plan']['interactions'][number];
 function requirePassed(result: Verification): void {
   if (result.status !== 'passed') {
-    throw new ToolError('verification_unverified', 'Required checks did not pass');
+    throw new ToolError('verification_unverified',
+      'Required checks did not pass');
   }
 }
 export type SampleEvidence = Interaction & {
@@ -30,10 +32,14 @@ export interface DeliveryEvidence {
   };
 }
 
-function validatePhase(request: Request, input: any, phase: 'initial' | 'sampled') {
-  assert(input?.status === 'passed' && Array.isArray(input.objects) && input.objects.length > 0, 'Missing or failed verification evidence');
-  const actual = verify(request, input.objects as Snapshot, phase, input.observations); requirePassed(actual);
-  assert(equivalent(actual.results, input.results), 'Verification results do not match their observations');
+function validatePhase(request: Request, input: Verification,
+  phase: 'initial' | 'sampled'): void {
+  assert(input?.status === 'passed' && Array.isArray(input.objects) &&
+    input.objects.length > 0, 'Missing or failed verification evidence');
+  const actual = verify(request, input.objects, phase, input.observations);
+  requirePassed(actual);
+  assert(equivalent(actual.results, input.results),
+    'Verification results do not match their observations');
 }
 
 /** Re-derives completion from evidence, both at commit and preview. */
@@ -104,7 +110,8 @@ function validateRoundTrips(request: Request, samples: SampleEvidence[]): void {
       continue;
     }
     const before = sample.before.find(fact => fact.name === input.parameter);
-    assert(before && sample.roundTrip, 'Missing parameter round-trip evidence; rebuild');
+    assert(before && sample.roundTrip,
+      'Missing parameter round-trip evidence; rebuild');
     assert(equivalent(sample.roundTrip.value, before.value),
       'Parameter restore value changed');
     validatePhase(request, sample.roundTrip.after, 'initial');
@@ -129,4 +136,38 @@ export function validateHostDelivery(input: unknown, report: unknown,
     .update(JSON.stringify(request, null, 2) + '\n').digest('hex');
   assert.equal(m.requestSha256, requestDigest, 'Request evidence changed');
   validateDeliveryEvidence(request, v, m.objects as Snapshot);
+}
+
+
+/** Validate manifest-owned material facts against host-measured bytes.
+ * @param manifest Stored plugin manifest, treated as untrusted input.
+ */
+export function validateHostMaterial(manifest: unknown, facts: {
+  file: string; runtimeVersion: string; sha256: string;
+}): void {
+  const value = manifest as {file?: unknown; runtimeVersion?: unknown;
+    sha256?: unknown};
+  assert.equal(value.file, facts.file, 'Manifest file mismatch');
+  assert.equal(value.runtimeVersion, facts.runtimeVersion,
+    'Runtime version mismatch');
+  assert.equal(value.sha256, facts.sha256, 'Artifact digest mismatch');
+}
+
+/** Bounded display facts; the complete report remains a separate artifact. */
+export function summarizeHostVerification(input: unknown): object {
+  // Called after validateHostDelivery has checked all evidence phases.
+  const report = input as DeliveryEvidence;
+  const phase = (input: unknown) => {
+    const value = input as {status: string; results: {status: string}[]};
+    const results = value.results;
+    return {status: value.status, results: results.length,
+      passed: results.filter(item => item.status === 'passed').length,
+      failed: results.filter(item => item.status === 'failed').length,
+      unverified: results.filter(item => item.status === 'unverified').length};
+  };
+  const interaction = report.interaction;
+  return {construction: phase(report.construction),
+    reload: phase(report.reload),
+    interaction: {status: interaction.status,
+      samples: interaction.samples.length}};
 }

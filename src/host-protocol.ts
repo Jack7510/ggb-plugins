@@ -1,17 +1,20 @@
-/** @fileoverview Pure, versioned contracts for the installed DSH host boundary. */
+/** @fileoverview Versioned contracts for the installed DSH host boundary. */
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { isAbsolute } from 'node:path';
 
 export type Json = null | boolean | number | string | Json[] |
     {[key: string]: Json};
 export const HOST_PROTOCOL_VERSION = 2;
-export const RECEIPT_SCHEMA_VERSION = 1;
+export const RECEIPT_SCHEMA_VERSION = 2;
 export const SUPPORTED_DSH_VERSIONS = ['0.2.1-rc.2'] as const;
+export const REFERENCE_TOPICS = ['request', 'program', 'verification',
+  'interactions', 'patterns', 'naming'] as const;
 export const TOOL_NAMES = ['ggb_inspect', 'ggb_check', 'ggb_build'] as const;
 export type ToolName = typeof TOOL_NAMES[number];
 export const LIMITS = Object.freeze({
   requestBytes: 128 * 1024, frameBytes: 256 * 1024,
   stdoutBytes: 1024 * 1024, stderrBytes: 64 * 1024,
+  reportBytes: 1024 * 1024, manifestBytes: 1024 * 1024,
   ggbBytes: 6 * 1024 * 1024, previewBytes: 3 * 1024 * 1024,
 });
 const HEX = /^[a-f0-9]{64}$/u;
@@ -65,7 +68,7 @@ export interface Artifact {
   contentType: string;
 }
 export interface BuildReceipt {
-  receiptSchemaVersion: 1;
+  receiptSchemaVersion: 2;
   runId: string;
   turnId: string;
   epoch: number;
@@ -146,7 +149,7 @@ export function digestJson(value: unknown): string {
   return createHash('sha256').update(canonicalJson(value)).digest('hex');
 }
 
-/** Sign the complete unsigned envelope; callers must never persist the token. */
+/** Sign the complete envelope; callers must never persist the token. */
 export function signRequest(token: string,
     value: Omit<ToolRequest, 'authentication'>): string {
   requireValue(HEX.test(token), 'token');
@@ -154,11 +157,15 @@ export function signRequest(token: string,
       .update(canonicalJson(value)).digest('hex');
 }
 
-/** Keep model arguments separate from host-only paths and execution identity. */
+/** Separate model arguments from host paths and execution identity. */
 function toolArguments(toolName: unknown, input: unknown): void {
   const inspect = toolName === 'ggb_inspect';
-  const args = object(input, inspect ? [] : ['request']);
-  if (inspect) return;
+  const args = object(input, inspect ? ['reference'] : ['request']);
+  if (inspect) {
+    requireValue(args.reference === undefined ||
+      REFERENCE_TOPICS.some(topic => topic === args.reference), 'reference');
+    return;
+  }
   requireValue(args.request !== null && typeof args.request === 'object' &&
       !Array.isArray(args.request), 'request');
   const request = args.request as Record<string, unknown>;
@@ -167,7 +174,7 @@ function toolArguments(toolName: unknown, input: unknown): void {
   requireValue(request.protocolVersion === 2, 'requestProtocolVersion');
 }
 
-/** Parse a complete transport request, including version and argument digest. */
+/** Parse a transport request, including version and argument digest. */
 export function parseToolRequest(input: unknown): ToolRequest {
   const value = object(input, ['protocolVersion', 'requestId', 'toolCallId',
     'runId', 'turnId', 'epoch', 'toolName', 'arguments', 'argumentsDigest',
@@ -188,7 +195,7 @@ export function parseToolRequest(input: unknown): ToolRequest {
   return value as unknown as ToolRequest;
 }
 
-/** Verify authentication after structural parsing; policy checks remain host-owned. */
+/** Authenticate after structural parsing; the host owns policy checks. */
 export function authenticateRequest(token: string, input: unknown): boolean {
   const parsed = parseToolRequest(input);
   const {authentication, ...unsigned} = parsed;
@@ -212,7 +219,7 @@ export function parseToolResponse(input: unknown): ToolResponse {
   return value as unknown as ToolResponse;
 }
 
-/** Parse host-supplied build identity and resource bounds, never model paths. */
+/** Parse host build identity and resource bounds, never model paths. */
 export function parseExecutionContext(input: unknown): ExecutionContext {
   const value = object(input, ['protocolVersion', 'runId', 'turnId', 'epoch',
     'requestId', 'toolCallId', 'buildId', 'domainRequestDigest', 'baseRef',
@@ -238,7 +245,8 @@ function runtimeIdentity(input: unknown): void {
   'runtimeIdentity');
 }
 function artifact(input: unknown): Artifact {
-  const value = object(input, ['kind', 'ref', 'bytes', 'sha256', 'contentType']);
+  const value = object(input,
+    ['kind', 'ref', 'bytes', 'sha256', 'contentType']);
   requireValue(['result_ggb', 'verification', 'manifest', 'preview']
       .includes(String(value.kind)), 'kind');
   requireValue(text(value.ref) && !value.ref.includes('\\') &&
@@ -247,17 +255,21 @@ function artifact(input: unknown): Artifact {
         part !== '' && part !== '.' && part !== '..'), 'ref');
   requireValue(Number.isSafeInteger(value.bytes) &&
       Number(value.bytes) > 0, 'bytes');
-  requireValue(matches(value.sha256, HEX) && text(value.contentType), 'artifact');
+  const limit = value.kind === 'result_ggb' ? LIMITS.ggbBytes :
+    value.kind === 'preview' ? LIMITS.previewBytes : LIMITS.reportBytes;
+  requireValue(Number(value.bytes) <= limit, 'artifact_size');
+  requireValue(matches(value.sha256, HEX) && text(value.contentType),
+    'artifact');
   return value as unknown as Artifact;
 }
 
-/** Validate the receipt envelope; geometric report semantics stay plugin-owned. */
+/** Validate receipts; the plugin owns geometric report semantics. */
 export function parseBuildReceipt(input: unknown): BuildReceipt {
   const value = object(input, ['receiptSchemaVersion', 'runId', 'turnId',
     'epoch', 'requestId', 'toolCallId', 'buildId', 'domainRequestDigest',
     'baseSha256', 'pluginName', 'pluginVersion', 'packageIntegrity',
     'runtimeIdentity', 'status', 'issues', 'verification', 'artifacts']);
-  requireValue(value.receiptSchemaVersion === 1, 'receiptSchemaVersion');
+  requireValue(value.receiptSchemaVersion === 2, 'receiptSchemaVersion');
   identity(value);
   requireValue(matches(value.buildId, UUID), 'buildId');
   requireValue(matches(value.domainRequestDigest, HEX) &&
@@ -277,18 +289,32 @@ export function parseBuildReceipt(input: unknown): BuildReceipt {
   const artifacts = (value.artifacts as unknown[]).map(artifact);
   const kinds = new Set(artifacts.map(item => item.kind));
   requireValue(kinds.size === artifacts.length, 'duplicate_kind');
-  if (value.status === 'succeeded') {
-    requireValue((value.issues as unknown[]).length === 0 &&
-        value.verification !== null && value.verification !== undefined &&
-        ['result_ggb', 'verification', 'manifest'].every(kind =>
-          [...kinds].some(value => value === kind)), 'success');
-  } else {
-    requireValue(value.status === 'rejected' && artifacts.length === 0 &&
-        (value.issues as unknown[]).length > 0, 'rejection');
-  }
+  validateReceiptStatus(value, artifacts);
   requireValue(Buffer.byteLength(canonicalJson(value)) <=
       LIMITS.stdoutBytes, 'receipt_size');
   return value as unknown as BuildReceipt;
+}
+
+/** Match the report reference to its artifact without copying content. */
+function validateReceiptStatus(value: Record<string, unknown>,
+  artifacts: Artifact[]): void {
+  if (value.status !== 'succeeded') {
+    requireValue(value.status === 'rejected' && artifacts.length === 0 &&
+      (value.issues as unknown[]).length > 0 && value.verification === null,
+    'rejection');
+    return;
+  }
+  const report = object(value.verification,
+    ['reportSha256', 'reportBytes', 'summary']);
+  const fact = artifacts.find(item => item.kind === 'verification');
+  requireValue(fact !== undefined && report.reportSha256 === fact.sha256 &&
+    report.reportBytes === fact.bytes && report.summary !== undefined &&
+    Buffer.byteLength(canonicalJson(report.summary)) <= 2048,
+  'report_reference');
+  const kinds = new Set(artifacts.map(item => item.kind));
+  requireValue((value.issues as unknown[]).length === 0 &&
+    ['result_ggb', 'verification', 'manifest'].every(kind =>
+      [...kinds].some(value => value === kind)), 'success');
 }
 
 /** Exact supported combination until additional SDK releases are validated. */

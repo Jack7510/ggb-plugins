@@ -7,7 +7,8 @@
     "outDir": "dist/src"
   },
   "include": [
-    "src/host-protocol.ts"
+    "src/host-protocol.ts",
+    "src/execution-contract.ts"
   ],
   "exclude": [
     "tests"

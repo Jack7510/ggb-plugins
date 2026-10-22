@@ -21,12 +21,13 @@ function request(): ToolRequest {
   return {...unsigned, authentication: signRequest(token, unsigned)};
 }
 function receipt(): BuildReceipt {
-  return {...identity, receiptSchemaVersion: 1, buildId: randomUUID(),
+  return {...identity, receiptSchemaVersion: 2, buildId: randomUUID(),
     domainRequestDigest: digest, baseSha256: null,
     pluginName: 'ggb-plugins-dsh', pluginVersion: '0.8.3',
     packageIntegrity: digest, runtimeIdentity: {geogebraVersion: '5.4',
       geogebraSha256: digest, playwrightVersion: '1.64.1'},
-    status: 'succeeded', issues: [], verification: {status: 'passed'},
+    status: 'succeeded', issues: [], verification: {reportSha256: digest, reportBytes: 10,
+      summary: {status: 'passed'}},
     artifacts: ['result_ggb', 'verification', 'manifest'].map(kind => ({
       kind: kind as 'result_ggb' | 'verification' | 'manifest',
       ref: kind + '.bin', bytes: 10, sha256: digest,
@@ -71,7 +72,7 @@ test('host execution context requires paired base facts and absolute roots', () 
 test('success requires complete unique artifacts and exact receipt version', () => {
   const value = receipt();
   assert.deepEqual(parseBuildReceipt(value), value);
-  for (const patch of [{receiptSchemaVersion: 2}, {verification: null},
+  for (const patch of [{receiptSchemaVersion: 1}, {verification: null},
     {artifacts: value.artifacts.slice(1)},
     {artifacts: [...value.artifacts, value.artifacts[0]]},
     {issues: [{code: 'failed', message: 'failed'}]},
@@ -117,4 +118,23 @@ test('model arguments cannot choose paths or alter the domain version', () => {
   assert.doesNotThrow(() => parseToolRequest({...value,
     toolName: 'ggb_inspect', arguments: args,
     argumentsDigest: digestJson(args)}));
+});
+
+
+test('inspect permits only fixed bundled reference topics', () => {
+  for (const reference of ['patterns', 'interactions', undefined]) {
+    const value = request();
+    value.toolName = 'ggb_inspect';
+    value.arguments = reference === undefined ? {} : {reference};
+    value.argumentsDigest = digestJson(value.arguments);
+    value.authentication = signRequest(token, value);
+    assert.doesNotThrow(() => parseToolRequest(value));
+  }
+  for (const reference of ['/etc/passwd', '../run.json', 'https://example.com']) {
+    const value = request();
+    value.toolName = 'ggb_inspect';
+    value.arguments = {reference};
+    value.argumentsDigest = digestJson(value.arguments);
+    assert.throws(() => parseToolRequest(value), /reference/);
+  }
 });

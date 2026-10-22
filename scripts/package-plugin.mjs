@@ -54,9 +54,21 @@ try {
       await mkdir(join(plugin, 'dsh'), { recursive: true });
       await cp(join(root, 'dsh', file), join(plugin, 'dsh', file));
     }
-    for (const file of ['host-protocol']) {
+    for (const file of ['host-protocol', 'execution-contract']) {
       await cp(join(root, `dist/src/${file}.d.ts`),
         join(plugin, `dist/src/${file}.d.ts`));
+    }
+  }
+  if (target === 'dsh') {
+    // Preserve exact build inputs for dirty development distributions.
+    const inputs = ['src', 'dsh', 'scripts', 'tsconfig.json',
+      'tsconfig.host-protocol.json', 'package.json', 'pnpm-lock.yaml',
+      'runtime.lock.json', 'capabilities.json',
+      'skills/ggb-construction'];
+    for (const input of inputs) {
+      const target = input === 'pnpm-lock.yaml' ? 'dependencies.lock' : input;
+      await cp(join(root, input), join(plugin, 'source', target),
+        {recursive: true});
     }
   }
   await writeFile(join(plugin, 'package.json'), JSON.stringify(metadata, null, 2) + '\n');

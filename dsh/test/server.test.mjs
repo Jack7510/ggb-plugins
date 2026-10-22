@@ -94,14 +94,63 @@ test('model sees native step/check/style shapes and a parser-valid example',
       assert.equal(request.additionalProperties, false);
       assert.equal(plan.program.type, 'array');
       const native = plan.program.items.anyOf[0];
+      assert.deepEqual(native.properties.op, {type: 'string', enum: ['native']});
+      assert.deepEqual(request.properties.protocolVersion,
+        {type: 'integer', enum: [2]});
       assert.deepEqual(native.required, ['id', 'op', 'source', 'mode']);
       assert.equal(native.additionalProperties, false);
       assert.equal(native.properties.step, undefined);
       assert.ok(plan.requirements.items.properties.checks.items.properties.subjects);
       assert.ok(plan.styles.items.properties.properties.properties.lineThickness);
       const body = installation.loadWorkerSkill();
-      const example = JSON.parse(/```json\n([\s\S]*?)\n```/u.exec(body)[1]);
+      const args = JSON.parse(/```json\n([\s\S]*?)\n```/u.exec(body)[1]);
+      assert.deepEqual(Object.keys(args), ['request']);
+      const example = args.request;
       const {parseRequest} = await import(pathToFileURL(
           join(bundle, 'dist/src/schema.js')));
       assert.doesNotThrow(() => parseRequest({...example, outputDir: directory}));
     });
+
+
+test('restricted reference topics read only complete bundled sections', () => {
+  const inspect = server.createTool('ggb_inspect');
+  const topics = inspect.parameters.properties.reference.enum;
+  assert.equal(topics.length, 6);
+  for (const topic of topics) {
+    const result = installation.loadReference(topic);
+    assert.equal(result.topic, topic);
+    assert.ok(result.content.length > 0);
+    assert.ok(Buffer.byteLength(result.content) <= 24 * 1024);
+  }
+  const interactions = installation.loadReference('interactions').content;
+  assert.match(interactions, /像素/);
+  assert.match(interactions, /至少 20/);
+  assert.match(installation.loadReference('patterns').content, /Polygon\(Sequence/);
+  for (const topic of ['../run.json', '/etc/passwd', 'https://example.com', '']) {
+    assert.throws(() => installation.loadReference(topic), /topic_invalid/);
+  }
+});
+
+test('interaction model schema explains units, limits and ordering', () => {
+  const plan = server.createTool('ggb_check').parameters.properties.request
+      .properties.plan.properties;
+  const drag = plan.interactions.items.anyOf[0].properties;
+  assert.equal(drag.dx.minimum, -120);
+  assert.equal(drag.dy.maximum, 120);
+  assert.match(drag.dx.description, /screen pixels/);
+  assert.match(plan.interactions.description, />= 20/);
+  assert.match(plan.interactions.description, /no repeated point/);
+  assert.match(plan.program.description, /dependency before/);
+});
+
+
+test('drag rejection reports pixel units and a usable threshold', async () => {
+  const {parseRequest} = await import(pathToFileURL(
+      join(bundle, 'dist/src/schema.js')));
+  const example = JSON.parse(/```json\n([\s\S]*?)\n```/u.exec(
+      installation.loadWorkerSkill())[1]).request;
+  example.plan.program[0] = {id: 'O', op: 'freePoint', x: 0, y: 0};
+  example.plan.interactions = [{point: 'O', dx: 3, dy: 2}];
+  assert.throws(() => parseRequest({...example, outputDir: directory}),
+      /screen pixels.*>= 20/);
+});

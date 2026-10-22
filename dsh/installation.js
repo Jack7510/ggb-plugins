@@ -3,14 +3,17 @@ import {createHash} from 'node:crypto';
 import {readFileSync, realpathSync, statSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {EXECUTOR_PROTOCOL_VERSION} from '../dist/src/execution-contract.js';
 import {assertDshCompatibility, HOST_PROTOCOL_VERSION,
   RECEIPT_SCHEMA_VERSION, SUPPORTED_DSH_VERSIONS, TOOL_NAMES,
+  REFERENCE_TOPICS,
 } from '../dist/src/host-protocol.js';
 
 /** Resolve only this complete installed bundle; never another client's cache.
  * @returns {{root: string, pluginName: string, pluginVersion: string,
  * serverAdapter: string, serverPatch: string, executor: string, cli: string,
  * schemas: string, workerSkill: string, workerSkillSha256: string,
+ * executorProtocolVersion: number,
  * hostProtocolVersion: number, receiptSchemaVersion: number,
  * requestProtocolVersion: number, supportedDshVersions: readonly string[],
  * modelFacingTools: readonly string[], runtimeIdentity: object}}
@@ -48,6 +51,7 @@ export function loadInstallation() {
         .map(([key, path]) => [key, join(root, path)])),
     workerSkill, workerSkillSha256,
     hostProtocolVersion: HOST_PROTOCOL_VERSION,
+    executorProtocolVersion: EXECUTOR_PROTOCOL_VERSION,
     receiptSchemaVersion: RECEIPT_SCHEMA_VERSION,
     requestProtocolVersion: 2, supportedDshVersions: SUPPORTED_DSH_VERSIONS,
     modelFacingTools: TOOL_NAMES,
@@ -98,4 +102,35 @@ export async function assertRuntimeReady() {
   const browser = chromium.executablePath();
   if (!statSync(browser).isFile()) throw new Error('ggb_chromium_missing');
   return {...installation.runtimeIdentity, browserExecutable: browser};
+}
+
+
+/** Read one fixed topic from this installation; no caller-supplied file path.
+ * @param {string} topic Published reference topic.
+ * @returns {{topic: string, content: string}} Complete bounded reference text.
+ */
+export function loadReference(topic) {
+  if (!REFERENCE_TOPICS.includes(topic)) {
+    throw new Error('ggb_reference_topic_invalid');
+  }
+  const sections = {request: '请求', program: '原生构图程序',
+    verification: '通用核验', interactions: '呈现与交互', naming: '命名规则'};
+  const root = loadInstallation().root;
+  const file = topic === 'patterns' ? 'patterns.md' : 'capabilities.md';
+  const path = join(root, 'skills/ggb-construction/references', file);
+  if (realpathSync(path) !== path || statSync(path).size > 64 * 1024) {
+    throw new Error('ggb_reference_resource_invalid');
+  }
+  let content = readFileSync(path, 'utf8');
+  if (topic !== 'patterns') {
+    const heading = '## ' + sections[topic] + '\n';
+    const start = content.indexOf(heading);
+    if (start < 0) throw new Error('ggb_reference_section_missing');
+    const end = content.indexOf('\n## ', start + heading.length);
+    content = content.slice(start, end < 0 ? undefined : end);
+  }
+  if (Buffer.byteLength(content) > 24 * 1024) {
+    throw new Error('ggb_reference_resource_oversized');
+  }
+  return {topic, content};
 }

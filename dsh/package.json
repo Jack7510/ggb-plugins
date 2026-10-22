@@ -16,7 +16,11 @@
     },
     "./cli": "./dist/src/cli.js",
     "./delivery-contract": "./dist/src/delivery-contract.js",
-    "./executor": "./dsh/executor.js"
+    "./executor": "./dsh/executor.js",
+    "./execution-schemas": {
+      "types": "./dist/src/execution-contract.d.ts",
+      "default": "./dist/src/execution-contract.js"
+    }
   },
   "files": [
     "index.js",
@@ -42,7 +46,8 @@
     "dsh/installation.js",
     "dist/src/*.d.ts",
     "dsh/executor.js",
-    "dsh/request-schema.js"
+    "dsh/request-schema.js",
+    "source"
   ],
   "dsh": {
     "bundle": {

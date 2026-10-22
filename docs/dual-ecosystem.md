@@ -50,8 +50,14 @@ Worker Skill 通过 systemPrompt.section 在启动时直接加载，不依赖 sk
 安装描述只声明 runtime 锁身份，不代表浏览器已经准备或 doctor 已通过；实际发行包摘要由宿主独立计算。
 
 本入口的工具客户端只发送宿主协议 2，不支持旧宿主网关 version 1。没有有效宿主上下文时执行必须失败。
-公开 `ggb-plugins-dsh/executor` 接收宿主上下文，调用现有 build，并输出协议 2 envelope 与回执 1。
+公开 `ggb-plugins-dsh/executor` 接收宿主上下文，调用现有 build，并输出执行器协议 3 响应与回执 1。
 `ggb-plugins-dsh/delivery-contract` 导出纯报告门禁，与 build/preview 共享实现，不启动浏览器。
 桌面 CLI 继续输出 envelope 1。Web 宿主的产物接收、提交、取消和槽位隔离由宿主拥有；默认切换单独实施。
 完整宿主设计及字段定义见 ggb-agent 的 `docs/ggb-dsh-installed-plugin-design.md`；本包的可执行契约
 以 `src/host-protocol.ts` 为准，不在本文复制字段表。
+
+
+服务端 check/inspect/build 统一使用公开 executor 的 operation 参数。
+`./execution-schemas` 发布执行器协议 3、check/inspect 数据校验及有界 inspect 投影。
+构建阶段证明位于执行响应，不改变 receipt 1 的产物证明结构。
+宿主只有验证响应绑定和进程安全退出后，才能使用 preflight 拒绝退还 build 次数。
