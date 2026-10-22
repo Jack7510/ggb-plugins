@@ -1,0 +1,23 @@
+# Restricted sdk-minimal overlay; the desktop bundle remains separate.
+- id: system-prompt
+  config:
+    personaPrefix: ''
+- id: persistent-bash
+  disabled: true
+- id: persistent-pwsh
+  disabled: true
+- id: tool-fs
+  disabled: true
+- id: tool-working-directory
+  disabled: true
+- id: str-replace-editor
+  disabled: true
+- id: session-log-deepseek
+  disabled: true
+- id: plugin-package-inventory-deepseek
+  disabled: true
+- insert:
+    - id: ggb-construct-server
+      name: './server.js'
+      config:
+        sdkVersion: !!js process.env.GGB_DSH_SDK_VERSION

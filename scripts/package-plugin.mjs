@@ -50,6 +50,14 @@ try {
     metadata = { ...metadata, ...dsh, scripts };
     await cp(join(root, 'pnpm-lock.yaml'), join(plugin, 'dependencies.lock'));
     for (const file of ['index.js', 'cordis.patch.yml', 'locale']) await cp(join(root, 'dsh', file), join(plugin, file), { recursive: true });
+    for (const file of ['server.js', 'server.patch.yml', 'installation.js', 'executor.js', 'request-schema.js']) {
+      await mkdir(join(plugin, 'dsh'), { recursive: true });
+      await cp(join(root, 'dsh', file), join(plugin, 'dsh', file));
+    }
+    for (const file of ['host-protocol']) {
+      await cp(join(root, `dist/src/${file}.d.ts`),
+        join(plugin, `dist/src/${file}.d.ts`));
+    }
   }
   await writeFile(join(plugin, 'package.json'), JSON.stringify(metadata, null, 2) + '\n');
   const guide = target === 'codex' ? 'codex/README.md' : 'dsh/README.md';

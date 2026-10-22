@@ -117,3 +117,24 @@ node <installed-plugin>/dist/src/cli.js preview --delivery /absolute/delivery
 本包是本地分发包，不等于已上架 DSH 插件市场。二维命令开放和全部命令验收的区别见包内 references/command-coverage.md。GeoGebra 许可见 THIRD_PARTY_NOTICES.md。
 
 TGZ 中的 `dependencies.lock` 与源码 pnpm-lock.yaml 内容相同。npm 自动排除原名称；安装器先还原锁文件，再用 `--ignore-workspace --frozen-lockfile` 安装本包依赖，避免使用上层 DSH profile 的 workspace。
+
+
+## 受限 SDK Server 加载
+
+Web 宿主使用公开子路径，不安装到用户 desktop profile，也不使用默认 Skill + shell 入口。
+先在独立安装根安装精确 TGZ；无需修改本包文件。宿主通过包解析 `ggb-plugins-dsh/installation`，
+调用 `loadInstallation()` 得到 serverPatch，再传给 `DeepSeekHarness` 的 patches。
+使用独立 dshHome，并把实际 SDK 包版本通过 `GGB_DSH_SDK_VERSION` 注入子进程。
+当前服务端入口只验证了 SDK `0.2.1-rc.2`；详细边界见 [双生态契约](https://github.com/Jack7510/ggb-plugins/blob/main/docs/dual-ecosystem.md#受限-sdk-server-入口)。
+
+加载测试只需已编译安装包；构图前仍须 setup/doctor。工具依赖宿主协议 2 的认证网关，不能直接连接
+旧版 Web 宿主。不得为启动成功而开启通用 shell，也不应把 SDK 初始化通过视为真实构图验收。
+
+
+宿主执行使用 `ggb-plugins-dsh/executor`，参数为 `--request <json>`、`--context <json>` 和
+`--package-integrity <发行包 SHA-256>`。`loadInstallation().executor` 指向此入口，`cli` 指向桌面 CLI。
+上下文必须由认证宿主生成。执行器不接受模型指定的输出路径或基线身份，不调用 Provider，不自动重试。
+成功与可分类的领域拒绝返回退出码 0、协议 2 envelope 和回执；意外执行错误以非零退出并写 stderr。
+每份回执包含宿主 buildId、安装身份及按 kind 声明的产物相对路径、字节数和摘要。
+宿主必须在进程退出确认后校验这些事实，调用公开的 `delivery-contract.validateHostDelivery`，
+保留原始报告与 manifest 字节，再进行原子提交。不得把文件存在或 SDK 初始化成功作为交付依据。

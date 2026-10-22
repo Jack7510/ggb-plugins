@@ -6,7 +6,17 @@
   "description": "GeoGebra construction Skill and verified delivery CLI for DeepSeek Harness",
   "exports": {
     ".": "./index.js",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./server": "./dsh/server.js",
+    "./server.patch.yml": "./dsh/server.patch.yml",
+    "./installation": "./dsh/installation.js",
+    "./schemas": {
+      "types": "./dist/src/host-protocol.d.ts",
+      "default": "./dist/src/host-protocol.js"
+    },
+    "./cli": "./dist/src/cli.js",
+    "./delivery-contract": "./dist/src/delivery-contract.js",
+    "./executor": "./dsh/executor.js"
   },
   "files": [
     "index.js",
@@ -26,7 +36,13 @@
     "dependencies.lock",
     "runtime.lock.json",
     "LICENSE",
-    "THIRD_PARTY_NOTICES.md"
+    "THIRD_PARTY_NOTICES.md",
+    "dsh/server.js",
+    "dsh/server.patch.yml",
+    "dsh/installation.js",
+    "dist/src/*.d.ts",
+    "dsh/executor.js",
+    "dsh/request-schema.js"
   ],
   "dsh": {
     "bundle": {

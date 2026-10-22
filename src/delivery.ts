@@ -11,7 +11,8 @@ import { loadBase } from './inspect.js';
 import {
   diffViolations, editFields, requireEffects, validateTargets,
 } from './edit.js';
-import { requireSampleCoverage } from './facts.js';
+import {validateDeliveryEvidence, type DeliveryEvidence,
+  type SampleEvidence} from './delivery-contract.js';
 import { compile, type BaseFacts } from './compile.js';
 import { verificationNotes } from './tautology.js';
 import {
@@ -53,12 +54,6 @@ interface FactTiming {
 type Engine = Awaited<ReturnType<typeof openBrowser>>;
 type Page = Awaited<ReturnType<Engine['page']>>;
 type Interaction = Request['plan']['interactions'][number];
-type SampleEvidence = Interaction & {
-  method: 'mouse' | 'native_value';
-  before: Snapshot;
-  after: Verification;
-  roundTrip?: { value: number; after: Verification };
-};
 interface DeliveryResult {
   delivery: string; file: string; report: string; warnings?: string[];
 }
@@ -483,16 +478,6 @@ async function buildBase(context: BuildContext): Promise<DeliveryResult> {
     : await commitModify(context, { ...shared, gates: input.gates });
 }
 
-interface DeliveryEvidence {
-  construction: Verification;
-  reload: Verification;
-  interaction: {
-    status: string;
-    samples: SampleEvidence[];
-    zoom: Awaited<ReturnType<typeof zoomEvidence>>;
-  };
-}
-
 /** All modes use the same evidence and atomic directory commit. */
 async function finishDelivery(context: BuildContext, input: {
   bytes: Buffer; objects: Snapshot; page: Page; report: DeliveryEvidence;
@@ -706,88 +691,6 @@ export async function build(
     return await buildBase(context);
   } catch (error) {
     return await failBuild(context, error);
-  }
-}
-
-function validatePhase(request: Request, input: any, phase: 'initial' | 'sampled') {
-  assert(input?.status === 'passed' && Array.isArray(input.objects) && input.objects.length > 0, 'Missing or failed verification evidence');
-  const actual = verify(request, input.objects as Snapshot, phase, input.observations); requirePassed(actual);
-  assert(equivalent(actual.results, input.results), 'Verification results do not match their observations');
-}
-
-/** Re-derives completion from evidence, both at commit and preview. */
-function validateDeliveryEvidence(request: Request,
-  report: DeliveryEvidence, objects: Snapshot): void {
-  requireSampleCoverage(request, report.construction.objects);
-  validatePhase(request, report.construction, 'initial');
-  validatePhase(request, report.reload, 'initial');
-  compareSnapshots(report.construction.objects, objects);
-  compareSnapshots(report.reload.objects, objects);
-  assert(report.interaction?.status === 'passed'
-    && Array.isArray(report.interaction.samples),
-  'Missing or failed interaction evidence');
-  assert.equal(report.interaction.samples.length,
-    request.plan.interactions.length, 'Incomplete interaction coverage');
-  validateSamples(request, report.interaction.samples, report.reload.objects);
-  const z = report.interaction.zoom;
-  if (request.plan.display === 'algebra') {
-    assert(z?.method === 'not_applicable' && 'reason' in z
-      && z.reason === 'algebra-only view', 'Invalid algebra view evidence');
-  } else {
-    assert(z?.method === 'button' && 'before' in z && 'after' in z
-      && Number.isFinite(z.before) && Number.isFinite(z.after)
-      && z.before > 0 && z.after > 0 && z.before !== z.after,
-    'Missing zoom evidence');
-  }
-}
-
-/** Replays interaction decisions from stored facts before loading the file. */
-function validateSamples(
-  request: Request, samples: SampleEvidence[], original: Snapshot,
-): void {
-  for (const [index, sample] of samples.entries()) {
-    const expected = request.plan.interactions[index];
-    assert(expected);
-    const { before: _, after: __, roundTrip, method, ...input } = sample;
-    assert(equivalent(input, expected), 'Interaction sample changed');
-    compareSnapshots(sample.before, original);
-    validatePhase(request, sample.after, 'sampled');
-    const id = 'point' in expected ? expected.point : expected.parameter;
-    const before = sample.before.find(fact => fact.name === id);
-    const after = sample.after.objects.find(fact => fact.name === id);
-    assert(before && after, 'Missing interaction facts');
-    if ('point' in expected) {
-      assert(typeof after.x === 'number' && typeof before.x === 'number' &&
-        typeof after.y === 'number' && typeof before.y === 'number');
-      assert(method === 'mouse' && Math.hypot(after.x - before.x,
-        after.y - before.y) > 1e-8, 'No observed drag movement');
-    } else {
-      assert(method === 'native_value' && before.type === 'numeric' &&
-        before.independent && before.moveable && before.slider &&
-        after.value !== null && before.value !== null &&
-        Math.abs(after.value - before.value) > 1e-8 &&
-        equivalent(after.value, expected.value) &&
-        expected.value >= before.slider.min &&
-        expected.value <= before.slider.max, 'Invalid parameter evidence');
-    }
-  }
-  validateRoundTrips(request, samples);
-}
-
-/** Parameter reports must retain both forward and restored-state evidence. */
-function validateRoundTrips(request: Request, samples: SampleEvidence[]): void {
-  for (const [index, sample] of samples.entries()) {
-    const input = request.plan.interactions[index];
-    if (!input || !('parameter' in input)) {
-      assert(!sample.roundTrip, 'Unexpected round-trip evidence');
-      continue;
-    }
-    const before = sample.before.find(fact => fact.name === input.parameter);
-    assert(before && sample.roundTrip, 'Missing parameter round-trip evidence; rebuild');
-    assert(equivalent(sample.roundTrip.value, before.value),
-      'Parameter restore value changed');
-    validatePhase(request, sample.roundTrip.after, 'initial');
-    compareSnapshots(sample.roundTrip.after.objects, sample.before);
   }
 }
 

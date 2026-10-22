@@ -30,3 +30,28 @@ npm 自动排除 pnpm-lock.yaml。TGZ 因此保存相同内容的 dependencies.l
 根 package.json、plugin.json 和 dsh/package.json 版本一致。两包使用相同请求和交付契约；协议明细只在 Skill 能力契约维护。插件格式兼容、本地安装成功与公共市场审核是不同事实，不因生成归档而宣称市场上架。
 
 规范依据：[OpenAI 插件打包](https://developers.openai.com/plugins/build/plugins)、[DSH bundle 与 profile](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish)。具体宿主与平台的已验收范围从 CHANGES 的记录入口查询。
+
+
+## 受限 SDK Server 入口
+
+DSH 包新增服务端公开入口，与默认桌面 Skill 入口分开：
+
+| 导出 | 契约 |
+| --- | --- |
+| `./server` | Cordis 插件，注入 tools 和 systemPrompt，注册 inspect/check/build 三工具 |
+| `./server.patch.yml` | sdk-minimal 的受限覆盖层，关闭通用 shell、文件及目录工具和原始日志扩展 |
+| `./installation` | 解析当前完整安装包、校验版本和 Worker Skill 摘要，加载 Worker 正文 |
+| `./schemas` | 纯解析函数及 TypeScript 类型：工具协议 2、执行上下文 2、构建回执 1；不加载浏览器 |
+| `./cli` | 现有公开 CLI，仍使用 CLI envelope 1；尚未消费新的执行上下文或产生新构建回执 |
+
+服务端入口当前只接受已验证 SDK `0.2.1-rc.2`。宿主必须从实际 SDK 包读取版本，传入
+`sdkVersion`；server.patch 通过 `GGB_DSH_SDK_VERSION` 接收。此约束不收紧桌面入口的兼容声明。
+Worker Skill 通过 systemPrompt.section 在启动时直接加载，不依赖 skills 服务、模型发现或桌面 CLI 注入。
+安装描述只声明 runtime 锁身份，不代表浏览器已经准备或 doctor 已通过；实际发行包摘要由宿主独立计算。
+
+本入口的工具客户端只发送宿主协议 2，不支持旧宿主网关 version 1。没有有效宿主上下文时执行必须失败。
+公开 `ggb-plugins-dsh/executor` 接收宿主上下文，调用现有 build，并输出协议 2 envelope 与回执 1。
+`ggb-plugins-dsh/delivery-contract` 导出纯报告门禁，与 build/preview 共享实现，不启动浏览器。
+桌面 CLI 继续输出 envelope 1。Web 宿主的产物接收、提交、取消和槽位隔离由宿主拥有；默认切换单独实施。
+完整宿主设计及字段定义见 ggb-agent 的 `docs/ggb-dsh-installed-plugin-design.md`；本包的可执行契约
+以 `src/host-protocol.ts` 为准，不在本文复制字段表。

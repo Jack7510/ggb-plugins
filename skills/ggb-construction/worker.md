@@ -44,6 +44,21 @@ If a required contract is unavailable, report the gap rather than guess it.
   Updates target independent values or movable independent points only.
   Base edits and modifications use no interaction samples or view changes.
 
+## Exact field example
+
+Use the published nested tool schema. A native step uses `id`, `op`,
+`source`, `mode` and optional `outputs`; never invent `step` or `command`
+fields. The native `id` is an actual output label and must be included in
+`outputs` when that array is supplied. `plan.program` is an array. Checks use plural `subjects` and a
+`scope`; `purpose` belongs to a requirement. Styles nest `properties` and
+use hex color strings and `lineThickness`.
+
+This is a valid static circle request shape, not a template for other tasks:
+
+```json
+{"protocolVersion":2,"prompt":"draw a circle","locale":"en","plan":{"program":[{"id":"O","op":"native","source":"O=(0,0)","mode":"algebra","outputs":["O"]},{"id":"c","op":"native","source":"c=Circle(O,3)","mode":"algebra","outputs":["c"]}],"requirements":[{"id":"shape","source":"draw a circle","checks":[{"kind":"type","subjects":["c"],"scope":"initial","objectType":"circle"}]}],"interactions":[]}}
+```
+
 ## Verification
 
 - Keep every required condition linked to its original `source` and checks.
