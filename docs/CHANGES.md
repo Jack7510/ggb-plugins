@@ -4,6 +4,8 @@
 
 ## 未发布
 
+- Codex 增加安装引导 Skill 和 onboardingSkill 声明，仅随 Codex 封装交付；安装说明区分本地 0.8.3 包、远端真实标签和 DSH npm 版本，安装验收见 [记录](../codex/docs/codex-onboarding-validation.md)。本轮不公开发布。
+
 - 可见预览改为加载后自动退出：页面确认加载即释放本地服务并结束进程，已加载的 applet 在默认浏览器窗口中独立运行，避免后台常驻耗电；刷新页面需要重新执行 preview。
 
 - 准备 0.8.3 本机 Codex 插件包，纳入英文 Applet 展示改动；发布范围与资产见 [0.8.3 说明](releases/v0.8.3.md)。DSH 仅验证封装，本轮不更新 npm 发布。

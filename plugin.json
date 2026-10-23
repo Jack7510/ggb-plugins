@@ -16,6 +16,7 @@
   "extensions": {
     "com.openai": {
       "requires_local_executor": true,
+      "onboardingSkill": "./skills/setup/SKILL.md",
       "interface": {
         "displayName": "GeoGebra Construction",
         "shortDescription": "二维数学与代数题到经核验、可交互的 GGB 文件"

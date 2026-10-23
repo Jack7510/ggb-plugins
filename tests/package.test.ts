@@ -168,3 +168,33 @@ test('both packages ship English and Chinese readmes and a Chinese guide',
       }
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
+
+/** Checks onboarding against the actual two distribution archives. */
+test('only the Codex archive ships its declared onboarding skill', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ggb-onboarding-'));
+  try {
+    for (const target of ['codex', 'dsh']) {
+      const result = JSON.parse((await run(process.execPath, [
+        join(root, 'scripts/package-plugin.mjs'), directory,
+        '--target=' + target,
+      ])).stdout);
+      if (target === 'dsh') {
+        const listing = (await run('tar', ['-tzf', result.archive])).stdout;
+        assert(!listing.includes('skills/setup/'));
+        continue;
+      }
+      const extracted = join(directory, 'extracted');
+      await run('unzip', ['-q', result.archive, '-d', extracted]);
+      const plugin = join(extracted, 'ggb-plugins');
+      const metadata = JSON.parse(await readFile(
+        join(plugin, 'plugin.json'), 'utf8'));
+      const entry = metadata.extensions['com.openai'].onboardingSkill;
+      assert.equal(entry, './skills/setup/SKILL.md');
+      assert.deepEqual(await readFile(join(plugin, entry)),
+        await readFile(join(root, entry)));
+      assert((await stat(join(plugin, 'scripts/setup-plugin.mjs'))).isFile());
+    }
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

@@ -26,9 +26,9 @@ and `npm`.
 
 ## Installation
 
-[GitHub Releases](https://github.com/Jack7510/ggb-plugins/releases) provides a Codex ZIP, a DSH
-TGZ, and their checksums. Install the complete package, then prepare its runtime in the installed
-copy:
+Published packages are listed in [GitHub Releases](https://github.com/Jack7510/ggb-plugins/releases).
+The current Codex onboarding changes are unpublished. Local packages include a setup skill; see the
+Codex guide for package availability, installation, and runtime preparation:
 
 - Codex: [installation and upgrade guide](codex/README.md), in Chinese.
 - DSH: [independent headless profile guide](dsh/README.md), in Chinese.

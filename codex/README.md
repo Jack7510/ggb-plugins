@@ -1,71 +1,135 @@
 # GeoGebra Construction 安装与使用
 
-本插件处理文字或图片中的二维数学与代数题。Codex 生成 GeoGebra 原生程序，本地工具执行、核验并交付可交互 GGB。需要支持插件的本地 Codex 客户端、Node.js 22+、pnpm 11、curl 和 unzip，以及一个 Chromium 内核浏览器（Google Chrome 或 Microsoft Edge）；工具直接使用已安装的浏览器，不再下载 Chromium。安装依赖时需要网络；不需要额外模型 API Key。
+本插件在本地 Codex 中处理文字或图片中的二维数学题，交付可交互 GGB、核验报告和截图。
+安装流程为：取得完整包 → 注册插件源 → 安装 → 运行设置 → 新对话作图。
 
-## 安装 ZIP
+## 版本与适用范围
 
-从 [0.8.2 Release](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.2) 下载 `ggb-plugins-0.8.2.zip` 和 `.zip.sha256`。不要将 GitHub 自动生成的 Source code ZIP 当作编译插件包。
+当前源码为 **0.8.3，未公开发布**。本轮不创建标签，不推送，不发布 GitHub Release、
+npm 包或官方插件目录。0.8.3 的安装包由维护者本地封装并提供。
 
-```sh
-shasum -a 256 -c ggb-plugins-0.8.2.zip.sha256
-unzip ggb-plugins-0.8.2.zip
+2026-10-20 核对的 GitHub 远端标签只有 `v0.8.0`。DSH npm 的 0.8.2 不等于
+Codex 已发布同版本。不要使用不存在的 `v0.8.2` 或 `v0.8.3` 标签安装。
+本页的安装引导针对包含 `skills/setup/SKILL.md` 的新包；历史包不承诺有设置入口。
+
+需要支持本地插件的 Codex 客户端、PATH 中的 Node.js 22+、pnpm 11、curl、unzip，
+以及 Google Chrome 或 Microsoft Edge。从 GitHub 安装还需要 Git。
+安装需要联网；GeoGebra 和浏览器不随包分发，不需要额外模型 API Key。
+本地执行器要求见包根目录 `plugin.json`，不能把本流程视为浏览器版云端安装验收。
+
+## 用一句对话安装本地包（推荐）
+
+先取得维护者提供的同版本 Codex ZIP 与 `.zip.sha256`，把两个文件放在同一目录。
+将真实文件绝对路径替换进下列指令，再粘贴到 Codex 本地聊天：
+
+```text
+请安装我提供的 GeoGebra Construction Codex ZIP：<ZIP绝对路径>，
+校验文件：<SHA256文件绝对路径>。先核对 SHA-256，再解压并注册插件源，
+安装 ggb-plugins@ggb-plugins-local。运行实际安装副本中的安装引导，
+完成 setup-plugin 和 doctor 检查，报告版本与结果。不要借用开发目录或
+其他客户端缓存，不修改已有题目和交付文件。若同名插件源已存在，先核对来源，
+不要直接覆盖或移除。完成后提醒我在新对话中开始作图。
 ```
 
-1. 校验下载 ZIP 的 SHA-256，并解压。下文 `<plugin>` 指解压后的 `ggb-plugins` 绝对路径。
-2. 注册随包附带的本地 marketplace，再安装：
+Codex 必须取得安装器完整退出结果。校验不符或 doctor 失败时，停止并报告具体错误，
+不能告诉用户设置成功。系统依赖缺失时，先说明缺项，不擅自修改全局环境。
+
+## 安装 ZIP（命令行）
+
+以下示例针对维护者提供的 0.8.3 本地包，不是公开下载地址。
+不要使用 GitHub 自动生成的 Source code ZIP 代替预编译插件包。
+
+在存放 ZIP 和校验文件的目录执行：
 
 ```sh
-codex plugin marketplace add <plugin>
+shasum -a 256 -c ggb-plugins-0.8.3.zip.sha256
+unzip ggb-plugins-0.8.3.zip
+```
+
+校验必须成功，才执行解压和安装。`<plugin>` 是解压后的 `ggb-plugins` 绝对路径。
+先查询已注册来源；存在同名来源时，核对版本与用途后再决定如何更新。
+
+```sh
+codex plugin marketplace list --json
+codex plugin marketplace add "<plugin>" --json
 codex plugin add ggb-plugins@ggb-plugins-local --json
 codex plugin list --marketplace ggb-plugins-local --json
 ```
 
-3. 从安装结果获取实际缓存路径 `<installed-plugin>`。在已安装副本准备依赖，不要只初始化原解压目录：
+从安装 JSON 的路径字段或插件列表取得 `<installed-plugin>`。该路径必须指向实际
+安装副本，不能使用原解压目录或自行猜测版本缓存目录。
 
-```sh
-node <installed-plugin>/scripts/setup-plugin.mjs
+## 运行安装引导
+
+支持安装设置入口的客户端可运行插件设置。也可在安装后新建对话并输入：
+
+```text
+请运行 GeoGebra Construction 的 ggb-setup 安装引导，准备当前安装副本，
+确认 doctor 通过，并告诉我实际安装版本和使用的浏览器。
 ```
 
-ZIP 包含编译后的 CLI。安装器通过 frozen lockfile 安装生产依赖，使用本机 Chrome／Edge，并准备摘要校验后的 GeoGebra，再运行 doctor。已有 runtime 不覆盖；版本不匹配时先确认目录用途再处理。可将官方 runtime ZIP 的绝对路径作为安装器参数，以避免重复下载。GeoGebra 和浏览器不随插件再分发。
-
-4. 在新的 Codex 会话中提出文字题。无需手动提供 SKILL.md 路径；已启用插件的 `ggb-construction` Skill 应自动进入候选列表。可在 Skill 列表核对，或显式使用客户端显示的技能名称。
-
-桌面客户端也可从本地 marketplace 的插件目录安装；目录更新后按客户端提示刷新或重启，并在新会话验证。CLI 与桌面界面的支持情况以验收记录为准。
-
-## 从 GitHub 安装
+`plugin.json` 的 `extensions.com.openai.onboardingSkill` 指向包内安装引导。
+入口是否显示取决于客户端版本。没有入口时，在聊天中调用引导或执行下面的命令：
 
 ```sh
-codex plugin marketplace add Jack7510/ggb-plugins --ref v0.8.2
-codex plugin add ggb-plugins@ggb-plugins-local --json
+node "<installed-plugin>/scripts/setup-plugin.mjs"
 ```
 
-Git 版本包含源码。只要存在 src/cli.ts，setup-plugin 就安装构建依赖并重新编译，即使 dist 已存在或不完整。只有无源码的 ZIP 发布包安装生产依赖并使用已有编译产物。已配置同名本地 marketplace 时，先移除该 marketplace 再添加 GitHub 来源，避免来源冲突。运行位置不依赖原仓库。发布新版本时同步更新 plugin.json 和 package.json 的 version。更新后重新获取 marketplace、安装副本及依赖；不要覆盖正在使用的交付目录。
+安装器安装锁定依赖，使用本机 Chrome／Edge，下载并按 SHA-256 校验固定 GeoGebra，
+最后运行 doctor。源码安装会构建；预编译 ZIP 不需要源码。不要只复制 SKILL.md。
 
-固定标签用于安装已发布版本。需要跟随开发分支时，可将 `--ref v0.8.2` 改为 `--ref main`。固定标签不会通过 marketplace upgrade 自动切换版本；升级时重新注册目标标签。
+| 状态 | 成功判据 | 失败时的动作 |
+| --- | --- | --- |
+| 插件已安装 | 安装结果和路径指向预期版本 | 检查插件源与包内容 |
+| 设置完成 | 安装器正常退出，doctor 为 ok，smoke 和 casSmoke 均 passed，工具版本一致 | 保留错误，修复依赖、网络或浏览器问题 |
+| 可以作图 | 新对话可用 ggb-construction，首题通过构造、重载和适用交互检查 | 保留诊断，不放宽核验门禁 |
 
-## 其他本地工具
+已有 runtime 不覆盖。版本不一致时，先核对目录用途。可将**新下载且已核对来源**的
+官方 runtime ZIP 绝对路径作为安装器参数；安装器仍会校验锁定摘要。
+不从其他 checkout、客户端或旧安装副本复制 `.runtime`、`dist`、`node_modules` 来验收首次安装。
 
-ZIP 中的 CLI 可独立使用。解压后执行 `node <plugin>/scripts/setup-plugin.mjs`，再让工具读取包内 Skill；调用用法见下节 README 链接。
-
-Skill 自动发现规则由各客户端决定。不能只复制 SKILL.md，运行还需要整个包的 CLI、页面及依赖。此入口不代表已验证所有客户端的原生插件安装。
+安装设置入口的字段依据见
+[官方插件打包文档](https://developers.openai.com/plugins/build/plugins#add-an-onboarding-skill)。
+本项目的验收结果见[隔离安装记录](docs/codex-onboarding-validation.md)，
+客户端界面按钮与聊天中调用引导分开记录，不互相替代。
 
 ## 安装后使用
 
-安装并启用后，在新宿主会话中提出题目。题目示例、CLI 用法、交付文件及预览操作统一见 [项目 README](https://github.com/Jack7510/ggb-plugins/blob/main/README.zh-CN.md#提交一道题)。Agent 读取包内 Skill 和引用契约，不依赖开发 checkout。
+按客户端提示刷新或重启，再新建对话。新会话应发现 `ggb-construction`。
 
-发布版本与仓库未发布行为的区别见 [CHANGES](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)。本文只说明安装、依赖准备、更新与卸载，不复制数学契约或预览生命周期。
+> 作一个三角形 ABC，取 AB 的中点 M，连接 CM，把中线标红。
+> 拖动 A 检查联动，保存 GGB、核验报告和截图。
+
+题目示例、交付格式与预览操作见
+[项目说明](https://github.com/Jack7510/ggb-plugins/blob/main/README.zh-CN.md#第一道题)。
+正常使用会在完整核验后打开预览；自动验收使用 headless，不操作用户已有浏览器。
+
+## 从 GitHub 安装（公开发布之后）
+
+未来发布后，可从已有 marketplace 安装，无需用户克隆和手动构建仓库。
+先在 GitHub Releases 确认目标标签存在，再替换 `<已发布标签>`：
+
+```sh
+codex plugin marketplace add Jack7510/ggb-plugins --ref <已发布标签>
+codex plugin add ggb-plugins@ggb-plugins-local --json
+```
+
+然后按本页运行安装引导。Git 来源包含源码；安装器会重新构建，不能把陈旧 dist 当作成功。
+固定标签不自动切换到其他版本。不要将尚未公开的本机 0.8.3 冒充远端可安装版本。
 
 ## 更新与卸载
 
+本地 ZIP 更新需要先取得新包、校验摘要，再核对同名 marketplace 的来源。
+Git 来源可刷新，但固定标签仍指向该标签；切换版本前应确认需要保留的安装与用户产物。
+
 ```sh
 codex plugin marketplace upgrade ggb-plugins-local
-codex plugin add ggb-plugins@ggb-plugins-local --json
 codex plugin remove ggb-plugins@ggb-plugins-local
 codex plugin marketplace remove ggb-plugins-local
 ```
 
-GeoGebra 的独立许可和归属见插件根目录 `THIRD_PARTY_NOTICES.md`。有限交互样本不能证明一般数学命题；图片由宿主读取并提取题干。已有 GGB 支持声明基线后的显示属性编辑与受控续构；三维、删除／重命名、完整命令覆盖及通用证明不在支持承诺内。
+安装新版本后重新运行安装引导，并使用新对话。升级、卸载不删除工作区中的交付文件。
 
-## DeepSeek Harness
-
-Codex 使用上述 ZIP；DSH 使用同版本 `ggb-plugins-dsh-0.8.2.tgz`。两包共用 Skill、编译 CLI 和核验管线，分别注册宿主插件。DSH 包独立携带资源，不依赖 Codex 安装缓存。安装到独立 headless profile 的步骤见 [DSH 安装说明](https://github.com/Jack7510/ggb-plugins/blob/v0.8.2/dsh/README.md)，职责与验收边界见 [双生态兼容设计](https://github.com/Jack7510/ggb-plugins/blob/v0.8.2/docs/dual-ecosystem.md)。
+GeoGebra 的许可和归属见包内 THIRD_PARTY_NOTICES.md。有限采样不构成一般数学证明。
+DSH npm 安装另见 [DSH 安装说明](https://github.com/Jack7510/ggb-plugins/blob/main/dsh/README.md)，
+不能用 DSH npm 版本推断 Codex 标签或安装状态。

@@ -19,7 +19,7 @@
 
 ## 安装
 
-[GitHub Releases](https://github.com/Jack7510/ggb-plugins/releases) 提供 Codex ZIP、DSH TGZ 及各自校验文件。安装完整包后，在**实际安装副本**中准备运行依赖：
+已公开资产见 [GitHub Releases](https://github.com/Jack7510/ggb-plugins/releases)。当前 Codex 安装引导改动尚未公开发布；本地包已包含引导 Skill。版本可用性、安装与运行依赖准备见各客户端说明：
 
 - Codex：[安装与升级说明](codex/README.md)。
 - DSH：[独立 headless profile 安装说明](dsh/README.md)。
