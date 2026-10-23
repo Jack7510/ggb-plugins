@@ -1,3 +1,4 @@
+/** @fileoverview Compiles requests and conservatively validates known types. */
 import assert from 'node:assert/strict';
 import {
   commands, predicates, type Edit, type Request, type Step, type Update,
@@ -19,6 +20,74 @@ export interface Compiled {
 }
 
 const matches = (type: string, expected: string) => expected === 'any' || expected.split('|').includes(type);
+
+/** Conservative command-to-output types; unknown native commands stay untyped. */
+const NATIVE_OUTPUT_TYPES: Readonly<Record<string, string>> = {
+  Segment: 'segment', Line: 'line', Ray: 'ray', Vector: 'vector',
+  PerpendicularBisector: 'line', Midpoint: 'point', Point: 'point',
+  Focus: 'point', Directrix: 'line', Circle: 'circle',
+  Ellipse: 'ellipse', Hyperbola: 'hyperbola', Parabola: 'parabola',
+  Conic: 'conic', Polygon: 'polygon', Slider: 'numeric',
+};
+/** A type is certain only for one algebra output and one complete call. */
+function nativeOutputType(item: Compiled['program'][number]):
+    string | undefined {
+  const {step, command, mode, outputs} = item;
+  if (mode !== 'algebra' || outputs.length !== 1 ||
+    outputs[0] !== step.id) return undefined;
+  const match = /^\s*([^=:]+)[=:]\s*([A-Za-z][A-Za-z0-9]*)\s*[\[(]/u
+    .exec(command);
+  if (!match || match[1]?.trim() !== step.id ||
+    !completeCall(command.slice(match[0].length - 1).trim())) return undefined;
+  const name = match[2]!;
+  return Object.hasOwn(NATIVE_OUTPUT_TYPES, name)
+    ? NATIVE_OUTPUT_TYPES[name] : undefined;
+}
+
+/** Match the outer call, ignoring quoted delimiters and escaped quotes. */
+function completeCall(source: string): boolean {
+  const stack: string[] = [];
+  let quoted = false;
+  let escaped = false;
+  const closing: Record<string, string> = {'(': ')', '[': ']', '{': '}'};
+  for (let index = 0; index < source.length; index++) {
+    const char = source[index]!;
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') quoted = false;
+      continue;
+    }
+    if (char === '"') quoted = true;
+    else if (Object.hasOwn(closing, char)) stack.push(closing[char]!);
+    else if (')]}'.includes(char)) {
+      if (stack.pop() !== char) return false;
+      if (stack.length === 0) return index === source.length - 1;
+    }
+  }
+  return false;
+}
+
+/** Share known pointOn types across creation and additions to a base. */
+function validateNativePointOn(request: Request,
+    program: Compiled['program'], base?: ReadonlyMap<string, string>): void {
+  const known = new Map(base);
+  for (const item of program) {
+    const type = nativeOutputType(item);
+    if (type !== undefined) known.set(item.step.id, type);
+  }
+  for (const requirement of request.plan.requirements) {
+    for (const check of requirement.checks) {
+      if (check.kind !== 'pointOn') continue;
+      check.subjects.forEach((id, index) => {
+        const type = known.get(id);
+        const expected = predicates.pointOn!.types[index]!;
+        assert(type === undefined || matches(type, expected),
+          `Invalid pointOn subject: ${id} (${type}, expected ${expected})`);
+      });
+    }
+  }
+}
 
 // GeoGebra treats JavaScript's `1e-7` as an expression involving Euler's e.
 // Expand the shortest round-trippable JS representation without rounding it.
@@ -50,6 +119,7 @@ function compileModify(request: Request, base?: BaseFacts): Compiled {
   const updates = request.plan.updates ?? [];
   const styles = request.plan.styles ?? [];
   if (base) validateModifyBase(base, outputs, updates, styles, request);
+  validateNativePointOn(request, program, base?.types);
   return {
     mode: 'modify', edits: [], updates, program, view: undefined, styles,
     native: true, display: request.plan.display ?? 'graphics',
@@ -104,8 +174,8 @@ function validateModifyChecks(
       const spec = predicates[check.kind]!;
       check.subjects.forEach((id, index) => {
         has(id);
-        // Native output types are unknown before execution; the runtime
-        // check still rejects a wrong subject.
+        // Other predicates defer new outputs to runtime; pointOn also uses
+        // the shared conservative native check after base validation.
         if (!base.labels.has(id)) return;
         // The archive calls every conic `conic`; the live applet later
         // distinguishes circle, ellipse, parabola and hyperbola.
@@ -155,7 +225,9 @@ export function compile(request: Request, base?: BaseFacts): Compiled {
     request.plan.interactions.forEach(sample => has('point' in sample ? sample.point : sample.parameter));
     for (const requirement of request.plan.requirements) for (const check of requirement.checks) {
       if (check.scope === 'sampled') assert(request.plan.interactions.length > 0, 'Sampled checks need interaction evidence');
+
     }
+    validateNativePointOn(request, program);
     return { mode: 'create', edits: [], updates: [], program, view: request.plan.view, styles: request.plan.styles ?? [], native: true, display: request.plan.display ?? 'graphics' };
   }
   const byId = new Map(request.plan.program.map(step => [step.id, step]));
