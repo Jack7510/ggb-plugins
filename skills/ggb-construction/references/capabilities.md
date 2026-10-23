@@ -155,7 +155,9 @@ CAS 物化的是当次计算结果，不是动态 CAS 单元；它不会自动�
 
 可复用的结构检查仍可使用 exists、type、coordinate、dependsOn、style，以及中点、线/圆上的点、圆心半径、平行垂直、等长、距离和非共线。新数学关系优先写表达式，不逐命令增加谓词。type 使用实际事实类型，简单多边形归一为 polygon。
 
-常见实际类型为 point、line、segment、circle、polygon、polyline、numeric、angle、boolean、list 和 text。数值及滑块的 type 检查使用 numeric，不使用 number 或 slider；这不是全部类型的白名单。
+常见实际类型为 point、line、segment、circle、polygon、polyline、numeric、angle、boolean、list 和 text。方程圆锥曲线按引擎实际 subtype 报告：`y^2=4x` 的 type 是 `parabola`，不是 `conic`。数值及滑块的 type 检查使用 numeric，不使用 number 或 slider；这不是全部类型的白名单。
+
+`perpendicular` 和 `parallel` 的 subject 必须是 line，segment 不是 line；需要检查线段方向时另建 `Line(F,A)`，不要把 `Segment(F,A)` 直接传入。`pointOn` 的第一个 subject 必须是 point，vector 不是 point；圆锥上的检查点用真实 point 对象或表达式残差，不要把向量当作点。`pointOn` 的第二个 subject 可以是 line、circle 或圆锥曲线。
 
 依赖证据来自隔离副本中的真实引擎操作，inputs 记录传递依赖而非正则提取的词。verify、修改重算和采样覆盖共同消费该事实。副本关闭后原画布 XML 必须保持不变。同一浏览器上下文内仅可复用原始 XML 逐字节相同的依赖证据，不缓存数学值或核验结果；原文、数值、构造或视图改变即重新核验。
 

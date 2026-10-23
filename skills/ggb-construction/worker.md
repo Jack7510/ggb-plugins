@@ -89,7 +89,8 @@ Send one JSON object with no trailing braces; reuse the checked request for buil
    Automatic validation stays headless. A run allows at most three builds;
    structural preflight rejections are refunded by the host.
 3. On failure, repair the evidenced cause and related changes together. Keep
-   original conditions and independent expectations. Start a fresh run rather
+   original conditions and independent expectations. Use `report.failedChecks`
+   from a rejected check/build instead of guessing. Start a fresh run rather
    than continue on a residual canvas; stop at the build limit.
 4. Read warnings as evidence limitations, not command-based proof judgments.
    Report only tool-confirmed results, artifacts and remaining limitations.

@@ -4,6 +4,10 @@
 
 ## 未发布
 
+- Worker 在 `ggb_check`／`ggb_build` 失败时读取宿主返回的有界 `report.failedChecks`，优先修复实际失败的 requirement/check，不再根据泛化错误猜测。
+
+- 核验参考补充实际类型与谓词约束：方程圆锥曲线按引擎 subtype 报告（`y^2=4x` 为 `parabola`，不是 `conic`），`perpendicular`／`parallel` 只接受 line，`pointOn` 的第一个 subject 必须是 point；避免把 segment、vector 或错误 objectType 写入核验。
+
 - Codex 增加安装引导 Skill 和 onboardingSkill 声明，仅随 Codex 封装交付；安装说明区分本地 0.8.3 包、远端真实标签和 DSH npm 版本，安装验收见 [记录](../codex/docs/codex-onboarding-validation.md)。本轮不公开发布。
 
 - 可见预览改为加载后自动退出：页面确认加载即释放本地服务并结束进程，已加载的 applet 在默认浏览器窗口中独立运行，避免后台常驻耗电；刷新页面需要重新执行 preview。
