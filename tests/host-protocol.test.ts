@@ -13,8 +13,8 @@ const identity = {runId: 'run_' + randomUUID(), turnId: randomUUID(),
   requestId: randomUUID(), toolCallId: randomUUID(), epoch: 1};
 
 function request(): ToolRequest {
-  const args = {request: {protocolVersion: 2, prompt: 'triangle'}};
-  const unsigned = {...identity, protocolVersion: 2 as const,
+  const args = {checkedRequestId: identity.requestId};
+  const unsigned = {...identity, protocolVersion: 3 as const,
     toolName: 'ggb_build' as const, arguments: args,
     argumentsDigest: digestJson(args), issuedAt: new Date().toISOString(),
     nonce: 'c'.repeat(32)};
@@ -41,21 +41,20 @@ test('authentication covers identity and canonical arguments', () => {
   assert.equal(authenticateRequest(token,
       {...value, turnId: randomUUID()}), false);
   assert.throws(() => parseToolRequest({...value,
-    arguments: {request: {protocolVersion: 2, prompt: 'changed'}}}), /argumentsDigest/);
+    arguments: {checkedRequestId: randomUUID()}}), /argumentsDigest/);
   assert.equal(digestJson({a: 1, b: 2}), digestJson({b: 2, a: 1}));
 });
 
 test('unknown versions, injected identities and oversized calls fail closed', () => {
   const value = request();
-  for (const patch of [{protocolVersion: 1}, {epoch: 0}, {runId: 'other'},
+  for (const patch of [{protocolVersion: 1}, {protocolVersion: 2}, {epoch: 0}, {runId: 'other'},
     {outputDir: '/tmp/injected'}, {toolName: 'bash'},
     {nonce: ''}, {issuedAt: 'yesterday'}, {authentication: 'short'}]) {
     assert.throws(() => parseToolRequest({...value, ...patch}));
   }
-  const args = {request: {protocolVersion: 2,
-    prompt: 'x'.repeat(128 * 1024)}};
+  const args = {checkedRequestId: 'x'.repeat(128 * 1024)};
   assert.throws(() => parseToolRequest({...value,
-    arguments: args, argumentsDigest: digestJson(args)}), /arguments_size/);
+    arguments: args, argumentsDigest: digestJson(args)}), /draft_chunk_too_large/);
 });
 
 test('host execution context requires paired base facts and absolute roots', () => {
@@ -92,7 +91,7 @@ test('structured rejection and transport errors cannot claim delivery', () => {
     verification: null};
   assert.deepEqual(parseBuildReceipt(value), value);
   assert.throws(() => parseBuildReceipt({...value, issues: []}));
-  const response = {protocolVersion: 2, requestId: identity.requestId,
+  const response = {protocolVersion: 3, requestId: identity.requestId,
     type: 'tool.error', result: null, error: 'unauthorized'};
   assert.deepEqual(parseToolResponse(response), response);
   assert.throws(() => parseToolResponse({...response, result: {ok: true}}));

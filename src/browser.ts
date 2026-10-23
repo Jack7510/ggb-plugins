@@ -423,12 +423,27 @@ export async function snapshot(page: Page): Promise<Snapshot> {
   });
 }
 
+/**
+ * GeoGebra can append literal placeholders such as `undefined` for optional
+ * command outputs. They are not object labels and must not fail the exact
+ * declared-output check; real objects are still verified with isDefined.
+ */
+export function parseNativeLabels(value: string | null): string[] | null {
+  if (value === null) return null;
+  return [...new Set(value.split(',').map(label => label.trim())
+      .filter(label => label.length > 0 && label !== 'undefined' && label !== 'null'))];
+}
+
 /** Execute only compiler-produced data, never model-authored JavaScript. */
 export async function execute(page: Page, compiled: import('./compile.js').Compiled, prompt: string) {
   if (compiled.program.some(step => step.mode === 'cas')) await waitForCAS(page);
   const expectEmpty = compiled.mode === 'create';
   await page.evaluate(async ({ program, styles, view, prompt, display, native, expectEmpty }) => {
     const api = window.ggb;
+    // Keep this in the applet realm; Node helpers are not serialized by evaluate.
+    const normalizeLabels = (value: string | null): string[] | null => value === null ? null
+      : [...new Set(value.split(',').map(label => label.trim())
+        .filter(label => label.length > 0 && label !== 'undefined' && label !== 'null'))];
     document.querySelector('h1')!.textContent = prompt;
     document.querySelector('h1')!.title = prompt;
     document.title = 'GeoGebra · ' + prompt.slice(0, 60);
@@ -445,7 +460,8 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
         if (!result || result.includes('?') || /undefined|error/i.test(result)) throw new Error(`CAS result unresolved: ${step.id}: ${result}`);
         source = `${step.id}=(${result})`;
       }
-      const labels = step.op === 'native' ? (await api.asyncEvalCommandGetLabels(source))?.split(',').filter(Boolean) : null;
+      const labels = step.op === 'native'
+        ? normalizeLabels(await api.asyncEvalCommandGetLabels(source)) : null;
       // Execute before probing definedness: a structured step defines its
       // outputs inside evalCommand, so a pre-check reports every output missing.
       const executed = step.op === 'native' ?

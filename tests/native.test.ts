@@ -26,6 +26,47 @@ test('native program contract accepts new mathematical commands without wrappers
   assert.throws(() => parseRequest(constant), /reference/);
 });
 
+test('valid Focus output with an undefined API placeholder is accepted', {
+  timeout: 30_000,
+}, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ggb-focus-'));
+  try {
+    const result = await build({ protocolVersion: 2, prompt: 'Focus of a parabola', locale: 'en',
+      outputDir: directory, plan: {
+        program: [
+          { id: 'p', op: 'native', mode: 'algebra', source: 'p: y^2=4x' },
+          { id: 'F', op: 'native', mode: 'algebra', source: 'F=Focus(p)' },
+        ],
+        requirements: [{ id: 'focus', source: 'Focus of a parabola', checks: [
+          { kind: 'type', subjects: ['F'], objectType: 'point', scope: 'initial' },
+          { kind: 'coordinate', subjects: ['F'], coordinates: [1, 0], scope: 'initial' },
+        ] }],
+        interactions: [],
+      } });
+    assert.ok(result.file.endsWith('.ggb'));
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('valid Directrix output with duplicate API labels is accepted', {
+  timeout: 30_000,
+}, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ggb-directrix-'));
+  try {
+    const result = await build({ protocolVersion: 2, prompt: 'Directrix of a parabola', locale: 'en',
+      outputDir: directory, plan: {
+        program: [
+          { id: 'p', op: 'native', mode: 'algebra', source: 'p: y^2=4x' },
+          { id: 'd', op: 'native', mode: 'algebra', source: 'd=Directrix(p)' },
+        ],
+        requirements: [{ id: 'directrix', source: 'Directrix of a parabola', checks: [
+          { kind: 'type', subjects: ['d'], objectType: 'line', scope: 'initial' },
+        ] }],
+        interactions: [],
+      } });
+    assert.ok(result.file.endsWith('.ggb'));
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
 test('M5 uses the same delivery pipeline for conics, CAS, M1 and an independent new combination', { timeout: 120_000 }, async t => {
   const directory = await mkdtemp(join(tmpdir(), 'ggb-native-'));
   try {

@@ -127,7 +127,7 @@ Web 宿主使用公开子路径，不安装到用户 desktop profile，也不使
 使用独立 dshHome，并把实际 SDK 包版本通过 `GGB_DSH_SDK_VERSION` 注入子进程。
 当前服务端入口只验证了 SDK `0.2.1-rc.2`；详细边界见 [双生态契约](https://github.com/Jack7510/ggb-plugins/blob/main/docs/dual-ecosystem.md#受限-sdk-server-入口)。
 
-加载测试只需已编译安装包；构图前仍须 setup/doctor。工具依赖宿主协议 2 的认证网关，不能直接连接
+加载测试只需已编译安装包；构图前仍须 setup/doctor。工具依赖宿主协议 3 的认证网关，不能直接连接
 旧版 Web 宿主。不得为启动成功而开启通用 shell，也不应把 SDK 初始化通过视为真实构图验收。
 
 
@@ -142,7 +142,7 @@ Web 宿主使用公开子路径，不安装到用户 desktop profile，也不使
 
 ### 受限参考与失败反馈
 
-服务端仍注册三个工具。`ggb_inspect({reference: topic})` 通过认证宿主读取当前
+服务端注册四个受限工具。`ggb_inspect({reference: topic})` 通过认证宿主读取当前
 安装包的固定主题：`request`、`program`、`verification`、`interactions`、`patterns`、
 `naming`。省略 `reference` 时仍检查宿主基线。接口不接受文件路径、URL 或任意章节。
 每次返回一个完整主题，上限为 24 KiB。模型不能读取宿主文件或其他 run。
@@ -158,7 +158,7 @@ Web 宿主使用公开子路径，不安装到用户 desktop profile，也不使
 由 `ggb-plugins-dsh/execution-schemas` 的 `parseExecutionResult()` 校验。
 响应绑定 operation、contextSha256 和 packageIntegrity；宿主必须同时核对进程退出和这些绑定。
 桌面 CLI 继续使用 envelope 1；服务端不接受旧 CLI 或执行器 envelope 2 的回退。
-当前固定组合为工具协议 2、执行上下文 2、构建回执 2；API 内部通道由宿主固定为 5。
+当前固定组合为工具协议 3、执行上下文 2、构建回执 2；API 内部通道由宿主固定为 8。
 
 | 操作 | 响应契约 | 浏览器与额度 |
 | --- | --- | --- |
@@ -184,3 +184,28 @@ GGB 上限为 6 MiB，preview 为 3 MiB，报告和 manifest 各为 1 MiB。
 
 开发 TGZ 的 `source/` 保存精确源码与构建输入。`source/dependencies.lock` 对应源码仓库
 `pnpm-lock.yaml`；npm 不会原样发行该文件名。宿主供应锁固定快照内每个文件的摘要。
+
+### 小块请求与局部修复
+
+服务端模型使用 `ggb_request` 保存草稿，每次参数最多 2048 UTF-8 字节，
+每批 1–8 个完整条目。`create` 提供 locale，可选 title；原始 prompt 由宿主注入。
+图片题可分段追加 transcription 字符串，保留原始 prompt，再据转写文本关联 requirement.source。
+
+| 操作 | 参数与结果 |
+| --- | --- |
+| append | 当前 revision、section、items；追加后返回新 revision |
+| replace | 加上零起始 index；替换相同数量条目 |
+| remove | 当前 revision、section、index，可选 count（1–8） |
+| read | 当前 revision、section，可选 index/count；返回有界页和 nextIndex/more |
+| ggb_check | 只接收 revision；原有完整 checker 成功后返回 checkedRequestId 和完整请求摘要 |
+| ggb_build | 只接收 checkedRequestId；使用不可变已检查请求，保留完整构造、重载及交互核验 |
+
+requirements 条目包含 id/source/可选 purpose；checks 单独提交并携带 requirementId。
+program 使用 id/source，可选 mode/outputs/initial，默认 mode=algebra。
+CAS、initial、独立 expected 和全部原题条件不得为适应大小而删除。
+其他 section 为 interactions、styles、edits、updates、view、display 和 clarifications。
+所有成功修改和重新检查都会撤销旧检查句柄；版本冲突及失败写入不会覆盖已有内容。
+草稿最多 128 KiB、256 个 revision，仅保存在当前认证 run/turn/epoch 的内存中。
+关闭 turn 后不恢复、不自动重放。句柄不能跨 run/turn 使用；不接受任意路径或 shell。
+宿主通过公开 `ggb-plugins-dsh/drafts` 加载组装器，不能复制另一套几何 checker。
+构建回执与交付绑定组装后的完整请求摘要，不以小块参数摘要替代。

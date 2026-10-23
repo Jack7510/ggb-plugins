@@ -20,6 +20,10 @@
     "./execution-schemas": {
       "types": "./dist/src/execution-contract.d.ts",
       "default": "./dist/src/execution-contract.js"
+    },
+    "./drafts": {
+      "types": "./dist/src/draft-requests.d.ts",
+      "default": "./dist/src/draft-requests.js"
     }
   },
   "files": [

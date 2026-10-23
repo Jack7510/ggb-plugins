@@ -1,15 +1,16 @@
 /** @fileoverview Versioned contracts for the installed DSH host boundary. */
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { isAbsolute } from 'node:path';
+import {parseDraftArguments} from './draft-arguments.js';
 
 export type Json = null | boolean | number | string | Json[] |
     {[key: string]: Json};
-export const HOST_PROTOCOL_VERSION = 2;
+export const HOST_PROTOCOL_VERSION = 3;
 export const RECEIPT_SCHEMA_VERSION = 2;
 export const SUPPORTED_DSH_VERSIONS = ['0.2.1-rc.2'] as const;
 export const REFERENCE_TOPICS = ['request', 'program', 'verification',
   'interactions', 'patterns', 'naming'] as const;
-export const TOOL_NAMES = ['ggb_inspect', 'ggb_check', 'ggb_build'] as const;
+export const TOOL_NAMES = ['ggb_inspect', 'ggb_request', 'ggb_check', 'ggb_build'] as const;
 export type ToolName = typeof TOOL_NAMES[number];
 export const LIMITS = Object.freeze({
   requestBytes: 128 * 1024, frameBytes: 256 * 1024,
@@ -21,7 +22,7 @@ const HEX = /^[a-f0-9]{64}$/u;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
 
 export interface ToolRequest {
-  protocolVersion: 2;
+  protocolVersion: 3;
   requestId: string;
   toolCallId: string;
   runId: string;
@@ -35,7 +36,7 @@ export interface ToolRequest {
   authentication: string;
 }
 export interface ToolResponse {
-  protocolVersion: 2;
+  protocolVersion: 3;
   requestId: string;
   type: 'tool.result' | 'tool.error';
   result: Json;
@@ -159,19 +160,13 @@ export function signRequest(token: string,
 
 /** Separate model arguments from host paths and execution identity. */
 function toolArguments(toolName: unknown, input: unknown): void {
-  const inspect = toolName === 'ggb_inspect';
-  const args = object(input, inspect ? ['reference'] : ['request']);
-  if (inspect) {
-    requireValue(args.reference === undefined ||
-      REFERENCE_TOPICS.some(topic => topic === args.reference), 'reference');
+  if (toolName !== 'ggb_inspect') {
+    parseDraftArguments(String(toolName), input);
     return;
   }
-  requireValue(args.request !== null && typeof args.request === 'object' &&
-      !Array.isArray(args.request), 'request');
-  const request = args.request as Record<string, unknown>;
-  requireValue(!('base' in request) && !('outputDir' in request),
-      'host_owned_paths');
-  requireValue(request.protocolVersion === 2, 'requestProtocolVersion');
+  const args = object(input, ['reference']);
+  requireValue(args.reference === undefined ||
+    REFERENCE_TOPICS.some(topic => topic === args.reference), 'reference');
 }
 
 /** Parse a transport request, including version and argument digest. */
@@ -179,7 +174,7 @@ export function parseToolRequest(input: unknown): ToolRequest {
   const value = object(input, ['protocolVersion', 'requestId', 'toolCallId',
     'runId', 'turnId', 'epoch', 'toolName', 'arguments', 'argumentsDigest',
     'issuedAt', 'nonce', 'authentication']);
-  requireValue(value.protocolVersion === 2, 'protocolVersion');
+  requireValue(value.protocolVersion === 3, 'protocolVersion');
   identity(value);
   requireValue(TOOL_NAMES.some(name => name === value.toolName), 'toolName');
   toolArguments(value.toolName, value.arguments);
@@ -207,7 +202,7 @@ export function authenticateRequest(token: string, input: unknown): boolean {
 export function parseToolResponse(input: unknown): ToolResponse {
   const value = object(input,
       ['protocolVersion', 'requestId', 'type', 'result', 'error']);
-  requireValue(value.protocolVersion === 2, 'protocolVersion');
+  requireValue(value.protocolVersion === 3, 'protocolVersion');
   requireValue(matches(value.requestId, UUID), 'requestId');
   if (value.type === 'tool.result') {
     requireValue(value.result !== null && value.error === null, 'result');

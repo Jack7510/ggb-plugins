@@ -4,6 +4,10 @@
 
 ## 未发布
 
+- 受限 SDK Server 新增 ggb_request，按最多 2 KiB 完整条目分段保存和局部修改。check/build 引用同一已检查版本，保留 CAS、initial、独立 expected、图片转写与完整核验。工具协议升级为 3，Worker profile 为 plugin-core-v2；不兼容旧完整 request 工具参数。
+
+- 原生输出标签解析忽略 GeoGebra 对可选结果返回的字面量 `undefined`/`null` 占位符并去重；`Focus(p)`、`Directrix(p)` 等有效命令不会再被误报为 `Incomplete native outputs`，并新增真实 applet 回归。
+
 - Worker 在 `ggb_check`／`ggb_build` 失败时读取宿主返回的有界 `report.failedChecks`，优先修复实际失败的 requirement/check，不再根据泛化错误猜测。
 
 - 核验参考补充实际类型与谓词约束：方程圆锥曲线按引擎 subtype 报告（`y^2=4x` 为 `parabola`，不是 `conic`），`perpendicular`／`parallel` 只接受 line，`pointOn` 的第一个 subject 必须是 point；避免把 segment、vector 或错误 objectType 写入核验。

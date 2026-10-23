@@ -2,10 +2,11 @@
   "schemaVersion": 1,
   "toolVersion": "0.8.3",
   "requestProtocolVersion": 2,
-  "workerProfileVersion": "plugin-core-v1",
-  "workerSkillSha256": "c9445398967a9495ebb29a7f7a887504257d1843ad8da66836971fd87e33f3f8",
+  "workerProfileVersion": "plugin-core-v2",
+  "workerSkillSha256": "46e88859bcd902ae8ee051352e8ebbe0bc5a8a89f1edb87003d8fca6f1287777",
   "modelFacingTools": [
     "ggb_inspect",
+    "ggb_request",
     "ggb_check",
     "ggb_build"
   ],

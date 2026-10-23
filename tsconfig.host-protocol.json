@@ -8,7 +8,8 @@
   },
   "include": [
     "src/host-protocol.ts",
-    "src/execution-contract.ts"
+    "src/execution-contract.ts",
+    "src/draft-requests.ts"
   ],
   "exclude": [
     "tests"

@@ -23,7 +23,7 @@ const manifest = {
   requestProtocolVersion: 2,
   workerProfileVersion: frontmatter[1],
   workerSkillSha256: createHash('sha256').update(skill).digest('hex'),
-  modelFacingTools: ['ggb_inspect', 'ggb_check', 'ggb_build'],
+  modelFacingTools: ['ggb_inspect', 'ggb_request', 'ggb_check', 'ggb_build'],
   limits,
   commands,
   predicates,

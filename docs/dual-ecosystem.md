@@ -38,10 +38,11 @@ DSH 包新增服务端公开入口，与默认桌面 Skill 入口分开：
 
 | 导出 | 契约 |
 | --- | --- |
-| `./server` | Cordis 插件，注入 tools 和 systemPrompt，注册 inspect/check/build 三工具 |
+| `./server` | Cordis 插件，注入 tools 和 systemPrompt，注册 inspect/request/check/build 四工具 |
 | `./server.patch.yml` | sdk-minimal 的受限覆盖层，关闭通用 shell、文件及目录工具和原始日志扩展 |
 | `./installation` | 解析当前完整安装包、校验版本和 Worker Skill 摘要，加载 Worker 正文 |
-| `./schemas` | 纯解析函数及 TypeScript 类型：工具协议 2、执行上下文 2、构建回执 2；不加载浏览器 |
+| `./schemas` | 纯解析函数及 TypeScript 类型：工具协议 3、执行上下文 2、构建回执 2；不加载浏览器 |
+| `./drafts` | 有界分段请求、revision、不可变检查句柄；无文件或执行能力 |
 | `./cli` | 现有公开 CLI，仍使用 CLI envelope 1；尚未消费新的执行上下文或产生新构建回执 |
 
 服务端入口当前只接受已验证 SDK `0.2.1-rc.2`。宿主必须从实际 SDK 包读取版本，传入
@@ -49,7 +50,7 @@ DSH 包新增服务端公开入口，与默认桌面 Skill 入口分开：
 Worker Skill 通过 systemPrompt.section 在启动时直接加载，不依赖 skills 服务、模型发现或桌面 CLI 注入。
 安装描述只声明 runtime 锁身份，不代表浏览器已经准备或 doctor 已通过；实际发行包摘要由宿主独立计算。
 
-本入口的工具客户端只发送宿主协议 2，不支持旧宿主网关 version 1。没有有效宿主上下文时执行必须失败。
+本入口的工具客户端只发送宿主协议 3，拒绝旧工具网关 version 1/2。没有有效宿主上下文时执行必须失败。
 公开 `ggb-plugins-dsh/executor` 接收宿主上下文，调用现有 build，并输出执行器协议 3 响应与回执 2。
 `ggb-plugins-dsh/delivery-contract` 导出纯报告门禁，与 build/preview 共享实现，不启动浏览器。
 桌面 CLI 继续输出 envelope 1。Web 宿主的产物接收、提交、取消和槽位隔离由宿主拥有；默认切换单独实施。
@@ -61,3 +62,6 @@ Worker Skill 通过 systemPrompt.section 在启动时直接加载，不依赖 sk
 `./execution-schemas` 发布执行器协议 3、check/inspect 数据校验及有界 inspect 投影。
 构建阶段证明位于执行响应，不改变 receipt 2 的产物证明结构。
 宿主只有验证响应绑定和进程安全退出后，才能使用 preflight 拒绝退还 build 次数。
+
+受限服务端的模型参数、分段与局部修复规则见 [DSH 小块请求契约](../dsh/README.md#小块请求与局部修复)。
+领域请求仍为 2，check/build 最终消费组装后的完整请求并保留全部核验门禁。

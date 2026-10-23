@@ -35,7 +35,7 @@ test('public exports are shipped and installation resolves only this package',
         './schemas', './cli']) assert.ok(pkg.exports[key]);
       const found = installation.loadInstallation();
       assert.equal(found.root, await realpath(bundle));
-      assert.equal(found.hostProtocolVersion, 2);
+      assert.equal(found.hostProtocolVersion, 3);
       assert.deepEqual(found.supportedDshVersions, ['0.2.1-rc.2']);
       assert.match(installation.loadWorkerSkill(), /# GGB Plugin Core/);
       assert.ok(installation.loadWorkerSkill().includes('```json'));
@@ -56,7 +56,7 @@ test('reference sections tolerate CRLF and spaced headings', async () => {
   }
 });
 
-test('server registers three closed tools and an eagerly loaded Worker Skill',
+test('server registers four closed tools and an eagerly loaded Worker Skill',
     () => {
       const tools = [];
       const sections = [];
@@ -64,14 +64,14 @@ test('server registers three closed tools and an eagerly loaded Worker Skill',
         systemPrompt: {section: value => sections.push(value)}};
       server.apply(ctx, {sdkVersion: '0.2.1-rc.2'});
       assert.deepEqual(tools.map(tool => tool.name),
-          ['ggb_inspect', 'ggb_check', 'ggb_build']);
+          ['ggb_inspect', 'ggb_request', 'ggb_check', 'ggb_build']);
       assert.ok(tools.every(tool =>
         tool.parameters.additionalProperties === false));
       assert.match(sections[0].text, /No shell, files, network or credentials/);
       assert.equal(sections[0].interpolate, false);
       assert.throws(() => server.apply(ctx, {sdkVersion: '0.2.0-rc.2'}),
           /dsh_version_unsupported/);
-      assert.equal(tools.length, 3);
+      assert.equal(tools.length, 4);
     });
 
 test('server tools refuse execution without host capability', async () => {
@@ -79,7 +79,7 @@ test('server tools refuse execution without host capability', async () => {
   delete process.env.GGB_PLUGIN_CORE_TOOL_RUN_ID;
   try {
     const tool = server.createTool('ggb_build');
-    await assert.rejects(async () => tool.execute({request: {}},
+    await assert.rejects(async () => tool.execute({checkedRequestId: '11111111-1111-4111-8111-111111111111'},
         {signal: new AbortController().signal}), /ggb_host_context_missing/);
   } finally {
     if (previous !== undefined) process.env.GGB_PLUGIN_CORE_TOOL_RUN_ID = previous;
@@ -101,30 +101,22 @@ test('mixed package identity and changed Skill fail before tool registration',
       } finally { await writeFile(path, original); }
     });
 
-test('model sees native step/check/style shapes and a parser-valid example',
-    async () => {
-      const tool = server.createTool('ggb_build');
-      const request = tool.parameters.properties.request;
-      const plan = request.properties.plan.properties;
-      assert.equal(request.additionalProperties, false);
-      assert.equal(plan.program.type, 'array');
-      const native = plan.program.items.anyOf[0];
-      assert.deepEqual(native.properties.op, {type: 'string', enum: ['native']});
-      assert.deepEqual(request.properties.protocolVersion,
-        {type: 'integer', enum: [2]});
-      assert.deepEqual(native.required, ['id', 'op', 'source', 'mode']);
-      assert.equal(native.additionalProperties, false);
-      assert.equal(native.properties.step, undefined);
-      assert.ok(plan.requirements.items.properties.checks.items.properties.subjects);
-      assert.ok(plan.styles.items.properties.properties.properties.lineThickness);
-      const body = installation.loadWorkerSkill();
-      const args = JSON.parse(/```json\n([\s\S]*?)\n```/u.exec(body)[1]);
-      assert.deepEqual(Object.keys(args), ['request']);
-      const example = args.request;
-      const {parseRequest} = await import(pathToFileURL(
-          join(bundle, 'dist/src/schema.js')));
-      assert.doesNotThrow(() => parseRequest({...example, outputDir: directory}));
-    });
+test('model sees bounded sections and reference-only check/build', () => {
+  const draft = server.createTool('ggb_request').parameters;
+  assert.equal(draft.additionalProperties, false);
+  assert.equal(draft.properties.items.maxItems, 8);
+  assert.ok(draft.properties.items.items.anyOf.some(item =>
+    item.properties?.expected));
+  assert.deepEqual(server.createTool('ggb_check').parameters.required,
+    ['revision']);
+  assert.deepEqual(server.createTool('ggb_build').parameters.required,
+    ['checkedRequestId']);
+  assert.equal(server.createTool('ggb_build').parameters.properties.request,
+    undefined);
+  const body = installation.loadWorkerSkill();
+  const args = JSON.parse(/```json\n([\s\S]*?)\n```/u.exec(body)[1]);
+  assert.deepEqual(args, {action: 'create', locale: 'en'});
+});
 
 
 test('restricted reference topics read only complete bundled sections', () => {
@@ -147,25 +139,24 @@ test('restricted reference topics read only complete bundled sections', () => {
 });
 
 test('interaction model schema explains units, limits and ordering', () => {
-  const plan = server.createTool('ggb_check').parameters.properties.request
-      .properties.plan.properties;
-  const drag = plan.interactions.items.anyOf[0].properties;
+  const schema = server.createTool('ggb_request').parameters;
+  const drag = schema.properties.items.items.anyOf.find(item =>
+    item.anyOf)?.anyOf[0].properties;
   assert.equal(drag.dx.minimum, -120);
   assert.equal(drag.dy.maximum, 120);
   assert.match(drag.dx.description, /screen pixels/);
-  assert.match(plan.interactions.description, />= 20/);
-  assert.match(plan.interactions.description, /no repeated point/);
-  assert.match(plan.program.description, /dependency before/);
+  assert.match(schema.properties.items.description, />= 20/);
+  assert.match(schema.properties.items.description, /no repeated point/);
 });
-
 
 test('drag rejection reports pixel units and a usable threshold', async () => {
   const {parseRequest} = await import(pathToFileURL(
-      join(bundle, 'dist/src/schema.js')));
-  const example = JSON.parse(/```json\n([\s\S]*?)\n```/u.exec(
-      installation.loadWorkerSkill())[1]).request;
-  example.plan.program[0] = {id: 'O', op: 'freePoint', x: 0, y: 0};
-  example.plan.interactions = [{point: 'O', dx: 3, dy: 2}];
+    join(bundle, 'dist/src/schema.js')));
+  const example = {protocolVersion: 2, prompt: 'point', locale: 'en',
+    plan: {program: [{id: 'O', op: 'freePoint', x: 0, y: 0}],
+      requirements: [{id: 'point', source: 'point', checks: [
+        {kind: 'exists', subjects: ['O'], scope: 'initial'}]}],
+      interactions: [{point: 'O', dx: 3, dy: 2}]}};
   assert.throws(() => parseRequest({...example, outputDir: directory}),
-      /screen pixels.*>= 20/);
+    /screen pixels.*>= 20/);
 });

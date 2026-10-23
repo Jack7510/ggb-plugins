@@ -22,8 +22,8 @@ test('capability manifest matches the compiled schema and worker skill', () => {
   assert.equal(manifest.schemaVersion, 1);
   assert.equal(manifest.toolVersion, pkg.version);
   assert.equal(manifest.requestProtocolVersion, 2);
-  assert.equal(manifest.workerProfileVersion, 'plugin-core-v1');
-  assert.deepEqual(manifest.modelFacingTools, ['ggb_inspect', 'ggb_check', 'ggb_build']);
+  assert.equal(manifest.workerProfileVersion, 'plugin-core-v2');
+  assert.deepEqual(manifest.modelFacingTools, ['ggb_inspect', 'ggb_request', 'ggb_check', 'ggb_build']);
   assert.deepEqual(manifest.commands, commands);
   assert.deepEqual(manifest.limits, limits);
   assert.deepEqual(manifest.predicates, predicates);

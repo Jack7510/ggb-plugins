@@ -57,7 +57,7 @@ try {
       await mkdir(join(plugin, 'dsh'), { recursive: true });
       await cp(join(root, 'dsh', file), join(plugin, 'dsh', file));
     }
-    for (const file of ['host-protocol', 'execution-contract']) {
+    for (const file of ['host-protocol', 'execution-contract', 'draft-requests', 'draft-arguments']) {
       await cp(join(root, `dist/src/${file}.d.ts`),
         join(plugin, `dist/src/${file}.d.ts`));
     }
