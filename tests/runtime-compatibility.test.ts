@@ -9,7 +9,7 @@ test('compatibility repairs only pinned engine assets', () => {
   assert.equal(compatibleRuntimeAsset('asset.js', data), data);
   for (const version of ['5.4.929.3', '5.4.932.1']) {
     const identity = runtimeCompatibility(version);
-    assert.match(identity.sha256, /^[a-f0-9]{64}$/u);
+    assert.match(identity.patchedSha256, /^[a-f0-9]{64}$/u);
     assert.throws(() => compatibleRuntimeAsset(identity.asset, data),
       /geogebra_compatibility_asset_mismatch/u);
   }

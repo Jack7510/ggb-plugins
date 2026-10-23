@@ -3,7 +3,9 @@
  * The archive stays unmodified. Served or provisioned assets are hash checked.
  */
 import {createHash} from 'node:crypto';
-import {readFile, writeFile} from 'node:fs/promises';
+import {readFile} from 'node:fs/promises';
+import {writeAtomicFile} from './atomic-file.js';
+export {writeAtomicFile} from './atomic-file.js';
 import {join} from 'node:path';
 
 const compatibilityId = 'directrix-path-origin-v1';
@@ -28,14 +30,22 @@ const digest = (data: Uint8Array): string =>
 const assetPath = (permutation: string): string =>
   `HTML5/5.0/web3d/deferredjs/${permutation}/6.cache.js`;
 
+/** Audit record shared by provisioning, startup checks and doctor. */
+export interface RuntimeCompatibility {
+  patchId: string;
+  sourceVersion: string;
+  asset: string;
+  originalSha256: string;
+  patchedSha256: string;
+}
+
 /** Public identity for the compatibility recipe, in addition to archive SHA. */
-export function runtimeCompatibility(version: string): {
-  id: string; asset: string; sha256: string;
-} {
+export function runtimeCompatibility(version: string): RuntimeCompatibility {
   const patch = patches.find(item => item.version === version);
   if (!patch) throw new Error('geogebra_compatibility_version_unsupported');
-  return {id: compatibilityId, asset: assetPath(patch.permutation),
-    sha256: patch.patched};
+  return {patchId: compatibilityId, sourceVersion: version,
+    asset: assetPath(patch.permutation), originalSha256: patch.original,
+    patchedSha256: patch.patched};
 }
 
 /** Only exact pinned bytes can change; an unknown asset fails closed. */
@@ -71,6 +81,6 @@ export async function prepareRuntimeCompatibility(
   const path = join(geogebraRoot, identity.asset);
   const original = await readFile(path);
   const prepared = compatibleRuntimeAsset(identity.asset, original);
-  if (prepared !== original) await writeFile(path, prepared);
+  if (prepared !== original) await writeAtomicFile(path, prepared);
   return identity;
 }

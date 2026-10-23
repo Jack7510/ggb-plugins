@@ -31,7 +31,7 @@ test('DSH tarball carries its own skill, references and the identical compiled r
     assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml');
     const compatibility = await import(pathToFileURL(join(bundle,
       pkg.exports['./runtime-compatibility'])).href);
-    assert.equal(compatibility.runtimeCompatibility('5.4.932.1').id,
+    assert.equal(compatibility.runtimeCompatibility('5.4.932.1').patchId,
       'directrix-path-origin-v1');
     assert.deepEqual(pkg.dependencies, shared.dependencies);
     assert.deepEqual(await readFile(join(bundle, 'dependencies.lock')), await readFile(join(root, 'pnpm-lock.yaml')));

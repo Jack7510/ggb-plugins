@@ -1,0 +1,37 @@
+name: Runtime compatibility
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  directrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.20.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm run setup:runtime
+      - run: pnpm build
+      - run: pnpm test
+      - name: Raw and patched engine, style, reload, drag and conic controls
+        run: |
+          export DSH_GGB_BROWSER="$(node --input-type=module -e 'import {chromium} from "playwright"; console.log(chromium.executablePath())')"
+          node --test --test-concurrency=1 dist/tests/runtime-compatibility.test.js dist/tests/path-point-browser.test.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: directrix-runtime-evidence
+          path: output/path-point-regression

@@ -4,6 +4,12 @@
 
 ## 未发布
 
+- runtime asset 和审计 manifest 使用同目录临时文件、文件同步、原子 rename；POSIX
+  同步父目录。写入、同步或 rename 失败不以部分内容替换旧文件，拒绝符号链接目标。
+  公开审计记录包含 `patchId`、`sourceVersion`、`asset`、`originalSha256` 和
+  `patchedSha256`。固定版本与双摘要校验继续失败关闭。CI 增加真实引擎对照矩阵；
+  宿主负责 Client 归档供应、启动准入和旧 Service Worker 升级验收。
+
 - 固定 runtime 的 Directrix 抛物线分支补齐内部路径起点初始化。原始 `Point(d)` 保留 initial、
   几何依赖、样式、拖动和重载，不改写为固定坐标或辅助直线。真实对照确认原始引擎在创建路径点时
   已产生非有限路径参数；setter 更新和 reload 才暴露坐标失效。插件资源服务按原始和修复后的
