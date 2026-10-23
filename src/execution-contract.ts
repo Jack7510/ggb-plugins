@@ -17,7 +17,7 @@ export interface InspectObject {
   lineThickness: number; lineStyle: number; filling: number | null;
   labelVisible: boolean; caption: string; definition: string;
   value: number | null; x: number | null; y: number | null;
-  slider: {min: number; max: number} | null;
+  slider: {min: number; max: number; step?: number} | null;
 }
 export interface InspectData {
   sha256: string; bytes: number; version: string; entries: string[];
@@ -92,9 +92,11 @@ function inspectObject(input: unknown): InspectObject {
     nullable.every(key => value[key] === null || finite(value[key])),
   'inspect_object');
   if (value.slider !== null) {
-    const slider = object(value.slider, ['min', 'max']);
+    const slider = object(value.slider, ['min', 'max', 'step']);
     requireValue(finite(slider.min) && finite(slider.max) &&
-      Number(slider.max) >= Number(slider.min), 'slider');
+      Number(slider.max) >= Number(slider.min) &&
+      (slider.step === undefined ||
+        finite(slider.step) && Number(slider.step) > 0), 'slider');
   }
   return value as unknown as InspectObject;
 }

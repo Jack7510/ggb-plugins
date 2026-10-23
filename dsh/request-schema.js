@@ -24,10 +24,12 @@ const step = {anyOf: [native,
   object({id: string, op: choice(['command']), name: string,
     args: array({anyOf: [number, object({ref: string})]})}),
 ]};
+const mathValue = depth => ({anyOf: [number, boolean, {type: 'array', maxItems: 256,
+  items: depth > 1 ? mathValue(depth - 1) : {anyOf: [number, boolean]}}]});
 const check = object({kind: choice(Object.keys(predicates)), subjects: names,
   scope: choice(['initial', 'sampled']), coordinates: coords, value: number,
   properties: style, objectType: string, expression: string, mode,
-  expected: {anyOf: [number, boolean, array({})], description: 'Independent expected mathematical number, boolean, or nested array.'},
+  expected: {...mathValue(8), description: 'Independent expected mathematical number, boolean, or nested array.'},
   assumptions: names}, ['kind', 'subjects', 'scope']);
 const requirement = object({id: string, source: string,
   purpose: choice(evidencePurposes), checks: {...array(check), minItems: 1}},

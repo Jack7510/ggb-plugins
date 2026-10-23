@@ -56,7 +56,7 @@
 node <plugin>/dist/src/cli.js inspect --ggb /absolute/base.ggb
 ```
 
-inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`bytes`、`version`、`entries`、`view` 和 `objects`（每个对象的 `name`、`type`、`defined`、`dependent`、`moveable`、`fixed`、`visible`、`color`、`lineThickness`、`lineStyle`、`filling`、`labelVisible`、`caption`、`definition`、`value`、`x`、`y`、`slider`）。请求中的 `base.sha256` 必须等于该值；文件改动后必须重新 inspect。
+inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`bytes`、`version`、`entries`、`view` 和 `objects`（每个对象的 `name`、`type`、`defined`、`dependent`、`moveable`、`fixed`、`visible`、`color`、`lineThickness`、`lineStyle`、`filling`、`labelVisible`、`caption`、`definition`、`value`、`x`、`y`、`slider`）。`slider` 为 `{min,max}`；文件带增量时另含 `step`。请求中的 `base.sha256` 必须等于该值；文件改动后必须重新 inspect。
 
 ```json
 {
@@ -106,7 +106,7 @@ inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`byt
 构造修改与显示属性编辑使用同一 `base`，但一个请求只能二选一：有 `plan.edits` 时不得同时有 `plan.program`／`plan.updates`／`plan.styles`。删除、重命名和视图修改不开放。
 
 - `plan.program`：只写新增的 native 步骤。参数可引用基线标签；新输出不得与基线重名，并声明引擎实际返回的全部标签。
-- `plan.updates`：每个对象一条。独立数值对象用 `value`；独立可移动点用 `coords: [x, y]`。滑块值必须在 `slider` 区间内。依赖对象不能更新。
+- `plan.updates`：每个对象一条。独立数值对象用 `value`；独立可移动点用 `coords: [x, y]`。滑块值必须在 `slider` 区间内；有 `step` 时必须落在 `min + k*step` 网格上。依赖对象不能更新。
 - `plan.styles`：可同时引用基线与新对象；基线对象不接受 `fixed`。
 - `plan.interactions` 为 `[]`；不写 `view`、`edits`。检查覆盖每个新增对象、更新和样式。
 - 更新用 GeoGebra 受控 API 执行；模型不写 `SetValue`、`SetCoords` 或 `SetColor`。

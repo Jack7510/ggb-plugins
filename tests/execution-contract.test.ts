@@ -40,3 +40,18 @@ test('inspect has a complete public schema and a bounded plugin projection', () 
     assert.throws(() => parseInspectData(value), /executor_/);
   }
 });
+
+test('slider step is optional for old inspect data and must be positive when present', () => {
+  const object = inspected.objects[0]!;
+  assert.doesNotThrow(() => parseInspectData({...inspected, objects: [
+    {...object, slider: {min: 3, max: 12}},
+  ]}));
+  assert.doesNotThrow(() => parseInspectData({...inspected, objects: [
+    {...object, slider: {min: 3, max: 12, step: 1}},
+  ]}));
+  for (const step of [0, -1, '1']) {
+    assert.throws(() => parseInspectData({...inspected, objects: [
+      {...object, slider: {min: 3, max: 12, step}},
+    ]}), /executor_/);
+  }
+});

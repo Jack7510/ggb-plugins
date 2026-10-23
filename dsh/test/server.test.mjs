@@ -41,6 +41,21 @@ test('public exports are shipped and installation resolves only this package',
       assert.ok(installation.loadWorkerSkill().includes('```json'));
     });
 
+test('reference sections tolerate CRLF and spaced headings', async () => {
+  const path = join(bundle,
+    'skills/ggb-construction/references/capabilities.md');
+  const original = await readFile(path, 'utf8');
+  try {
+    await writeFile(path, original.replace(/\r?\n/gu, '\r\n')
+      .replace('## 请求\r\n', '##   请求  \r\n'));
+    const section = installation.loadReference('request').content;
+    assert.match(section, /^##   请求  /mu);
+    assert.match(section, /protocolVersion/u);
+  } finally {
+    await writeFile(path, original);
+  }
+});
+
 test('server registers three closed tools and an eagerly loaded Worker Skill',
     () => {
       const tools = [];

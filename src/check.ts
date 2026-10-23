@@ -1,5 +1,6 @@
 /** @fileoverview Shared static preflight for CLI and host execution. */
 import type {Request} from './schema.js';
+import {throwInputError} from './schema.js';
 import type {CheckData} from './execution-contract.js';
 import {compile} from './compile.js';
 import {loadBase} from './inspect.js';
@@ -9,6 +10,10 @@ import {validateModifyStyles} from './modify.js';
 
 /** Static preflight: program shape, or base digest plus declared changes. */
 export async function checkRequest(request: Request): Promise<CheckData> {
+  try { return await checkRequestValue(request); } catch (error) { return throwInputError(error); }
+}
+
+async function checkRequestValue(request: Request): Promise<CheckData> {
   if (!request.base) {
     compile(request);
     const warnings = verificationNotes(request.plan.requirements);

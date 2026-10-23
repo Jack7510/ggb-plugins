@@ -9,8 +9,8 @@
       { "id": "O", "op": "native", "mode": "algebra", "source": "O=(0,0)" },
       { "id": "A", "op": "native", "mode": "algebra", "source": "A=(3,0)" },
       { "id": "circ", "op": "native", "mode": "algebra", "source": "circ=Circle(O,A)" },
-      { "id": "n", "op": "native", "mode": "algebra", "source": "n=Slider(3,10,1)" },
-      { "id": "poly", "op": "native", "mode": "algebra", "source": "poly=Polygon(Sequence(Rotate(A, 2*pi*k/n, O), k, 0, n-1))", "outputs": ["poly"] }
+      { "id": "n", "op": "native", "mode": "algebra", "source": "n=Slider(3,12,1)" },
+      { "id": "poly", "op": "native", "mode": "algebra", "source": "poly=Polygon(Sequence(Rotate(A, 2*pi*k/round(n), O), k, 0, round(n)-1))", "outputs": ["poly"] }
     ],
     "requirements": [
       {
@@ -28,11 +28,13 @@
         "source": "在圆内作一个内接正多边形（边数由滑块控制）",
         "checks": [
           { "kind": "type", "subjects": ["poly"], "objectType": "polygon", "scope": "initial" },
-          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Area(poly)-n/2*Distance(O,A)^2*sin(2*pi/n)", "mode": "algebra", "expected": 0, "scope": "initial" },
-          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Perimeter(poly)-2*n*Distance(O,A)*sin(pi/n)", "mode": "algebra", "expected": 0, "scope": "initial" },
-          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Max(Sequence(abs(Distance(O,Vertex(poly,k))-Distance(O,A)),k,1,n))", "mode": "algebra", "expected": 0, "scope": "sampled" },
-          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Max(Sequence(abs(Distance(Vertex(poly,k),Vertex(poly,Mod(k,n)+1))-2*Distance(O,A)*sin(pi/n)),k,1,n))", "mode": "algebra", "expected": 0, "scope": "sampled" },
-          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Area(poly)-n/2*Distance(O,A)^2*sin(2*pi/n)", "mode": "algebra", "expected": 0, "scope": "sampled" },
+          { "kind": "expression", "subjects": ["n"], "expression": "n-round(n)", "mode": "algebra", "expected": 0, "scope": "sampled" },
+          { "kind": "expression", "subjects": ["poly", "n"], "expression": "Length(Sequence(Vertex(poly,j),j,1,round(n)))-round(n)", "mode": "algebra", "expected": 0, "scope": "sampled" },
+          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Area(poly)-round(n)/2*Distance(O,A)^2*sin(2*pi/round(n))", "mode": "algebra", "expected": 0, "scope": "initial" },
+          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Perimeter(poly)-2*round(n)*Distance(O,A)*sin(pi/round(n))", "mode": "algebra", "expected": 0, "scope": "initial" },
+          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Max(Sequence(abs(Distance(O,Vertex(poly,k))-Distance(O,A)),k,1,round(n)))", "mode": "algebra", "expected": 0, "scope": "sampled" },
+          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Max(Sequence(abs(Distance(Vertex(poly,k),Vertex(poly,Mod(k,round(n))+1))-2*Distance(O,A)*sin(pi/round(n))),k,1,round(n)))", "mode": "algebra", "expected": 0, "scope": "sampled" },
+          { "kind": "expression", "subjects": ["poly", "n", "O", "A"], "expression": "Area(poly)-round(n)/2*Distance(O,A)^2*sin(2*pi/round(n))", "mode": "algebra", "expected": 0, "scope": "sampled" },
           { "kind": "style", "subjects": ["poly"], "properties": { "visible": true }, "scope": "initial" }
         ]
       }

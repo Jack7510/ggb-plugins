@@ -56,8 +56,8 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">=22",
-    "dsh": ">=0.2.1-rc.2"
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": "0.2.1-rc.2"
   },
   "keywords": [
     "dsh-plugin",

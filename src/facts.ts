@@ -5,6 +5,8 @@
 import { ToolError, type Request } from './schema.js';
 
 export interface NativeDefinition { name: string; args: string[] }
+/** Slider metadata read from the applet; step is absent when the file has none. */
+export interface SliderFact { min: number; max: number; step?: number }
 export interface ReferenceFact {
   name: string; inputs: readonly string[];
   referenceState?: 'direct' | 'ambiguous';
@@ -15,7 +17,15 @@ export interface ObjectMetadata {
   name: string; xmlType: string; expression: string | null;
   definition: NativeDefinition | null; outputs: string[];
   coords: number[] | null; matrix: number[] | null; fixed: boolean;
-  slider: { min: number; max: number } | null;
+  slider: SliderFact | null;
+}
+
+/** A requested value must land on the slider's declared discrete step. */
+export function isOnSliderStep(value: number, slider: SliderFact): boolean {
+  if (slider.step === undefined) return true;
+  const units = (value - slider.min) / slider.step;
+  return Math.abs(units - Math.round(units))
+    <= 1e-8 * Math.max(1, Math.abs(units));
 }
 
 /** Validates a complete engine removal graph before it can grant permission. */
@@ -84,7 +94,7 @@ export function dependsOn(links: readonly ReferenceFact[], name: string,
 
 export interface InteractionFact extends ReferenceFact {
   type: string; moveable: boolean; fixed: boolean; independent: boolean;
-  slider: { min: number; max: number } | null;
+  slider: SliderFact | null;
 }
 
 /** Capability, not an object name or predicate kind, defines controllability. */

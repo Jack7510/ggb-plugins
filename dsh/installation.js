@@ -1,7 +1,7 @@
 /** @fileoverview Resolves the installed bundle's public server resources. */
 import {createHash} from 'node:crypto';
 import {readFileSync, realpathSync, statSync} from 'node:fs';
-import {dirname, join} from 'node:path';
+import {dirname, join, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {EXECUTOR_PROTOCOL_VERSION} from '../dist/src/execution-contract.js';
 import {assertDshCompatibility, HOST_PROTOCOL_VERSION,
@@ -118,19 +118,29 @@ export function loadReference(topic) {
   const root = loadInstallation().root;
   const file = topic === 'patterns' ? 'patterns.md' : 'capabilities.md';
   const path = join(root, 'skills/ggb-construction/references', file);
-  if (realpathSync(path) !== path || statSync(path).size > 64 * 1024) {
+  const resolved = realpathSync(path);
+  const info = statSync(resolved);
+  if (!resolved.startsWith(realpathSync(root) + sep)
+    || !info.isFile() || info.size > 64 * 1024) {
     throw new Error('ggb_reference_resource_invalid');
   }
-  let content = readFileSync(path, 'utf8');
+  let content = readFileSync(resolved, 'utf8');
   if (topic !== 'patterns') {
-    const heading = '## ' + sections[topic] + '\n';
-    const start = content.indexOf(heading);
-    if (start < 0) throw new Error('ggb_reference_section_missing');
-    const end = content.indexOf('\n## ', start + heading.length);
-    content = content.slice(start, end < 0 ? undefined : end);
+    const heading = new RegExp(`^##[ \\t]+${escapeRegExp(sections[topic])}[ \\t]*\\r?$`, 'mu');
+    const match = heading.exec(content);
+    if (!match) throw new Error('ggb_reference_section_missing');
+    const start = match.index;
+    const rest = content.slice(start + match[0].length);
+    const next = /^##[ \t]+/mu.exec(rest);
+    content = content.slice(start,
+      next ? start + match[0].length + next.index : undefined);
   }
   if (Buffer.byteLength(content) > 24 * 1024) {
     throw new Error('ggb_reference_resource_oversized');
   }
   return {topic, content};
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }

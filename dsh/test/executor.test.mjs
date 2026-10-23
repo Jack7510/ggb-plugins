@@ -79,6 +79,17 @@ test('the same error code after dispatch is execution, never preflight',
     } finally { await rm(f.root, {recursive: true, force: true}); }
   });
 
+test('unexpected preflight faults reject instead of becoming invalid_input',
+  async () => {
+    const f = await fixture();
+    try {
+      await assert.rejects(f.executeHostOperation('build', f.request,
+        f.context, 'a'.repeat(64), undefined, {check: async () => {
+          throw new TypeError('preflight program fault');
+        }}), /preflight program fault/);
+    } finally { await rm(f.root, {recursive: true, force: true}); }
+  });
+
 
 test('inspect uses the declared base and strips paths from public data',
   async () => {

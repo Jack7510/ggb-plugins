@@ -30,7 +30,7 @@ export interface InspectedObject {
   lineThickness: number; lineStyle: number; filling: number | null;
   labelVisible: boolean; caption: string; definition: string;
   value: number | null; x: number | null; y: number | null;
-  slider: { min: number; max: number } | null;
+  slider: { min: number; max: number; step?: number } | null;
 }
 
 function describe(facts: Awaited<ReturnType<typeof snapshot>>) {

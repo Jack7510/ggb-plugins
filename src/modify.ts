@@ -12,10 +12,11 @@ import {
   allowedStyleChanges, dependents, type Difference, type FactLink,
   type UpdateEffect,
 } from './edit.js';
+import { isOnSliderStep, type SliderFact } from './facts.js';
 
 export interface BaseFact {
   name: string; type: string; independent: boolean; moveable: boolean;
-  fixed: boolean; slider: { min: number; max: number } | null;
+  fixed: boolean; slider: SliderFact | null;
 }
 
 function close(actual: unknown, requested: number): boolean {
@@ -68,6 +69,12 @@ export function validateUpdates(
         || update.value > fact.slider.max)) {
         throw new ToolError('invalid_update',
           `Value is outside the slider range: ${update.object}`, {
+            value: update.value, slider: fact.slider,
+          });
+      }
+      if (fact.slider && !isOnSliderStep(update.value, fact.slider)) {
+        throw new ToolError('invalid_update',
+          `Value is not on the slider step grid: ${update.object}`, {
             value: update.value, slider: fact.slider,
           });
       }

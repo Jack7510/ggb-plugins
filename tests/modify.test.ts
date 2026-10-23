@@ -108,7 +108,7 @@ test('update targets must be independent, movable and in range', () => {
     ['F', { name: 'F', type: 'point', independent: true, moveable: false,
       fixed: true, slider: null }],
     ['n', { name: 'n', type: 'numeric', independent: true, moveable: true,
-      fixed: false, slider: { min: 0, max: 5 } }],
+      fixed: false, slider: { min: 0, max: 5, step: 1 } }],
   ]);
   validateUpdates([
     { object: 'O', coords: [1, 2] },
@@ -123,6 +123,7 @@ test('update targets must be independent, movable and in range', () => {
   fail({ object: 'n', coords: [1, 2] }, /movable point/);
   fail({ object: 'O', value: 1 }, /numeric object/);
   fail({ object: 'n', value: 9 }, /slider range/);
+  fail({ object: 'n', value: 3.5 }, /step grid/);
   assert.throws(() => validateUpdates([{ object: 'Q', value: 1 }], values),
     (error: unknown) => error instanceof ToolError
       && error.code === 'unknown_update_target');

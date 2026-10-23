@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import type {Snapshot} from './browser.js';
 import type {Request} from './schema.js';
 import {ToolError, parseRequest} from './schema.js';
-import {requireSampleCoverage} from './facts.js';
+import {isOnSliderStep, requireSampleCoverage} from './facts.js';
 import {compareSnapshots, equivalent, verify, type Verification}
   from './verify.js';
 type Interaction = Request['plan']['interactions'][number];
@@ -95,7 +95,9 @@ function validateSamples(
         Math.abs(after.value - before.value) > 1e-8 &&
         equivalent(after.value, expected.value) &&
         expected.value >= before.slider.min &&
-        expected.value <= before.slider.max, 'Invalid parameter evidence');
+        expected.value <= before.slider.max &&
+        isOnSliderStep(expected.value, before.slider),
+        'Invalid parameter evidence');
     }
   }
   validateRoundTrips(request, samples);
@@ -145,8 +147,13 @@ export function validateHostDelivery(input: unknown, report: unknown,
 export function validateHostMaterial(manifest: unknown, facts: {
   file: string; runtimeVersion: string; sha256: string;
 }): void {
+  assert(manifest !== null && typeof manifest === 'object'
+    && !Array.isArray(manifest), 'Manifest must be an object');
   const value = manifest as {file?: unknown; runtimeVersion?: unknown;
     sha256?: unknown};
+  assert(typeof value.file === 'string'
+    && typeof value.runtimeVersion === 'string'
+    && typeof value.sha256 === 'string', 'Manifest fields must be strings');
   assert.equal(value.file, facts.file, 'Manifest file mismatch');
   assert.equal(value.runtimeVersion, facts.runtimeVersion,
     'Runtime version mismatch');

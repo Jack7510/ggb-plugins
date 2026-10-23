@@ -23,7 +23,9 @@ const json = async path => JSON.parse(await readFile(path, 'utf8'));
 /** Bound producer reads before hashing; a present preview must be valid. */
 async function readMaterial(path, kind) {
   const limit = kind === 'result_ggb' ? LIMITS.ggbBytes :
-    kind === 'preview' ? LIMITS.previewBytes : LIMITS.reportBytes;
+    kind === 'preview' ? LIMITS.previewBytes :
+    kind === 'manifest' ? LIMITS.manifestBytes :
+    kind === 'request' ? LIMITS.requestBytes : LIMITS.reportBytes;
   const info = await lstat(path);
   assert(info.isFile() && info.size > 0 && info.size <= limit,
     'Artifact size exceeds delivery contract');
@@ -42,8 +44,8 @@ async function material(context, result, request) {
   validateHostDelivery(request, report, manifest);
   const ggb = await readMaterial(result.file, 'result_ggb');
   assert.equal(hash(ggb), manifest.sha256);
-  assert.equal(hash(await readFile(join(result.delivery, 'request.json'))),
-    manifest.requestSha256);
+  assert.equal(hash(await readMaterial(
+    join(result.delivery, 'request.json'), 'request')), manifest.requestSha256);
   const entries = [
     ['result_ggb', result.file, 'application/octet-stream'],
     ['verification', result.report, 'application/json'],
@@ -123,9 +125,7 @@ export async function executeHostOperation(operation, input, contextInput,
     }
   } catch (error) {
     running.throwIfAborted();
-    if (response.phase !== 'preflight' && !(error instanceof ToolError)) {
-      throw error;
-    }
+    if (!(error instanceof ToolError)) throw error;
     const failure = toolError(error, 'invalid_input', running);
     response.error = {code: failure.code,
       message: failure.message.slice(0, 2048),
@@ -145,7 +145,10 @@ export async function executeHostOperation(operation, input, contextInput,
 /** Only this preflight branch can produce a refundable build rejection. */
 async function dispatch(response, request, context, signal, operations) {
   if (response.operation !== 'inspect') {
-    const result = await checkRequest(parseRequest(request));
+    const parsed = parseRequest(request);
+    const result = operations.check
+      ? await operations.check(parsed)
+      : await checkRequest(parsed);
     if (response.operation === 'check') {
       response.data = result;
       response.ok = true;

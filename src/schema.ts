@@ -1,10 +1,17 @@
 /** @fileoverview Validates request envelopes and owns shared capabilities. */
 import assert from 'node:assert/strict';
+import { AssertionError } from 'node:assert';
 import { isAbsolute } from 'node:path';
 import { validateNewObjectName } from './names.js';
 
 export class ToolError extends Error {
   constructor(public code: string, message: string, public details?: unknown) { super(message); }
+}
+
+/** Input validation asserts become classified rejections; other faults stay faults. */
+export function throwInputError(error: unknown): never {
+  if (error instanceof ToolError || !(error instanceof AssertionError)) throw error;
+  throw new ToolError('invalid_input', error.message);
 }
 
 export function toolError(error: unknown, code: string, signal?: AbortSignal): ToolError {
@@ -471,6 +478,10 @@ function validateInteractions(p: Fields, base: boolean): void {
 
 /** Validate the full envelope before a browser starts or output is written. */
 export function parseRequest(value: unknown): Request {
+  try { return parseRequestValue(value); } catch (error) { return throwInputError(error); }
+}
+
+function parseRequestValue(value: unknown): Request {
   const r = record(value, ['protocolVersion', 'prompt', 'locale', 'outputDir',
     'title', 'clarifications', 'plan', 'base']);
   assert.equal(r.protocolVersion, 2,

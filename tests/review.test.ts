@@ -7,6 +7,7 @@ import test from 'node:test';
 import { deflateRawSync } from 'node:zlib';
 import type { Snapshot } from '../src/browser.js';
 import { compile } from '../src/compile.js';
+import { validateHostMaterial } from '../src/delivery-contract.js';
 import { auditGgb, readGgb } from '../src/ggbfile.js';
 import { modifyViolations } from '../src/modify.js';
 import { parseRequest, ToolError, type Request } from '../src/schema.js';
@@ -186,4 +187,15 @@ test('conic recomputation is allowed only along a declared update dependency',
     };
     assert.deepEqual(modifyViolations(input), []);
     assert.equal(modifyViolations({ ...input, links: [] }).length, 1);
+  });
+
+test('host material validation rejects non-object and non-string manifests',
+  () => {
+    const facts = { file: 'result.ggb', runtimeVersion: '5.0',
+      sha256: 'a'.repeat(64) };
+    assert.doesNotThrow(() => validateHostMaterial({ ...facts }, facts));
+    for (const value of [null, [], 'manifest', {},
+      { ...facts, file: 1 }, { ...facts, sha256: null }]) {
+      assert.throws(() => validateHostMaterial(value, facts), /Manifest/);
+    }
   });

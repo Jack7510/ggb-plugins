@@ -249,6 +249,9 @@ function readConstructionMetadata(): ObjectMetadata[] {
         : null;
     };
     const slider = element.querySelector('slider');
+    // Increments can reference objects or expressions such as pi / 6.
+    const step = api.getValue(
+      element.querySelector('animation')?.getAttribute('step') ?? '');
     return {
       name, xmlType: element.getAttribute('type') ?? '',
       expression: expressions.get(name) ?? null,
@@ -260,6 +263,7 @@ function readConstructionMetadata(): ObjectMetadata[] {
       slider: slider ? {
         min: api.getValue(slider.getAttribute('min') ?? ''),
         max: api.getValue(slider.getAttribute('max') ?? ''),
+        ...(Number.isFinite(step) && step > 0 ? { step } : {}),
       } : null,
     };
   });
@@ -731,6 +735,15 @@ export async function interact(page: Page, sample: Interaction) {
     const min = api.getValue(slider.getAttribute('min')!), max = api.getValue(slider.getAttribute('max')!);
     if (![min, max, value].every(Number.isFinite) || value < min || value > max || Math.abs(api.getValue(parameter) - value) <= 1e-8)
       throw new Error('Parameter sample is outside the slider interval or unchanged');
+    const step = api.getValue(
+      xml.querySelector('animation')?.getAttribute('step') ?? '');
+    if (Number.isFinite(step) && step > 0) {
+      const units = (value - min) / step;
+      if (Math.abs(units - Math.round(units))
+        > 1e-8 * Math.max(1, Math.abs(units))) {
+        throw new Error(`Parameter sample is not on the slider step grid: ${parameter}=${value}, step=${step}`);
+      }
+    }
     api.setValue(parameter, value);
     if (Math.abs(api.getValue(parameter) - value) > 1e-8) throw new Error('Parameter did not reach the requested value');
   }, sample);

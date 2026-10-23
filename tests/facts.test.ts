@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  dependents, dependsOn, dependencyFacts, presentationOwner,
+  dependents, dependsOn, dependencyFacts, isOnSliderStep, presentationOwner,
   requireSampleCoverage, type ObjectMetadata,
 } from '../src/facts.js';
 import { diffViolations } from '../src/edit.js';
@@ -134,4 +134,16 @@ test('fixed assertions stay sampled without pretending to prove interaction', ()
   request.plan.requirements[0]!.purpose = 'interaction';
   assert.throws(() => requireSampleCoverage(request, facts),
     /No controllable input/);
+});
+
+test('slider step admits only the declared integer domain', () => {
+  const slider = { min: 3, max: 12, step: 1 };
+  for (const value of [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) {
+    assert.equal(isOnSliderStep(value, slider), true, String(value));
+  }
+  for (const value of [3.5, 4.5, 7.5]) {
+    assert.equal(isOnSliderStep(value, slider), false, String(value));
+  }
+  assert.equal(isOnSliderStep(3.3, { min: 3, max: 4, step: 0.1 }), true);
+  assert.equal(isOnSliderStep(3.5, { min: 3, max: 12 }), true);
 });
