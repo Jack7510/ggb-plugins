@@ -16,6 +16,8 @@ const clone = <T>(value: T): T => structuredClone(value);
 /** One authenticated turn owns this state. No filesystem or execution access. */
 export class RequestDraft {
   private revision = 0;
+  private document: Record<string, unknown> | null = null;
+  private documentBytes = 0;
   private locale = '';
   private title: string | undefined;
   private sections: Record<DraftSection, unknown[]> = {
@@ -26,9 +28,21 @@ export class RequestDraft {
   private checked: Checked | null = null;
   constructor(private readonly prompt: string) {}
 
-  /** Mutations are atomic and invalidate previously checked versions. */
+  /** Atomic writes invalidate checks; the first success fixes the input mode. */
   operate(input: unknown): Record<string, unknown> {
     const args = parseDraftArguments('ggb_request', input);
+    if (args.requestText !== undefined) {
+      requireDraft(this.revision === 0 || this.document !== null,
+        'draft_mode_conflict');
+      requireDraft(this.revision < 256, 'draft_revision_limit');
+      const request = this.assembleText(String(args.requestText), args);
+      this.document = request;
+      this.documentBytes = Buffer.byteLength(JSON.stringify(request));
+      this.revision++;
+      this.checked = null;
+      return this.summary();
+    }
+    requireDraft(this.document === null, 'draft_mode_conflict');
     if (args.action === 'create') {
       requireDraft(this.revision === 0, 'draft_already_exists');
       this.locale = String(args.locale);
@@ -63,7 +77,7 @@ export class RequestDraft {
     const args = parseDraftArguments('ggb_check', input);
     this.match(args.revision);
     this.checked = null;
-    const request = this.assemble();
+    const request = this.currentRequest();
     requireDraft(Buffer.byteLength(JSON.stringify(request)) <= LIMITS.requestBytes,
       'draft_request_too_large');
     return {revision: this.revision, request,
@@ -74,7 +88,7 @@ export class RequestDraft {
   acceptCheck(snapshot: DraftSnapshot): Record<string, unknown> {
     this.match(snapshot.revision);
     requireDraft(digestJson(snapshot.request) === snapshot.domainRequestDigest &&
-      digestJson(this.assemble()) === snapshot.domainRequestDigest,
+      digestJson(this.currentRequest()) === snapshot.domainRequestDigest,
       'draft_snapshot_changed');
     this.checked = {...clone(snapshot), checkedRequestId: randomUUID()};
     return {checkedRequestId: this.checked.checkedRequestId,
@@ -89,7 +103,7 @@ export class RequestDraft {
       this.checked.checkedRequestId === args.checkedRequestId,
     'draft_check_required');
     this.match(this.checked.revision);
-    requireDraft(digestJson(this.assemble()) ===
+    requireDraft(digestJson(this.currentRequest()) ===
       this.checked.domainRequestDigest, 'draft_snapshot_changed');
     return clone(this.checked);
   }
@@ -99,9 +113,41 @@ export class RequestDraft {
     requireDraft(revision === this.revision, 'draft_revision_conflict');
   }
   private summary(): Record<string, unknown> {
+    if (this.document !== null) return {revision: this.revision,
+      requestBytes: this.documentBytes,
+      domainRequestDigest: digestJson(this.document)};
     return {revision: this.revision, counts: Object.fromEntries(
       DRAFT_SECTIONS.map(s => [s, this.sections[s].length])),
     maxArgumentBytes: DRAFT_ARGUMENT_BYTES};
+  }
+  private currentRequest(): Record<string, unknown> {
+    return clone(this.document ?? this.assemble());
+  }
+  private assembleText(value: string, args: Record<string, unknown>): Record<string, unknown> {
+    let parsed: unknown;
+    try { parsed = JSON.parse(value); } catch {
+      throw new DraftError('draft_request_json', 'requestText is not valid JSON');
+    }
+    const body = record(parsed);
+    requireDraft(Object.keys(body).every(k => ['plan', 'clarifications'].includes(k)),
+      'draft_request_fields');
+    requireDraft(body.plan !== undefined, 'draft_request_plan');
+    const plan = record(body.plan);
+    const normalizedPlan = {...plan,
+      ...(Array.isArray(plan.program) ? {program: plan.program.map(nativeStep)} : {})};
+    // parseDraftArguments has validated an explicit transcription as string[].
+    const prompt = args.transcription === undefined
+      ? this.document?.prompt ?? this.prompt
+      : [this.prompt, ...args.transcription as string[]].join('\n');
+    const title = args.title ?? this.document?.title;
+    const request = {protocolVersion: 2,
+      prompt, locale: args.locale ?? this.document?.locale ?? 'zh-CN',
+      plan: normalizedPlan,
+      ...(body.clarifications === undefined ? {} : {clarifications: body.clarifications}),
+      ...(title === undefined ? {} : {title})};
+    requireDraft(Buffer.byteLength(JSON.stringify(request)) <= LIMITS.requestBytes,
+      'draft_request_too_large');
+    return request;
   }
   private read(section: DraftSection,
       args: Record<string, unknown>): Record<string, unknown> {

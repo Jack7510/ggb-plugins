@@ -1,5 +1,9 @@
 /** @fileoverview Closed, bounded model arguments for run-local request drafts. */
 export const DRAFT_ARGUMENT_BYTES = 2048;
+/** Serialized tool arguments include JSON escaping and optional metadata. */
+export const REQUEST_ARGUMENT_BYTES = 128 * 1024;
+/** The raw body is also bounded; the serialized argument budget can bind first. */
+export const REQUEST_TEXT_BYTES = REQUEST_ARGUMENT_BYTES;
 export const DRAFT_SECTIONS = ['program', 'requirements', 'checks',
   'interactions', 'styles', 'edits', 'updates', 'view', 'display',
   'clarifications', 'transcription'] as const;
@@ -8,8 +12,8 @@ export type DraftArguments = Record<string, unknown>;
 
 /** A recoverable draft error; it never contains submitted data or paths. */
 export class DraftError extends Error {
-  constructor(readonly code: string) {
-    super(code);
+  constructor(readonly code: string, message = code) {
+    super(message);
     this.name = 'DraftError';
   }
 }
@@ -21,6 +25,10 @@ export function parseDraftArguments(tool: string,
     throw new DraftError('draft_arguments_object');
   }
   const args = input as DraftArguments;
+  if (tool === 'ggb_request' && args.requestText !== undefined) {
+    validateTextArguments(args);
+    return args;
+  }
   if (Buffer.byteLength(JSON.stringify(args)) > DRAFT_ARGUMENT_BYTES) {
     throw new DraftError('draft_chunk_too_large');
   }
@@ -51,6 +59,26 @@ export function parseDraftArguments(tool: string,
   requireDraft(Number.isSafeInteger(args.revision) &&
     Number(args.revision) >= 1, 'draft_revision');
   return args;
+}
+
+/** Apply the same serialized byte budget used by the authenticated channel. */
+function validateTextArguments(args: DraftArguments): void {
+  keys(args, ['requestText', 'locale', 'title', 'transcription']);
+  requireDraft(typeof args.requestText === 'string' &&
+    args.requestText.length > 0, 'draft_request_text');
+  requireDraft(Buffer.byteLength(args.requestText) <= REQUEST_TEXT_BYTES,
+    'draft_request_text_too_large');
+  requireDraft(Buffer.byteLength(JSON.stringify(args)) <=
+    REQUEST_ARGUMENT_BYTES, 'draft_arguments_too_large');
+  requireDraft(args.locale === undefined || typeof args.locale === 'string' &&
+    args.locale.length > 0 && args.locale.length <= 32, 'draft_locale');
+  requireDraft(args.title === undefined || typeof args.title === 'string' &&
+    args.title.length <= 60, 'draft_title');
+  requireDraft(args.transcription === undefined ||
+    Array.isArray(args.transcription) && args.transcription.length <= 20 &&
+    args.transcription.every(value => typeof value === 'string' &&
+      value.trim().length > 0 && value.length <= 2_000),
+  'draft_transcription');
 }
 
 /** Fail closed without echoing untrusted values. */

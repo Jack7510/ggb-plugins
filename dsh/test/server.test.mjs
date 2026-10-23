@@ -101,12 +101,13 @@ test('mixed package identity and changed Skill fail before tool registration',
       } finally { await writeFile(path, original); }
     });
 
-test('model sees bounded sections and reference-only check/build', () => {
+test('model submits one complete requestText and reference-only check/build', async () => {
   const draft = server.createTool('ggb_request').parameters;
   assert.equal(draft.additionalProperties, false);
-  assert.equal(draft.properties.items.maxItems, 8);
-  assert.ok(draft.properties.items.items.anyOf.some(item =>
-    item.properties?.expected));
+  assert.deepEqual(draft.required, ['requestText']);
+  assert.equal(draft.properties.items, undefined);
+  assert.equal(draft.properties.requestText.maxLength, 128 * 1024);
+  assert.match(draft.properties.requestText.description, /host owns/i);
   assert.deepEqual(server.createTool('ggb_check').parameters.required,
     ['revision']);
   assert.deepEqual(server.createTool('ggb_build').parameters.required,
@@ -115,7 +116,20 @@ test('model sees bounded sections and reference-only check/build', () => {
     undefined);
   const body = installation.loadWorkerSkill();
   const args = JSON.parse(/```json\n([\s\S]*?)\n```/u.exec(body)[1]);
-  assert.deepEqual(args, {action: 'create', locale: 'en'});
+  assert.equal(args.locale, 'en');
+  assert.equal(typeof args.requestText, 'string');
+  assert.ok(JSON.parse(args.requestText).plan);
+  const {RequestDraft} = await import(pathToFileURL(
+      join(bundle, 'dist/src/draft-requests.js')));
+  const {parseRequest} = await import(pathToFileURL(
+      join(bundle, 'dist/src/schema.js')));
+  const draftState = new RequestDraft('Create point P');
+  const saved = draftState.operate(args);
+  assert.doesNotThrow(() => parseRequest({
+    ...draftState.forCheck({revision: saved.revision}).request,
+    outputDir: '/tmp/synthetic-worker-example',
+  }));
+  assert.match(draft.properties.requestText.description, /escaping/);
 });
 
 
@@ -138,15 +152,11 @@ test('restricted reference topics read only complete bundled sections', () => {
   }
 });
 
-test('interaction model schema explains units, limits and ordering', () => {
+test('request schema points to the complete host-owned document', () => {
   const schema = server.createTool('ggb_request').parameters;
-  const drag = schema.properties.items.items.anyOf.find(item =>
-    item.anyOf)?.anyOf[0].properties;
-  assert.equal(drag.dx.minimum, -120);
-  assert.equal(drag.dy.maximum, 120);
-  assert.match(drag.dx.description, /screen pixels/);
-  assert.match(schema.properties.items.description, />= 20/);
-  assert.match(schema.properties.items.description, /no repeated point/);
+  assert.equal(schema.properties.items, undefined);
+  assert.match(schema.properties.requestText.description, /program|plan/i);
+  assert.match(installation.loadWorkerSkill(), /interactions/i);
 });
 
 test('drag rejection reports pixel units and a usable threshold', async () => {

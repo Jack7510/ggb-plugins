@@ -185,27 +185,35 @@ GGB 上限为 6 MiB，preview 为 3 MiB，报告和 manifest 各为 1 MiB。
 开发 TGZ 的 `source/` 保存精确源码与构建输入。`source/dependencies.lock` 对应源码仓库
 `pnpm-lock.yaml`；npm 不会原样发行该文件名。宿主供应锁固定快照内每个文件的摘要。
 
-### 小块请求与局部修复
+### 单次完整请求
 
-服务端模型使用 `ggb_request` 保存草稿，每次参数最多 2048 UTF-8 字节，
-每批 1–8 个完整条目。`create` 提供 locale，可选 title；原始 prompt 由宿主注入。
-图片题可分段追加 transcription 字符串，保留原始 prompt，再据转写文本关联 requirement.source。
+服务端模型主要通过一次 `ggb_request` 提交完整 `requestText`：
 
-| 操作 | 参数与结果 |
-| --- | --- |
-| append | 当前 revision、section、items；追加后返回新 revision |
-| replace | 加上零起始 index；替换相同数量条目 |
-| remove | 当前 revision、section、index，可选 count（1–8） |
-| read | 当前 revision、section，可选 index/count；返回有界页和 nextIndex/more |
-| ggb_check | 只接收 revision；原有完整 checker 成功后返回 checkedRequestId 和完整请求摘要 |
-| ggb_build | 只接收 checkedRequestId；使用不可变已检查请求，保留完整构造、重载及交互核验 |
+```json
+{"requestText":"{\"plan\":{...}}","locale":"zh-CN"}
+```
 
-requirements 条目包含 id/source/可选 purpose；checks 单独提交并携带 requirementId。
-program 使用 id/source，可选 mode/outputs/initial，默认 mode=algebra。
-CAS、initial、独立 expected 和全部原题条件不得为适应大小而删除。
-其他 section 为 interactions、styles、edits、updates、view、display 和 clarifications。
-所有成功修改和重新检查都会撤销旧检查句柄；版本冲突及失败写入不会覆盖已有内容。
-草稿最多 128 KiB、256 个 revision，仅保存在当前认证 run/turn/epoch 的内存中。
-关闭 turn 后不恢复、不自动重放。句柄不能跨 run/turn 使用；不接受任意路径或 shell。
+`requestText` 是完整 request body，只包含 `plan` 和可选 `clarifications`；
+原始 prompt、输出路径和 base 由宿主注入，模型不得写入。
+locale 在外层参数指定；正文不能包含 locale。每个 requirement 的非空 checks
+必须嵌套在 plan.requirements[].checks 中，不接受 plan.checks 或 requirementId。
+图片题用独立 `transcription` 数组提交转写文本，宿主把它追加到原始 prompt。
+
+`ggb_check` 只接收当前 `revision`；原有完整 checker 成功后返回
+`checkedRequestId` 和完整请求摘要。`ggb_build` 只接收该
+`checkedRequestId`，使用不可变已检查请求，保留完整构造、重载及交互核验。
+
+正文最多 128 KiB；转义后的完整工具参数（含元数据）也不得超过 128 KiB，
+因此正文的可用字节数取决于转义和元数据开销。组装后的领域请求同样受 128 KiB 限制。
+修复时省略 locale、title 或 transcription 会继承已有值；显式 transcription
+数组替换旧转写，空数组清除转写。一次成功写入只增加一个 revision，并撤销旧检查句柄。
+失败写入不改变已有内容。草稿最多 256 个 revision，仅保存在当前认证
+run/turn/epoch 的内存中。关闭 turn 后不恢复、不自动重放；句柄不能跨
+run/turn 使用；不接受任意路径或 shell。
+
+为了兼容旧安装，底层 `RequestDraft` 仍接受 create/append/replace/remove/read
+section 操作，但同一草稿首次成功写入后固定输入模式，跨模式操作一律返回
+`draft_mode_conflict`，不改变版本、检查句柄或内容。模型-facing schema 和
+Worker Skill 只发布 `requestText` 主路径。
 宿主通过公开 `ggb-plugins-dsh/drafts` 加载组装器，不能复制另一套几何 checker。
-构建回执与交付绑定组装后的完整请求摘要，不以小块参数摘要替代。
+构建回执与交付绑定组装后的完整请求摘要，不以 tool 参数摘要替代。

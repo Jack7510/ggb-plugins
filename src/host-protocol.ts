@@ -1,7 +1,8 @@
 /** @fileoverview Versioned contracts for the installed DSH host boundary. */
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { isAbsolute } from 'node:path';
-import {parseDraftArguments} from './draft-arguments.js';
+import {parseDraftArguments, REQUEST_ARGUMENT_BYTES}
+  from './draft-arguments.js';
 
 export type Json = null | boolean | number | string | Json[] |
     {[key: string]: Json};
@@ -13,7 +14,7 @@ export const REFERENCE_TOPICS = ['request', 'program', 'verification',
 export const TOOL_NAMES = ['ggb_inspect', 'ggb_request', 'ggb_check', 'ggb_build'] as const;
 export type ToolName = typeof TOOL_NAMES[number];
 export const LIMITS = Object.freeze({
-  requestBytes: 128 * 1024, frameBytes: 256 * 1024,
+  requestBytes: REQUEST_ARGUMENT_BYTES, frameBytes: 256 * 1024,
   stdoutBytes: 1024 * 1024, stderrBytes: 64 * 1024,
   reportBytes: 1024 * 1024, manifestBytes: 1024 * 1024,
   ggbBytes: 6 * 1024 * 1024, previewBytes: 3 * 1024 * 1024,

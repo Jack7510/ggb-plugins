@@ -4,7 +4,14 @@
 
 ## 未发布
 
-- 受限 SDK Server 新增 ggb_request，按最多 2 KiB 完整条目分段保存和局部修改。check/build 引用同一已检查版本，保留 CAS、initial、独立 expected、图片转写与完整核验。工具协议升级为 3，Worker profile 为 plugin-core-v2；不兼容旧完整 request 工具参数。
+- 修复 requestText 契约：checks 嵌套在 requirements 内；同一草稿禁止混用整份与分段模式；修复继承语言、标题和转写；完整参数按转义后 UTF-8 字节限制，并与认证通道对齐。
+
+- `ggb_request` 主路径改为单次完整 `requestText`：宿主注入 prompt/base，locale 通过外层参数指定，
+  模型一次提交 plan 和 optional clarifications；避免按 section 多次往返。
+  `ggb_check` 仍只接收 revision，`ggb_build` 使用 checkedRequestId。
+  旧 section 操作保留为底层兼容，但不再出现在模型 schema 和 Worker Skill。
+
+- 受限 SDK Server 保留旧 section 草稿作为底层兼容；模型-facing 主路径已改为单次 `requestText`。check/build 仍绑定不可变已检查版本，保留 CAS、initial、独立 expected、图片转写与完整核验。
 
 - 原生输出标签解析忽略 GeoGebra 对可选结果返回的字面量 `undefined`/`null` 占位符并去重；`Focus(p)`、`Directrix(p)` 等有效命令不会再被误报为 `Incomplete native outputs`，并新增真实 applet 回归。
 

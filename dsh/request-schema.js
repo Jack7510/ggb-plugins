@@ -1,59 +1,26 @@
-/** @fileoverview Publishes model-facing request shapes; runtime parsing stays authoritative. */
-import {DRAFT_SECTIONS} from '../dist/src/draft-arguments.js';
-import {predicates, evidencePurposes} from '../dist/src/schema.js';
+/** @fileoverview Publishes the compact model-facing draft/check/build shapes. */
+import {REQUEST_TEXT_BYTES, REQUEST_ARGUMENT_BYTES}
+  from '../dist/src/draft-arguments.js';
 
-const string = {type: 'string'};
-const number = {type: 'number'};
-const boolean = {type: 'boolean'};
-const names = {type: 'array', items: string};
-const choice = values => ({type: 'string', enum: values});
 const object = (properties, required = Object.keys(properties)) =>
   ({type: 'object', additionalProperties: false, properties, required});
-const array = items => ({type: 'array', items});
-const coords = {...array(number), minItems: 2, maxItems: 2};
-const mode = choice(['algebra', 'cas']);
-const appearance = {
-  visible: boolean, labelVisible: boolean, color: string,
-  lineThickness: number, lineStyle: number, filling: number,
-};
-const style = object({...appearance, caption: string, fixed: boolean}, []);
-const native = object({id: string, source: string, mode,
-  outputs: names, initial: coords}, ['id', 'source']);
-const mathValue = depth => ({anyOf: [number, boolean, {type: 'array', maxItems: 256,
-  items: depth > 1 ? mathValue(depth - 1) : {anyOf: [number, boolean]}}]});
-const check = object({kind: choice(Object.keys(predicates)), subjects: names,
-  scope: choice(['initial', 'sampled']), coordinates: coords, value: number,
-  properties: style, objectType: string, expression: string, mode,
-  expected: {...mathValue(8), description: 'Independent expected mathematical number, boolean, or nested array.'},
-  assumptions: names}, ['kind', 'subjects', 'scope']);
-const requirement = object({id: string, source: string,
-  purpose: choice(evidencePurposes)}, ['id', 'source']);
-const checkItem = object({requirementId: string, ...check.properties},
-  ['requirementId', ...check.required]);
-const interaction = {anyOf: [object({point: string,
-  dx: {...number, minimum: -120, maximum: 120, description: 'Horizontal screen pixels.'},
-  dy: {...number, minimum: -120, maximum: 120, description: 'Vertical screen pixels.'}}),
-  object({parameter: string, value: number})]};
-const item = {anyOf: [string, native, requirement, checkItem, interaction,
-  object({object: string, properties: style}),
-  object({object: string, value: number, coords}, ['object']),
-  object({xMin: number, xMax: number, yMin: number, yMax: number}),
-  choice(['graphics', 'algebra']),
-  object({question: string, answer: string})]};
 
-/** A small complete batch; the plugin checks section shapes on assembly. */
+/** The model submits one complete request body; the host supplies prompt and paths. */
 export const draftToolSchema = object({
-  action: choice(['create', 'read', 'append', 'replace', 'remove']),
-  revision: {type: 'integer', minimum: 1}, locale: string, title: string,
-  section: {...choice(DRAFT_SECTIONS), description:
-    'requirements contain id/source/purpose; checks carry requirementId. '
-    + 'program items contain id/source and optional mode/outputs/initial.'},
-  index: {type: 'integer', minimum: 0},
-  count: {type: 'integer', minimum: 1, maximum: 8},
-  items: {...array(item), minItems: 1, maxItems: 8, description:
-    'Complete entries only. Create each dependency before using it. '
-    + 'Drag screen pixels: Math.hypot(dx,dy) >= 20; no repeated point.'},
-}, ['action']);
+  requestText: {type: 'string', minLength: 1, maxLength: REQUEST_TEXT_BYTES,
+    description: 'One complete JSON object containing plan and optional clarifications. '
+      + 'Do not include prompt, locale, outputDir or base; the host owns them. '
+      + 'Nest checks in plan.requirements[].checks; never use plan.checks. '
+      + 'Include every program step, requirement, check, interaction and style. '
+      + `All arguments including escaping and metadata must fit ${REQUEST_ARGUMENT_BYTES} UTF-8 bytes.`},
+  locale: {type: 'string', minLength: 1, maxLength: 32,
+    description: 'Working language; omitted repairs retain the saved locale.'},
+  title: {type: 'string', maxLength: 60,
+    description: 'Omitted repairs retain the saved title.'},
+  transcription: {type: 'array', maxItems: 20,
+    description: 'Image text. Omit to retain it; an explicit array replaces it.',
+    items: {type: 'string', maxLength: 2_000}},
+}, ['requestText']);
 export const checkReferenceSchema = object({revision:
   {type: 'integer', minimum: 1}});
-export const buildReferenceSchema = object({checkedRequestId: string});
+export const buildReferenceSchema = object({checkedRequestId: {type: 'string'}});
