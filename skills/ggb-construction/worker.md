@@ -34,13 +34,16 @@ the original prompt and paths; requestText contains only `plan` and
 optional `clarifications`. Include program, requirements, checks, interactions,
 styles, edits, updates, view and display as needed. Put image transcription in
 the separate transcription array, not in prompt.
-
 Requirements contain id/source/optional purpose and nonempty nested checks.
 Put checks in plan.requirements[].checks; never use plan.checks or requirementId.
 Transcribe image clauses before linking sources. Derive expected independently;
 retain all conditions. Empty interactions mean no samples; sampled checks still
 require relevant interactions. Program items use id/source and optional op=native/mode
-(default algebra), outputs and initial. Preserve CAS mode, actual multi-outputs
+(default algebra), outputs and initial. Prefer standard GeoGebra commands over
+hand-computed coordinates: use Focus(p), Directrix(p), Center(p), Midpoint(...),
+PerpendicularBisector(...) and similar relations whenever they exist. Write
+F=(1,0) or d: x=-1 only when the user requires a fixed coordinate or no
+native command expresses the relation. Preserve CAS mode, actual multi-outputs
 and initial coordinates. Create dependencies first. CAS materializes a result,
 not automatic dynamic dependence. Use structured styles/edits/updates; no
 scripts, deletion or renaming. The delivered construction script contains
@@ -53,9 +56,7 @@ needed, submit a corrected complete requestText; do not append section batches.
 Keep all conditions and expected values when rewriting. Omitted locale, title
 and transcription retain saved values; an explicit transcription array replaces
 the prior image text. Raw body and all escaped arguments must each fit 128 KiB.
-Do not include prompt,
-locale, outputDir or base inside requestText; the host owns them. Never truncate
-a source, condition or expected value to fit a request.
+Do not include prompt, locale, outputDir or base inside requestText; the host owns them. Never truncate a source, condition or expected value to fit a request.
 
 ```json
 {"requestText":"{\"plan\":{\"program\":[{\"id\":\"P\",\"source\":\"P=(0,0)\"}],\"requirements\":[{\"id\":\"point\",\"source\":\"point P\",\"checks\":[{\"kind\":\"exists\",\"subjects\":[\"P\"],\"scope\":\"initial\"}]}],\"interactions\":[]}}","locale":"en"}

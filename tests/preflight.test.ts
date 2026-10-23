@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { root } from '../src/server.js';
 import { compile, type BaseFacts } from '../src/compile.js';
-import { parseRequest, type Request } from '../src/schema.js';
+import { parseRequest, ToolError, type Request } from '../src/schema.js';
 import { checkRequest } from '../src/check.js';
 import { createHash } from 'node:crypto';
 
@@ -158,3 +158,47 @@ test('shared checkRequest preflights create and real archive additions offline',
         /Invalid pointOn subject: g \(segment/.test(error.message));
     }
   });
+
+test('native dependency preflight rejects a command argument created later', () => {
+  const request = { protocolVersion: 2, prompt: 'segment', locale: 'en',
+    outputDir: '/tmp/preflight', plan: {
+      program: [
+        { id: 's', op: 'native', mode: 'algebra', source: 's=Segment(F,A)' },
+        { id: 'A', op: 'native', mode: 'algebra', source: 'A=(0,0)' },
+        { id: 'F', op: 'native', mode: 'algebra', source: 'F=(1,0)' },
+      ],
+      requirements: [{ id: 'r', source: 'segment', checks: [
+        { kind: 'exists', subjects: ['s'], scope: 'initial' },
+      ] }],
+      interactions: [],
+    } } as never;
+  assert.throws(() => compile(request), /Step s references undefined object F/);
+});
+
+test('check validation exposes structured source and check-field details', () => {
+  const base = { protocolVersion: 2, prompt: 'Draw circle c', locale: 'en',
+    outputDir: '/tmp/preflight', plan: {
+      program: [{ id: 'c', op: 'native', mode: 'algebra', source: 'c=Circle((0,0),1)' }],
+      requirements: [{ id: 'r', source: 'not in prompt', checks: [
+        { kind: 'exists', subjects: ['c'], scope: 'initial' },
+      ] }],
+      interactions: [],
+    } };
+  try { parseRequest(base); assert.fail('expected source rejection'); }
+  catch (error) {
+    assert.ok(error instanceof ToolError);
+    assert.deepEqual(error.details, { requirementId: 'r', source: 'not in prompt',
+      availableSources: ['Draw circle c'] });
+  }
+  const coordinate = structuredClone(base);
+  coordinate.plan.requirements[0]!.source = 'Draw circle c';
+  coordinate.plan.requirements[0]!.checks = [
+    { kind: 'coordinate', subjects: ['c'], scope: 'initial', expected: [0, 0] },
+  ] as never;
+  try { parseRequest(coordinate); assert.fail('expected coordinate rejection'); }
+  catch (error) {
+    assert.ok(error instanceof ToolError);
+    assert.deepEqual(error.details, { checkId: 'r:0', kind: 'coordinate',
+      fields: ['expected'], expectedFields: ['coordinates'] });
+  }
+});

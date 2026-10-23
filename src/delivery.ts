@@ -152,6 +152,8 @@ async function construct(context: BuildContext): Promise<{
   context.stage = 'execution_failed';
   await context.timed('construction.execute',
     () => execute(original, context.compiled, request.prompt));
+  await context.timed('construction.style',
+    () => applyStyles(original, context.compiled.styles));
   const construction = await collect(
     context, original, 'construction', 'initial',
   );

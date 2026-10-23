@@ -438,7 +438,7 @@ export function parseNativeLabels(value: string | null): string[] | null {
 export async function execute(page: Page, compiled: import('./compile.js').Compiled, prompt: string) {
   if (compiled.program.some(step => step.mode === 'cas')) await waitForCAS(page);
   const expectEmpty = compiled.mode === 'create';
-  await page.evaluate(async ({ program, styles, view, prompt, display, native, expectEmpty }) => {
+  const outcome = await page.evaluate(async ({ program, view, prompt, display, native, expectEmpty }) => {
     const api = window.ggb;
     // Keep this in the applet realm; Node helpers are not serialized by evaluate.
     const normalizeLabels = (value: string | null): string[] | null => value === null ? null
@@ -452,57 +452,78 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
     if (!expectEmpty && api.getAllObjectNames().length === 0) throw new Error('Expected the declared base');
     if (expectEmpty) api.setPerspective(display === 'algebra' ? 'A' : 'G');
     for (const { step, command, mode, outputs, initial } of program) {
-      const before = api.getAllObjectNames();
-      if (outputs.some(id => before.includes(id))) throw new Error(`Object name collision: ${step.id}`);
-      let source = command;
-      if (mode === 'cas') {
-        const result = api.evalCommandCAS(command);
-        if (!result || result.includes('?') || /undefined|error/i.test(result)) throw new Error(`CAS result unresolved: ${step.id}: ${result}`);
-        source = `${step.id}=(${result})`;
+      let operation = 'command';
+      try {
+        const before = api.getAllObjectNames();
+        if (outputs.some(id => before.includes(id))) throw new Error(`Object name collision: ${step.id}`);
+        let source = command;
+        if (mode === 'cas') {
+          const result = api.evalCommandCAS(command);
+          if (!result || result.includes('?') || /undefined|error/i.test(result)) throw new Error(`CAS result unresolved: ${step.id}: ${result}`);
+          source = `${step.id}=(${result})`;
+        }
+        const labels = step.op === 'native'
+          ? normalizeLabels(await api.asyncEvalCommandGetLabels(source)) : null;
+        // Execute before probing definedness: a structured step defines its
+        // outputs inside evalCommand, so a pre-check reports every output missing.
+        const executed = step.op === 'native' ?
+          Boolean(labels?.length) : api.evalCommand(source);
+        operation = 'outputs';
+        const missing = outputs.filter(id => !api.isDefined(id));
+        if (!executed || missing.length > 0) {
+          // A created label can still be undefined, for example an intersection
+          // that does not exist. Telling those cases apart shortens a repair.
+          const state = (id: string) => labels?.includes(id) ?
+            `${id} (undefined)` : `${id} (not created)`;
+          const detail = `actual labels: ${labels?.join(',') ?? 'none'}`
+            + `; missing: ${missing.map(state).join(', ') || 'none'}`;
+          throw new Error(
+            `Execution failed or output undefined: ${step.id}; ${detail}`);
+        }
+        if (labels && (labels.length !== outputs.length || labels.some(id => !outputs.includes(id)))) throw new Error(`Incomplete native outputs: ${step.id}: ${labels.join(',')}`);
+        if (step.op === 'native' && api.getAllObjectNames().some(id => !before.includes(id) && !outputs.includes(id) && api.isIndependent(id)))
+          throw new Error(`Undeclared independent output: ${step.id}`);
+        if (initial) {
+          operation = 'initial';
+          if (api.getObjectType(step.id) !== 'point' || !api.isMoveable(step.id)) throw new Error('Initial coordinates require a movable point');
+          api.setCoords(step.id, initial[0], initial[1]);
+          if (!api.isDefined(step.id) ||
+            !Number.isFinite(api.getXcoord(step.id)) ||
+            !Number.isFinite(api.getYcoord(step.id))) {
+            throw new Error('Initial coordinates left point undefined: ' + step.id);
+          }
+        }
+        operation = 'presentation';
+        for (const id of outputs) if (api.getObjectType(id) === 'point') { api.setLabelVisible(id, true); api.setLabelStyle(id, 0); }
+        // GeoGebra reloads a text object's default thickness as 5, not 0.
+        // Canonicalize at construction; explicit styles below still take precedence.
+        for (const id of outputs) if (api.getObjectType(id) === 'text') api.setLineThickness(id, 5);
+        const xml = new DOMParser().parseFromString(api.getXML(), 'text/xml');
+        if ([...xml.querySelectorAll('element')].some(e => /3d|plane|quadric|surface|image|button|textfield/i.test(e.getAttribute('type') ?? ''))
+          || [...xml.querySelectorAll('javascript, ggbscript')].some(e => e.textContent?.trim() || [...e.attributes].some(a => a.value.trim()))) throw new Error('Unsupported spatial, external or scripted material');
+      } catch (error) {
+        // Reading diagnostics must never replace the first engine exception.
+        const safe = <T>(read: () => T): T | null => {
+          try { return read(); } catch { return null; }
+        };
+        const coordinate = (read: () => number): number | null => {
+          const value = safe(read);
+          return value !== null && Number.isFinite(value) ? value : null;
+        };
+        return {failure: {
+          message: error instanceof Error ? error.message : String(error),
+          stepId: step.id, source: command.slice(0, 512), operation,
+          expected: {outputs, ...(initial ? {coordinates: initial} : {})},
+          actual: {defined: safe(() => api.isDefined(step.id)),
+            objectType: safe(() => api.getObjectType(step.id)),
+            moveable: safe(() => api.isMoveable(step.id)),
+            x: coordinate(() => api.getXcoord(step.id)),
+            y: coordinate(() => api.getYcoord(step.id))},
+        }};
       }
-      const labels = step.op === 'native'
-        ? normalizeLabels(await api.asyncEvalCommandGetLabels(source)) : null;
-      // Execute before probing definedness: a structured step defines its
-      // outputs inside evalCommand, so a pre-check reports every output missing.
-      const executed = step.op === 'native' ?
-        Boolean(labels?.length) : api.evalCommand(source);
-      const missing = outputs.filter(id => !api.isDefined(id));
-      if (!executed || missing.length > 0) {
-        // A created label can still be undefined, for example an intersection
-        // that does not exist. Telling those cases apart shortens a repair.
-        const state = (id: string) => labels?.includes(id) ?
-          `${id} (undefined)` : `${id} (not created)`;
-        const detail = `actual labels: ${labels?.join(',') ?? 'none'}`
-          + `; missing: ${missing.map(state).join(', ') || 'none'}`;
-        throw new Error(
-          `Execution failed or output undefined: ${step.id}; ${detail}`);
-      }
-      if (labels && (labels.length !== outputs.length || labels.some(id => !outputs.includes(id)))) throw new Error(`Incomplete native outputs: ${step.id}: ${labels.join(',')}`);
-      if (step.op === 'native' && api.getAllObjectNames().some(id => !before.includes(id) && !outputs.includes(id) && api.isIndependent(id)))
-        throw new Error(`Undeclared independent output: ${step.id}`);
-      if (initial) {
-        if (api.getObjectType(step.id) !== 'point' || !api.isMoveable(step.id)) throw new Error('Initial coordinates require a movable point');
-        api.setCoords(step.id, initial[0], initial[1]);
-      }
-      for (const id of outputs) if (api.getObjectType(id) === 'point') { api.setLabelVisible(id, true); api.setLabelStyle(id, 0); }
-      // GeoGebra reloads a text object's default thickness as 5, not 0.
-      // Canonicalize at construction; explicit styles below still take precedence.
-      for (const id of outputs) if (api.getObjectType(id) === 'text') api.setLineThickness(id, 5);
-      const xml = new DOMParser().parseFromString(api.getXML(), 'text/xml');
-      if ([...xml.querySelectorAll('element')].some(e => /3d|plane|quadric|surface|image|button|textfield/i.test(e.getAttribute('type') ?? ''))
-        || [...xml.querySelectorAll('javascript, ggbscript')].some(e => e.textContent?.trim() || [...e.attributes].some(a => a.value.trim()))) throw new Error('Unsupported spatial, external or scripted material');
+
     }
     if (expectEmpty) {
-      for (const { object, properties: p } of styles) {
-        if (p.color !== undefined) api.setColor(object, ...[1, 3, 5].map(i => parseInt(p.color!.slice(i, i + 2), 16)) as [number, number, number]);
-        if (p.fixed !== undefined) api.setFixed(object, p.fixed);
-        if (p.visible !== undefined) api.setVisible(object, p.visible);
-        if (p.labelVisible !== undefined) api.setLabelVisible(object, p.labelVisible);
-        if (p.lineThickness !== undefined) api.setLineThickness(object, p.lineThickness);
-        if (p.lineStyle !== undefined) api.setLineStyle(object, p.lineStyle);
-        if (p.filling !== undefined) api.setFilling(object, p.filling);
-        if (p.caption !== undefined) { api.setCaption(object, p.caption); api.setLabelStyle(object, 3); }
-      }
       api.setAxesVisible(native, native); api.setGridVisible(false);
       if (view) {
         const size = JSON.parse(api.getViewProperties(1));
@@ -513,7 +534,12 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
       }
       api.setMode(0);
     }
+    return {failure: null};
   }, { ...compiled, prompt, expectEmpty });
+  if (outcome.failure !== null) {
+    const {message, ...details} = outcome.failure;
+    throw new ToolError('execution_failed', message, details);
+  }
   if (expectEmpty && !compiled.view && compiled.display === 'graphics') {
     const objects = await snapshot(page);
     const bounds = objects.flatMap(f => f.type === 'point' && f.x !== null && f.y !== null ? [[f.x, f.y]]
@@ -531,11 +557,17 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
   }
 }
 
-/** Applies declared presentation fields and reports the observed values. */
+/** Applies declared presentation fields and reports the observed values.
+ *
+ * Presentation must not mutate the construction. A targetless or no-op setter
+ * is skipped; after every real setter, previously defined objects and their
+ * value strings are checked so the error names the style operation that broke
+ * the graph, not only a downstream undefined object.
+ */
 export async function applyStyles(
   page: Page, styles: { object: string; properties: Style }[],
 ): Promise<EditEffect[]> {
-  return await page.evaluate(styles => {
+  const result = await page.evaluate(styles => {
     const api = window.ggb;
     const read = (name: string, field: string): unknown => {
       if (field === 'color') return api.getColor(name);
@@ -547,6 +579,13 @@ export async function applyStyles(
       if (field === 'caption') return api.getCaption(name, false);
       if (field === 'fixed') return api.isFixed(name);
       throw new Error('Unsupported style field: ' + field);
+    };
+    const same = (field: string, before: unknown, target: unknown): boolean => {
+      if (field === 'color') return String(before).toUpperCase()
+        === String(target).toUpperCase();
+      if (field === 'filling') return typeof before === 'number'
+        && typeof target === 'number' && Math.abs(before - target) <= 1e-8;
+      return before === target;
     };
     const write = (name: string, field: string, value: unknown) => {
       if (field === 'color') {
@@ -572,19 +611,48 @@ export async function applyStyles(
         api.setFixed(name, Boolean(value));
       } else throw new Error('Unsupported style field: ' + field);
     };
+    const value = (name: string): string | null => {
+      try { return String(api.getValueString(name, false)); } catch { return null; }
+    };
+    const names = api.getAllObjectNames();
+    const definedBefore = new Set(names.filter(name => api.isDefined(name)));
+    const valuesBefore = new Map([...definedBefore].map(name => [name, value(name)]));
+    const invariantFailure = (object: string, field: string,
+      before: unknown, target: unknown): null | Record<string, unknown> => {
+      const affected = [...definedBefore].filter(name =>
+        !api.isDefined(name) || valuesBefore.get(name) !== value(name));
+      return affected.length === 0 ? null : { object, field, before, target,
+        affected, values: affected.map(name => ({ name, defined: api.isDefined(name),
+          value: value(name) })) };
+    };
     const effects: EditEffect[] = [];
     for (const { object, properties } of styles) {
-      if (!api.getAllObjectNames().includes(object) || !api.isDefined(object)) {
+      if (!names.includes(object) || !api.isDefined(object)) {
         throw new Error('Style target is missing or undefined: ' + object);
       }
       for (const [field, value] of Object.entries(properties)) {
         const before = read(object, field);
+        if (same(field, before, value)) {
+          effects.push({ object, field, before, after: before });
+          continue;
+        }
         write(object, field, value);
-        effects.push({ object, field, before, after: read(object, field) });
+        const after = read(object, field);
+        const failure = invariantFailure(object, field, before, value);
+        if (failure !== null) return { effects, failure };
+        effects.push({ object, field, before, after });
       }
     }
-    return effects;
+    return { effects, failure: null };
   }, styles);
+  if (result.failure !== null) {
+    const failure = result.failure as { object: string; field: string;
+      affected: string[] };
+    throw new ToolError('presentation_invariant_failed',
+      `Presentation changed the construction: ${failure.object}.${failure.field}`
+      + ` (affected: ${failure.affected.join(', ')})`, result.failure);
+  }
+  return result.effects;
 }
 
 /** Applies presentation edits limited to the edit-mode field set. */

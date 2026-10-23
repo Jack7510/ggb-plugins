@@ -123,6 +123,9 @@ inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`byt
 ## 原生构图程序
 
 每步包含 `id`、`op:"native"`、`mode`、`source`。同一原生程序均使用 native 步骤，按顺序执行。
+优先使用 GeoGebra 原生关系命令，不要先由模型计算坐标再写死：已知圆锥曲线时用
+`F=Focus(p)`、`d=Directrix(p)`，再以 `A=Point(d)` 等命令建立依赖；`F=(1,0)`、`d: x=-1`
+只在题目要求固定坐标或原生命令无法表达关系时使用。命令是否可用仍以实际重载和核验为准。
 
 - `mode:"algebra"`：source 是一条完整英文 GeoGebra 数学语句，包括命名、方程、函数、嵌套命令、列表、矩阵等。例如 `p: y^2=4x`、`A=Point(d)`、`g=Derivative(f)`。
 - `mode:"cas"`：source 是 CAS 数学表达式，例如 `Factor(x^4-1)`、`Expand((x+2)^3)`、`Solutions(x^2-1,x)`。工具等待 CAS 就绪，执行计算，并把结果赋给 id，成为可重载的原生对象。

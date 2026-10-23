@@ -4,6 +4,21 @@
 
 ## 未发布
 
+- 原生执行保留第一个步骤异常的 stepId、命令摘要、operation 和 initial 的预期/实际状态；初始化后未定义或坐标非有限时立即拒绝，不继续构造。首错在交付失败日志中保留，后续清理诊断不替代它。新增纯 Node VM 与模块模拟的离线执行回归，不启动 applet。
+
+- 样式应用统一读取前值并跳过相同值；每次真实 setter 后检查已定义对象及其值字符串，
+  显示操作破坏构造时返回 `presentation_invariant_failed`，details 携带 object/field/before/target/affected。
+  新建、编辑和续构统一走该样式事务，避免只报告下游 undefined。
+
+- `ggb_check` 的结构错误现在携带 bounded details：requirement source 错误返回 requirementId、source 和可用来源；
+  coordinate/expression 字段错误返回 checkId、非法字段和期望字段，模型不再只拿到泛化 message。
+- native program 增加保守依赖预检：只检查原生命令参数中的裸标签，未知标签在 build 前拒绝并返回
+  stepId/source/missing；复杂表达式和未知命令保持运行时校验，避免误报。
+
+- Worker、Desktop Skill 与能力参考明确优先使用 GeoGebra 原生命令：
+  `Focus`、`Directrix`、`Center`、`Midpoint`、`PerpendicularBisector` 等能表达的关系，
+  不再由模型手算坐标再写死；固定坐标仅用于题目要求的固定值或原生命令无法表达的关系。
+
 - `ggb_check` 对可静态判型的 native 输出提前校验 `pointOn` 第二主语；
   `segment` 等非 line/conic 主语在 build 前拒绝；create/modify 共享保守规则，
   结合基线类型。复合表达式、CAS、多输出和未知命令保留运行时校验。

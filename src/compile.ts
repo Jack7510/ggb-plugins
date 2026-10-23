@@ -1,7 +1,7 @@
 /** @fileoverview Compiles requests and conservatively validates known types. */
 import assert from 'node:assert/strict';
 import {
-  commands, predicates, type Edit, type Request, type Step, type Update,
+  commands, predicates, ToolError, type Edit, type Request, type Step, type Update,
 } from './schema.js';
 import { outlined } from './edit.js';
 
@@ -9,6 +9,51 @@ import { outlined } from './edit.js';
 export interface BaseFacts {
   labels: ReadonlySet<string>;
   types: ReadonlyMap<string, string>;
+}
+
+/** Conservative native dependency scan: command arguments that are bare labels. */
+const NATIVE_BUILTINS = new Set(['x', 'y', 'z', 'xAxis', 'yAxis', 'zAxis', 'pi', 'e']);
+const NATIVE_REFERENCE = /^[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?$/u;
+
+const NATIVE_DEPENDENCY_COMMANDS = new Set([
+  'Angle', 'Center', 'Circle', 'Distance', 'Focus', 'Directrix', 'Intersect',
+  'Intersection', 'Line', 'LineBisector', 'Midpoint', 'OrthogonalLine',
+  'ParallelLine', 'PerpendicularBisector', 'PerpendicularLine', 'Point',
+  'Polygon', 'Ray', 'Segment', 'Tangent', 'Vector',
+]);
+
+function commandCall(source: string): { name: string; args: string[] } | null {
+  const match = /^\s*[^=:]+[=:]\s*([A-Za-z][A-Za-z0-9_]*)\s*[\[(]([\s\S]*)[\])]\s*$/u.exec(source);
+  if (match === null) return null;
+  const parts: string[] = [];
+  let depth = 0, start = 0;
+  for (let index = 0; index < match[2]!.length; index += 1) {
+    const char = match[2]![index]!;
+    if ('([{'.includes(char)) depth += 1;
+    else if (')]}'.includes(char)) depth -= 1;
+    else if (char === ',' && depth === 0) {
+      parts.push(match[2]!.slice(start, index).trim()); start = index + 1;
+    }
+  }
+  parts.push(match[2]!.slice(start).trim());
+  return { name: match[1]!, args: parts };
+}
+
+function validateNativeDependencies(program: Compiled['program'], base?: BaseFacts): void {
+  const known = new Set(base?.labels ?? []);
+  for (const step of program) {
+    const call = commandCall(step.command);
+    if (call !== null && NATIVE_DEPENDENCY_COMMANDS.has(call.name)) {
+      for (const arg of call.args) {
+        if (!NATIVE_REFERENCE.test(arg) || NATIVE_BUILTINS.has(arg) || known.has(arg)) continue;
+        throw new ToolError('invalid_input',
+          `Step ${step.step.id} references undefined object ${arg}`, {
+            stepId: step.step.id, source: step.command, missing: arg,
+          });
+      }
+    }
+    for (const output of step.outputs) known.add(output);
+  }
 }
 
 export interface Compiled {
@@ -223,6 +268,7 @@ export function compile(request: Request, base?: BaseFacts): Compiled {
     for (const style of request.plan.styles ?? []) has(style.object);
     for (const requirement of request.plan.requirements) for (const check of requirement.checks) check.subjects.forEach(has);
     request.plan.interactions.forEach(sample => has('point' in sample ? sample.point : sample.parameter));
+    validateNativeDependencies(program, base);
     for (const requirement of request.plan.requirements) for (const check of requirement.checks) {
       if (check.scope === 'sampled') assert(request.plan.interactions.length > 0, 'Sampled checks need interaction evidence');
 

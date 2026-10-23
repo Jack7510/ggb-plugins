@@ -389,8 +389,13 @@ function validateCheck(input: unknown, requirement: string, index: number,
   else {
     const stray = ['expression', 'expected', 'mode', 'assumptions']
       .filter(key => key in c);
-    assert(stray.length === 0,
-      `Unexpected expression field in ${c.kind}: ${stray.join(', ')}`);
+    if (stray.length > 0) {
+      throw new ToolError('invalid_input',
+        `Unexpected expression field in ${c.kind}: ${stray.join(', ')}`, {
+          checkId: `${requirement}:${index}`, kind: c.kind, fields: stray,
+          expectedFields: spec.extra === undefined ? [] : [spec.extra],
+        });
+    }
   }
   for (const key of ['value', 'coordinates', 'properties', 'objectType']) {
     assert((key in c) === (spec.extra === key), `Unexpected or missing ${key}`);
@@ -419,8 +424,13 @@ function validateRequirements(value: unknown, sources: string[]): void {
     assert(!ids.has(r.id), 'Duplicate requirement ID');
     ids.add(r.id);
     text(r.source, limits.promptChars);
-    assert(sources.some(source => source.includes(r.source)),
-      'Requirement source is not in the input');
+    if (!sources.some(source => source.includes(r.source))) {
+      throw new ToolError('invalid_input',
+        'Requirement source is not in the input', {
+          requirementId: r.id, source: r.source.slice(0, 600),
+          availableSources: sources.slice(0, 4).map(source => source.slice(0, 600)),
+        });
+    }
     array(r.checks, 1, limits.checks);
     for (const [index, check] of r.checks.entries()) {
       validateCheck(check, r.id, index, sources);
