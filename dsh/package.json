@@ -14,6 +14,7 @@
       "types": "./dist/src/host-protocol.d.ts",
       "default": "./dist/src/host-protocol.js"
     },
+    "./runtime-compatibility": "./dist/src/runtime-compatibility.js",
     "./cli": "./dist/src/cli.js",
     "./delivery-contract": "./dist/src/delivery-contract.js",
     "./executor": "./dsh/executor.js",

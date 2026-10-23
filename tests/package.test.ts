@@ -29,6 +29,10 @@ test('DSH tarball carries its own skill, references and the identical compiled r
     assert.equal(pkg.name, 'ggb-plugins-dsh');
     assert.equal(pkg.version, shared.version);
     assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml');
+    const compatibility = await import(pathToFileURL(join(bundle,
+      pkg.exports['./runtime-compatibility'])).href);
+    assert.equal(compatibility.runtimeCompatibility('5.4.932.1').id,
+      'directrix-path-origin-v1');
     assert.deepEqual(pkg.dependencies, shared.dependencies);
     assert.deepEqual(await readFile(join(bundle, 'dependencies.lock')), await readFile(join(root, 'pnpm-lock.yaml')));
     for (const module of ['cli','doctor','server','browser','schema','compile','verify','delivery']) {

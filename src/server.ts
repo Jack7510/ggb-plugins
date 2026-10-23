@@ -7,6 +7,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { readFile, realpath } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {compatibleRuntimeAsset} from './runtime-compatibility.js';
 
 /** Installation root, resolved relative to the compiled module. */
 export const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -91,7 +92,11 @@ async function respond(
       res.writeHead(asset.status).end();
       return;
     }
-    let data = await readFile(asset.path);
+    let data: Buffer = await readFile(asset.path);
+    const enginePrefix = '/runtime/GeoGebra/';
+    if (pathname.startsWith(enginePrefix)) {
+      data = compatibleRuntimeAsset(pathname.slice(enginePrefix.length), data);
+    }
     if (pathname === '/preview') {
       const payload = JSON.stringify(state.material).replaceAll('<', '\\u003c');
       data = Buffer.from(data.toString('utf8').replace('<script src=',
