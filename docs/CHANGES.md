@@ -8,6 +8,9 @@
   `segment` 等非 line/conic 主语在 build 前拒绝；create/modify 共享保守规则，
   结合基线类型。复合表达式、CAS、多输出和未知命令保留运行时校验。
 
+- `requestText` 的 program 解析接受完整 native step（可选 `op: native`、`mode`），
+  不再因模型提供完整 request plan 形态而报 `draft_program_fields`；非 native op 仍拒绝。
+
 - 修复 requestText 契约：checks 嵌套在 requirements 内；同一草稿禁止混用整份与分段模式；修复继承语言、标题和转写；完整参数按转义后 UTF-8 字节限制，并与认证通道对齐。
 
 - `ggb_request` 主路径改为单次完整 `requestText`：宿主注入 prompt/base，locale 通过外层参数指定，

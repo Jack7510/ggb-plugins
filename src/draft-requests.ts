@@ -208,7 +208,8 @@ function record(value: unknown): Item {
 function nativeStep(value: unknown): Item {
   const step = record(value);
   requireDraft(Object.keys(step).every(k =>
-    ['id', 'source', 'mode', 'outputs', 'initial'].includes(k)),
+    ['id', 'source', 'op', 'mode', 'outputs', 'initial'].includes(k)),
   'draft_program_fields');
+  requireDraft(step.op === undefined || step.op === 'native', 'draft_program_fields');
   return {op: 'native', mode: 'algebra', ...step};
 }

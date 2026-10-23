@@ -3,7 +3,7 @@
   "toolVersion": "0.8.3",
   "requestProtocolVersion": 2,
   "workerProfileVersion": "plugin-core-v2",
-  "workerSkillSha256": "a08593b920c545ee4630ccfaa490323d167364a8bfc2ddcf731307327b67fe88",
+  "workerSkillSha256": "17973e28e586394a4690d5684ca4605a476b83db67bfd0b92e022c1f387bac3c",
   "modelFacingTools": [
     "ggb_inspect",
     "ggb_request",

@@ -141,7 +141,7 @@ test('aggregate draft limits and modified snapshots fail without partial writes'
 test('one requestText carries the complete request without section state', () => {
   const draft = new RequestDraft('Draw the image');
   const text = JSON.stringify({plan: {
-    program: [{id: 'P', source: 'P=(0,0)', mode: 'algebra'}],
+    program: [{id: 'P', source: 'P=(0,0)', op: 'native', mode: 'algebra'}],
     requirements: [{id: 'point', source: 'point P', checks: [
       {kind: 'exists', subjects: ['P'], scope: 'initial'}]}],
     interactions: [],
@@ -169,6 +169,18 @@ test('invalid or host-owned requestText is rejected without changing state', () 
     plan: {}}), locale: 'zh-CN', outputDir: '/tmp'}),
   /draft_unknown_field/);
   assert.throws(() => draft.forCheck({revision: 1}), /draft_missing/);
+});
+
+test('requestText accepts the full native step shape and rejects other ops', () => {
+  const draft = new RequestDraft('prompt');
+  const request = (step) => JSON.stringify({plan: {
+    program: [step], requirements: [], interactions: []}});
+  const saved = draft.operate({requestText: request({
+    id: 'P', op: 'native', mode: 'algebra', source: 'P=(0,0)'})});
+  assert.equal(saved.revision, 1);
+  assert.equal(draft.forCheck({revision: 1}).request.plan.program[0].op, 'native');
+  assert.throws(() => draft.operate({requestText: request({
+    id: 'Q', op: 'freePoint', source: 'Q=(0,0)'})}), /draft_program_fields/);
 });
 
 test('a corrected complete requestText replaces the prior version atomically', () => {

@@ -39,7 +39,7 @@ Requirements contain id/source/optional purpose and nonempty nested checks.
 Put checks in plan.requirements[].checks; never use plan.checks or requirementId.
 Transcribe image clauses before linking sources. Derive expected independently;
 retain all conditions. Empty interactions mean no samples; sampled checks still
-require relevant interactions. Program items use id/source and optional mode
+require relevant interactions. Program items use id/source and optional op=native/mode
 (default algebra), outputs and initial. Preserve CAS mode, actual multi-outputs
 and initial coordinates. Create dependencies first. CAS materializes a result,
 not automatic dynamic dependence. Use structured styles/edits/updates; no
