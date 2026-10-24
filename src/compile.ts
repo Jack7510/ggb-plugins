@@ -22,7 +22,8 @@ const NATIVE_DEPENDENCY_COMMANDS = new Set([
   'Polygon', 'Ray', 'Segment', 'Tangent', 'Vector',
 ]);
 
-function commandCall(source: string): { name: string; args: string[] } | null {
+/** Read an assigned call envelope; this does not infer mathematical types. */
+export function commandCall(source: string): { name: string; args: string[] } | null {
   const match = /^\s*[^=:]+[=:]\s*([A-Za-z][A-Za-z0-9_]*)\s*[\[(]([\s\S]*)[\])]\s*$/u.exec(source);
   if (match === null) return null;
   const parts: string[] = [];

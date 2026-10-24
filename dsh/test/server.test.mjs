@@ -229,6 +229,8 @@ test('Worker request reference is preloaded once and cannot inherit CLI fields',
   assert.match(body, /A helper cannot replace a given root/);
   assert.match(body, /explicit label flags must survive reload/);
   assert.match(body, /buildBudget.used\/limit\/remaining/);
+  assert.match(body, /Verify raw residuals\/area sums/);
+  assert.match(body, /round only display copies, not check inputs/);
   assert.match(body, /initial coordinates do not constrain dragging/);
   assert.match(installation.loadReference('program.text').content,
     /UnicodeToLetter\(34\)/);

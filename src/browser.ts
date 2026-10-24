@@ -9,6 +9,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { resolve } from 'node:path';
 import { browserTarget } from './browser-target.js';
+import {executionFailureHint} from './native-failure-hints.js';
 import { root, serve } from './server.js';
 import {
   dependencyFacts, presentationOwner, type ObjectMetadata, type ReferenceFact,
@@ -549,7 +550,11 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
   }, { ...compiled, prompt, expectEmpty });
   if (outcome.failure !== null) {
     const {message, ...details} = outcome.failure;
-    throw new ToolError('execution_failed', message, details);
+    // The journal keeps a bounded source; hints use the exact compiled call.
+    const source = compiled.program.find(item => item.step.id === details.stepId)
+      ?.command ?? details.source;
+    throw new ToolError('execution_failed',
+      message + executionFailureHint({...outcome.failure, source}), details);
   }
   if (expectEmpty && !compiled.view && compiled.display === 'graphics') {
     const objects = await snapshot(page);

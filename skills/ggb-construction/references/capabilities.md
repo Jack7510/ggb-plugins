@@ -198,7 +198,9 @@ CAS 物化的是当次计算结果，不是动态 CAS 单元；它不会自动�
 
 purpose 可选 construction、constraint、interaction，省略为 unspecified。它只分类证据，不豁免检查或证明独立性。warnings 和 verificationNotes 对所有要求说明相同边界；一般命题仍需宿主对照题目审查。
 
-`expected` 必须独立求出：按题目条件和本次构造推导，不从 `build` 的失败证据、`inspect` 结果或上一轮观测里抄数值。检查的意义在于声明值与引擎值独立相符；把观测值抄回 expected 只是自复述。观测与推导不一致时，先用证据区分构造错误与计算错误，再只改对应的一项。`verification_failed` 的 details 给出 subjects 的实际事实（坐标、数值、可见性等），它是诊断依据，不是期望值来源。每个结构最多 256 个节点、深度最多 8；布尔值不会与数值 0/1 混同，数组逐项采用固定容差和灰区判定。
+`expected` 必须独立求出：按题目条件和本次构造推导，不从 `build` 的失败证据、`inspect` 结果或上一轮观测里抄数值。不一致时先区分构造或计算错误，只修对应项。`verification_failed` 的 details 给出 subjects 的实际事实（坐标、数值、可见性等），它是诊断依据，不是期望值来源。每个结构最多 256 个节点、深度最多 8；布尔值不会与数值 0/1 混同，数组逐项采用固定容差和灰区判定。
+
+残差和面积和必须检查未取整原值；round 只用于显示副本。整数边数 round(n) 的构造与合法性检查保持不变。
 
 - Algebra 例：`Distance(T,p)` 期望 0；`AreEqual(Tangent(T,p),b)` 期望 true。
 - CAS 例：`Simplify(g(x)-(3x^2+2))` 期望 0。使用原生引擎比较符号关系，不比较格式化字符串来断言数学等价；保留定义域及必要假设。

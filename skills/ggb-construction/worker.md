@@ -28,7 +28,8 @@ Prefer native relations to calculated fixed coordinates.
 A derived object also requires a dependsOn check covering
 every defining input of every derived relation.
 Explicit user-given free coordinates need no invented dependencies.
-For expected values, derive independently; never copy observations or failures.
+For expected, derive independently; never copy observations or failures.
+Verify raw residuals/area sums; round only display copies, not check inputs.
 Use actual object types. pointOn supports conic objects; segment is not line.
 Keep every required check and sampled relationship, including during repair.
 Unrelated motion proves no coupling.

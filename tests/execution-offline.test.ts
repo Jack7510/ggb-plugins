@@ -13,10 +13,11 @@ import {canonicalJson} from '../src/host-protocol.js';
 
 type Fault = 'none' | 'initial-undefined' | 'initial-throw' | 'command' |
   'style-loss' | 'command-null' | 'command-extra';
+interface NativeReply {id: string; raw: string | null; defined?: boolean;}
 interface State {defined: boolean; x: number; y: number; type: string;}
 
 /** No GeoGebra algorithm runs here: states and faults are explicit fixtures. */
-function applet(fault: Fault) {
+function applet(fault: Fault, reply?: NativeReply) {
   const objects = new Map<string, State>();
   const commands: string[] = [];
   const coordinates: unknown[][] = [];
@@ -33,9 +34,12 @@ function applet(fault: Fault) {
       assert.ok(id);
       if (fault === 'command' && id === 'A') throw new Error('first engine error');
       if (fault === 'command-null' && id === 'A') return null;
+      if (reply?.id === id && reply.raw === null) return null;
       const type = id === 'p' ? 'parabola' : id === 'd' || id === 'l'
         ? 'line' : id === 's' ? 'segment' : 'point';
-      objects.set(id, {defined: true, x: -1, y: 0, type});
+      objects.set(id, {defined: reply?.id === id ? reply.defined ?? true : true,
+        x: -1, y: 0, type});
+      if (reply?.id === id) return reply.raw;
       return fault === 'command-extra' && id === 'A' ? 'A,Z' : id;
     },
     setCoords(id: string, x: number, y: number) {
@@ -85,6 +89,78 @@ function request(outputDir = '/tmp/offline-execution') {
       ]}], interactions: [], view: {xMin: -2, xMax: 5, yMin: -3, yMax: 3},
       styles: [{object: 'p', properties: {color: '#123456'}}],
     }});
+}
+
+/** All replies are injected fixtures, not claims about engine syntax. */
+function failureRequest(id: string, source: string,
+  outputDir = '/tmp/offline-native-hints') {
+  return parseRequest({protocolVersion: 2, prompt: 'native error',
+    locale: 'en', outputDir, title: 'hint', plan: {
+      program: [
+        ...['P', 'B', 'C'].map((id, index) => ({id, op: 'native',
+          mode: 'algebra', source: `${id}=(${index},1)`})),
+        {id: 'L', source: 'L={P,B,C}', op: 'native', mode: 'algebra'},
+        {id: 'S', source: 'S=Vector(P,B)', op: 'native', mode: 'algebra'},
+        {id, source, op: 'native', mode: 'algebra'},
+        {id: 'Tail', source: 'Tail=(1,1)', op: 'native', mode: 'algebra'},
+      ], requirements: [{id: 'native', source: 'native error', checks: [
+        {kind: 'exists', subjects: [id], scope: 'initial'},
+      ]}], interactions: [],
+    }});
+}
+
+const hintCases = [
+  {id: 'T', source: 'T=Polygon(P,B,C)', raw: 'T,c,p,b'},
+  {id: 'T_{1}', source: 'T_{1}=Polygon(P,B,C)', raw: 'T_{1},c,p,b'},
+  {id: 'T_{2}', source: 'T_{2}=Polygon[P,B,C]', raw: 'T_{2},c,p,b'},
+  {id: 'T_{3}', source: 'T_{3}=Polygon(Element(L,1),B,C)',
+    raw: 'T_{3},c,p,b'},
+  {id: 'T_{4}', source: 'T_{4}: Polygon[Element[L,1],B,C]',
+    raw: 'T_{4},c,p,b'},
+  {id: 'T_{5}', source: 'T_{5}=Polygon(' + ' '.repeat(600) + 'P,B,C)',
+    raw: 'T_{5},c,p,b'},
+  {id: 'E_{1}', source: 'E_{1}=Round(Length(S),6)', raw: null},
+  {id: 'E_{2}', source: 'E_{2}=Round[Length[S],6]', raw: null},
+];
+for (const item of hintCases) {
+  test(`execute preserves first failure and adds guidance: ${item.id}`,
+    async () => {
+      const world = applet('none', item);
+      await assert.rejects(browser.execute(pageFor(world),
+        compile(failureRequest(item.id, item.source)), 'native error'), error => {
+        assert.ok(error instanceof ToolError);
+        assert.equal(error.code, 'execution_failed');
+        assert.match(error.message, item.raw === null
+          ? /^Execution failed or output undefined:/u
+          : /^Incomplete native outputs:/u);
+        assert.match(error.message, item.raw === null
+          ? /unrounded residuals and area sums/u : /Polygon\(\{/u);
+        assert.partialDeepStrictEqual(error.details, {stepId: item.id,
+          source: item.source.slice(0, 512), operation: 'outputs',
+          expected: {outputs: [item.id]}, actual: {rawLabels: item.raw}});
+        return true;
+      });
+      assert.equal(world.commands.includes('Tail=(1,1)'), false);
+    });
+}
+
+for (const item of [
+  {id: 'T', source: 'T=Polygon({P,B,C})', raw: 'T,Z'},
+  {id: 'T', source: 'T=Polygon(Sequence(P,k,1,3))', raw: 'T,Z'},
+  {id: 'T', source: 'T=Segment(P,B)', raw: 'T,Z'},
+  {id: 'err', source: 'err=round(Length(S),6)', raw: null},
+  {id: 'err', source: 'err=Round(Length(S),6)', raw: 'err', defined: false},
+]) {
+  test(`execute does not guess a repair for ${item.source}`, async () => {
+    const world = applet('none', item);
+    await assert.rejects(browser.execute(pageFor(world),
+      compile(failureRequest(item.id, item.source)), 'native error'), error => {
+      assert.ok(error instanceof ToolError);
+      assert.equal(error.code, 'execution_failed');
+      assert.doesNotMatch(error.message, /face-only|built-in rounding/u);
+      return true;
+    });
+  });
 }
 
 test('Point(d) plus initial succeeds through the bridge when the applet supports it', async () => {
@@ -171,4 +247,34 @@ for (const fault of ['initial-undefined', 'initial-throw', 'command', 'style-los
       assert.equal((await readdir(join(root, 'offline'))).includes('delivery'), false);
     } finally {await rm(root, {recursive: true, force: true});}
   });
+}
+
+
+for (const item of [hintCases[3]!, hintCases[7]!]) {
+  test(`delivery journals the same native repair guidance: ${item.id}`,
+    async () => {
+      const root = await mkdtemp(join(tmpdir(), 'native-hint-journal-'));
+      world = applet('none', item); closed = observed = 0; cleanupFails = false;
+      try {
+        let firstMessage = '';
+        await assert.rejects(build(failureRequest(item.id, item.source, root)),
+          error => {
+            assert.ok(error instanceof ToolError);
+            assert.equal(error.code, 'execution_failed');
+            firstMessage = error.message;
+            assert.match(firstMessage, item.raw === null
+              ? /unrounded residuals/u : /Polygon\(\{/u);
+            return true;
+          });
+        const path = join(root, 'hint');
+        const journal = JSON.parse(await readFile(join(path, 'run.json'),
+          'utf8'));
+        assert.equal(journal.error.message, firstMessage);
+        assert.equal(journal.error.details.cause.stepId, item.id);
+        assert.equal(journal.error.details.cause.actual.rawLabels, item.raw);
+        assert.equal((await readdir(path)).includes('delivery'), false);
+        assert.equal(closed, 1);
+        assert.equal(observed, 0);
+      } finally {await rm(root, {recursive: true, force: true});}
+    });
 }

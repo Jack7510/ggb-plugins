@@ -120,3 +120,40 @@ test('style feedback preserves caption and float gate semantics', () => {
   assert.ok((failure.evidence as {message: string}).message.length <= 256);
   assert.match((failure.evidence as {message: string}).message, /caption/);
 });
+
+
+test('display rounding cannot hide raw residual or area-sum failures', () => {
+  const input = request({kind: 'expression', subjects: ['residual'],
+    expression: 'residual', mode: 'algebra', expected: 0, scope: 'sampled'});
+  input.plan.program = [];
+  input.plan.requirements[0]!.checks.push({kind: 'expression',
+    subjects: ['areaSum'], expression: 'areaSum', mode: 'algebra',
+    expected: 15, scope: 'sampled'});
+  // Explicit snapshots and observations; no GeoGebra is invoked.
+  const values = {residual: 4e-7, areaSum: 15 + 4e-7,
+    residualDisplay: Math.round(4e-7 * 1e6) / 1e6,
+    areaDisplay: Math.round((15 + 4e-7) * 1e6) / 1e6};
+  assert.equal(values.residualDisplay, 0);
+  assert.equal(values.areaDisplay, 15);
+  const objects = Object.entries(values).map(([name, value]) =>
+    ({...fact(name), value}));
+  const observations = ['residual', 'areaSum'].map((expression, index) => ({
+    id: `r:${index}`, expression, mode: 'algebra' as const, type: 'numeric',
+    defined: true, value: values[expression as 'residual' | 'areaSum'],
+    result: String(values[expression as 'residual' | 'areaSum']),
+  }));
+  for (const phase of ['initial', 'sampled'] as const) {
+    const report = verify(input, objects, phase, observations);
+    assert.equal(report.results.find(r => r.checkId === 'r:0')!.status,
+      'failed');
+    assert.notEqual(report.results.find(r => r.checkId === 'r:1')!.status,
+      'passed');
+    assert.notEqual(report.status, 'passed');
+    const exact = observations.map(observation => ({...observation,
+      value: observation.expression === 'residual' ? 0 : 15}));
+    const exactObjects = objects.map(object => ({...object,
+      value: object.name === 'residual' ? 0
+        : object.name === 'areaSum' ? 15 : object.value}));
+    assert.equal(verify(input, exactObjects, phase, exact).status, 'passed');
+  }
+});

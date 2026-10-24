@@ -15,6 +15,7 @@ poly=Polygon(Sequence(Rotate(A, 2*pi*k/round(n), O), k, 0, round(n)-1))
 - `round(n)` 必须同时用于 `Sequence` 的顶点数和 `Rotate` 的角度。
   不能把原始 `n` 直接用于这两处：`setValue` 可以绕过滑块增量写入 3.5，
   而 `Sequence` 会截断顶点数、`Rotate` 仍按 3.5 等分，得到非正多边形。
+- GeoGebra 函数名区分大小写：取整写作 `round(x[, n])`，不是 `Round(...)`。
 - `round(n)` 是构造兜底，不表示小数 `n` 合法。输入域仍由独立检查拒绝。
   如需可读的 `m=round(n)`，要把 `m` 作为单独的 native 步骤声明输出并隐藏；
   内联写法可以保持只声明 `poly`。
@@ -40,6 +41,10 @@ Perimeter(poly)-2*round(n)*Distance(O,A)*sin(pi/round(n))
 Max(Sequence(abs(Distance(O,Vertex(poly,k))-Distance(O,A)),k,1,round(n)))
 Max(Sequence(abs(Distance(Vertex(poly,k),Vertex(poly,Mod(k,round(n))+1))-2*Distance(O,A)*sin(pi/round(n))),k,1,round(n)))
 ```
+
+这里 round(n) 只处理整数边数；不能对面积和、距离或向量残差先 round 再判断相等。
+显示可用 round(Length(S),6)，核验须直接检查 Length(S)，或分别检查未取整的向量分量；
+面积和检查 sA+sB+sC，不能检查 round(sA+sB+sC,6)。保留独立期望和固定容差。
 
 第一条拒绝小数边数，第二条核对顶点数，随后核对面积、周长、全部顶点到
 圆心的距离一致（内接）与全部边长一致（正）。期望值均为 0。顶点数必须用

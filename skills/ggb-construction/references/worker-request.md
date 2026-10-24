@@ -2,7 +2,7 @@
 
 Use one complete requestText JSON object: {plan,clarifications?}.
 No protocolVersion/prompt/outputDir/base/locale/title in requestText.
-Tool metadata: locale/title/transcription; omissions persist.
+Metadata: locale/title/transcription; omissions persist.
 Image tasks require nonempty transcription on the first save: complete mathematical problem text
 (givens, equations, labels, constraints, question), not an image summary.
 Keep ambiguity; no solution/invented conditions. Empty cannot clear saved text.
@@ -19,8 +19,8 @@ never plan.checks. purpose: construction/constraint/interaction; no exemption.
 
 Step: {id,source,op?:"native",mode?:"algebra",outputs?,initial?}; default native/algebra.
 Algebra: one English GeoGebra statement. CAS: one materialized id, not dynamic.
-outputs defaults to [id]; otherwise include id and every actual returned label.
-initial:[x,y] positions that movable point, preserving its native constraint.
+outputs defaults to [id]; include id and all actual returned labels.
+initial:[x,y] positions a movable point; native constraints remain.
 Dependencies first; base labels stay exact, including Unicode/subscripts.
 Lowercase tuple names may create vectors; use uppercase point anchors and type checks.
 Constrain interior points; initial coordinates do not constrain dragging.
