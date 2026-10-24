@@ -145,7 +145,15 @@ Web 宿主使用公开子路径，不安装到用户 desktop profile，也不使
 服务端注册四个受限工具。`ggb_inspect({reference: topic})` 通过认证宿主读取当前
 安装包的固定主题：`request`、`program`、`verification`、`interactions`、`patterns`、
 `naming`。省略 `reference` 时仍检查宿主基线。接口不接受文件路径、URL 或任意章节。
-每次返回一个完整主题，上限为 24 KiB。模型不能读取宿主文件或其他 run。
+`ggb_inspect({references:[...]})` 可批量读取，去重后保留顺序；两种参数不能混用。
+每次返回完整主题，序列化响应上限为 24 KiB。模型不能读取宿主文件或其他 run。
+
+Worker 启动时注入包内 `skills/ggb-construction/references/worker-request.md` 专用请求契约。
+`request` 主题返回同一文本，不读取 CLI 信封示例。简单任务不要求预读参考；有字段或数学
+能力缺口时，只读取相关的 1–2 个主题，通常累计不超过 3 个。基线检查仍为必需步骤。
+派生对象必须声明对定义输入的 `dependsOn` 检查，即使当前值固定；位置、坐标或距离
+检查不能代替依赖验收。用户直接给定的自由坐标不需虚构依赖。工具核验已声明条件，
+不自动从任意自然语言推导遗漏的要求。
 
 宿主在本次构建目录内提取 CLI 错误、`run.json` 和 `verification.json` 中的失败事实，
 脱敏后返回失败阶段、对象及检查证据。诊断信息不构成成功回执，不改变交付与清理门禁。
@@ -265,7 +273,15 @@ Web 宿主使用公开子路径，不安装到用户 desktop profile，也不使
 服务端注册四个受限工具。`ggb_inspect({reference: topic})` 通过认证宿主读取当前
 安装包的固定主题：`request`、`program`、`verification`、`interactions`、`patterns`、
 `naming`。省略 `reference` 时仍检查宿主基线。接口不接受文件路径、URL 或任意章节。
-每次返回一个完整主题，上限为 24 KiB。模型不能读取宿主文件或其他 run。
+`ggb_inspect({references:[...]})` 可批量读取，去重后保留顺序；两种参数不能混用。
+每次返回完整主题，序列化响应上限为 24 KiB。模型不能读取宿主文件或其他 run。
+
+Worker 启动时注入包内 `skills/ggb-construction/references/worker-request.md` 专用请求契约。
+`request` 主题返回同一文本，不读取 CLI 信封示例。简单任务不要求预读参考；有字段或数学
+能力缺口时，只读取相关的 1–2 个主题，通常累计不超过 3 个。基线检查仍为必需步骤。
+派生对象必须声明对定义输入的 `dependsOn` 检查，即使当前值固定；位置、坐标或距离
+检查不能代替依赖验收。用户直接给定的自由坐标不需虚构依赖。工具核验已声明条件，
+不自动从任意自然语言推导遗漏的要求。
 
 宿主在本次构建目录内提取 CLI 错误、`run.json` 和 `verification.json` 中的失败事实，
 脱敏后返回失败阶段、对象及检查证据。诊断信息不构成成功回执，不改变交付与清理门禁。

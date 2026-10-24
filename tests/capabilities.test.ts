@@ -60,6 +60,11 @@ test('both prompt entrypoints and references stay within context budgets',
     assertPromptBudget(hostSkill, 9_000);
     assertPromptBudget(worker.toString('utf8'), 6_500);
     assert(Buffer.byteLength(hostSkill) + worker.length <= 14_000);
+    const requestReference = await readFile(join(root,
+      'skills/ggb-construction/references/worker-request.md'), 'utf8');
+    const workerBody = worker.toString('utf8').replace(/^---\n[\s\S]*?\n---\n/u, '');
+    assert(Buffer.byteLength(workerBody + '\n\n' + requestReference) <= 6_500);
+    assert(Buffer.byteLength(hostSkill + workerBody + requestReference) <= 14_000);
     assert(Buffer.byteLength(hostReference) <= 32_000);
     const patterns = await readFile(join(root,
       'skills/ggb-construction/references/patterns.md'));

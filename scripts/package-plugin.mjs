@@ -29,6 +29,7 @@ try {
     'skills/ggb-construction/SKILL.md', 'skills/ggb-construction/worker.md',
     'skills/ggb-construction/references/capabilities.md', 'skills/ggb-construction/references/command-coverage.md',
     'skills/ggb-construction/references/patterns.md',
+    'skills/ggb-construction/references/worker-request.md',
     ...(target === 'codex' ? [
       'plugin.json', '.agents/plugins/marketplace.json',
       'skills/setup/SKILL.md',

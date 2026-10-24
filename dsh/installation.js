@@ -70,7 +70,11 @@ export function loadWorkerSkill() {
   if (body === raw.trim() || Buffer.byteLength(body) > 16384 || !body) {
     throw new Error('ggb_worker_skill_invalid');
   }
-  return body;
+  const combined = `${body}\n\n${loadReference('request').content.trim()}`;
+  if (Buffer.byteLength(combined) > 6500) {
+    throw new Error('ggb_worker_skill_invalid');
+  }
+  return combined;
 }
 
 export {assertDshCompatibility};
@@ -113,10 +117,11 @@ export function loadReference(topic) {
   if (!REFERENCE_TOPICS.includes(topic)) {
     throw new Error('ggb_reference_topic_invalid');
   }
-  const sections = {request: '请求', program: '原生构图程序',
+  const sections = {program: '原生构图程序',
     verification: '通用核验', interactions: '呈现与交互', naming: '命名规则'};
   const root = loadInstallation().root;
-  const file = topic === 'patterns' ? 'patterns.md' : 'capabilities.md';
+  const file = topic === 'request' ? 'worker-request.md'
+    : topic === 'patterns' ? 'patterns.md' : 'capabilities.md';
   const path = join(root, 'skills/ggb-construction/references', file);
   const resolved = realpathSync(path);
   const info = statSync(resolved);
@@ -125,7 +130,7 @@ export function loadReference(topic) {
     throw new Error('ggb_reference_resource_invalid');
   }
   let content = readFileSync(resolved, 'utf8');
-  if (topic !== 'patterns') {
+  if (topic !== 'patterns' && topic !== 'request') {
     const heading = new RegExp(`^##[ \\t]+${escapeRegExp(sections[topic])}[ \\t]*\\r?$`, 'mu');
     const match = heading.exec(content);
     if (!match) throw new Error('ggb_reference_section_missing');
@@ -134,6 +139,9 @@ export function loadReference(topic) {
     const next = /^##[ \t]+/mu.exec(rest);
     content = content.slice(start,
       next ? start + match[0].length + next.index : undefined);
+  }
+  if (topic === 'request' && !content.trim()) {
+    throw new Error('ggb_reference_resource_invalid');
   }
   if (Buffer.byteLength(content) > LIMITS.referenceBytes) {
     throw new Error('ggb_reference_resource_oversized');

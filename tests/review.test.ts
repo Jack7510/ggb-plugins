@@ -291,3 +291,36 @@ test('expression summaries distinguish missing, mismatched and failed probes',
     assert.equal(passed?.status, 'passed');
     assert.equal((passed?.evidence as {message?: string}).message, undefined);
   });
+
+
+test('derived fixed-value objects still need dependencies at initial and reload', () => {
+  const request: Request = {protocolVersion: 2, prompt: 'focus of ellipse',
+    locale: 'en', outputDir: '/tmp/unused', plan: {
+      program: [], interactions: [], requirements: [{id: 'focus',
+        source: 'focus of ellipse', checks: [
+          {kind: 'coordinate', subjects: ['F'], coordinates: [-1, 0], scope: 'initial'},
+          {kind: 'dependsOn', subjects: ['F', 'ell'], scope: 'initial'},
+        ]}],
+    }};
+  const source = numberFact('ell', 'ellipse', 0);
+  const initial = {...numberFact('F', 'point', 0), x: -1, y: 0,
+    independent: false, inputs: ['ell'], referenceState: 'direct' as const};
+  for (const [changes, expected] of [
+    [{}, 'passed'],
+    [{independent: true, inputs: []}, 'failed'],
+    [{referenceState: 'ambiguous'}, 'unverified'],
+  ] as const) {
+    const facts = [source, {...initial, ...changes}] as Snapshot;
+    const results = verify(request, facts, 'initial').results
+      .filter(result => result.requirementId === 'focus');
+    assert.equal(results[0]?.status, 'passed');
+    assert.equal(results[1]?.status, expected);
+  }
+  // Reload is an independent snapshot; an initially valid graph cannot hide loss.
+  assert.equal(verify(request, [source, initial] as Snapshot, 'initial').status, 'passed');
+  const lost = {...initial, independent: true, inputs: []};
+  assert.notEqual(verify(request, [source, lost] as Snapshot, 'initial').status, 'passed');
+  // Explicit fixed input uses coordinates alone, without inventing a dependency.
+  request.plan.requirements[0]!.checks.pop();
+  assert.equal(verify(request, [lost] as Snapshot, 'initial').status, 'passed');
+});

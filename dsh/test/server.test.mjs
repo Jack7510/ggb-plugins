@@ -41,16 +41,16 @@ test('public exports are shipped and installation resolves only this package',
       assert.ok(installation.loadWorkerSkill().includes('```json'));
     });
 
-test('reference sections tolerate CRLF and spaced headings', async () => {
+test('shared math sections tolerate CRLF and spaced headings', async () => {
   const path = join(bundle,
     'skills/ggb-construction/references/capabilities.md');
   const original = await readFile(path, 'utf8');
   try {
     await writeFile(path, original.replace(/\r?\n/gu, '\r\n')
-      .replace('## 请求\r\n', '##   请求  \r\n'));
-    const section = installation.loadReference('request').content;
-    assert.match(section, /^##   请求  /mu);
-    assert.match(section, /protocolVersion/u);
+      .replace('## 原生构图程序\r\n', '##   原生构图程序  \r\n'));
+    const section = installation.loadReference('program').content;
+    assert.match(section, /^##   原生构图程序  /mu);
+    assert.match(section, /native/u);
   } finally {
     await writeFile(path, original);
   }
@@ -194,7 +194,7 @@ test('batch reference reads preserve complete ordered topics and deduplicate',
 test('batch budget counts escaped JSON bytes and never truncates a topic',
   async () => {
     const path = join(bundle,
-      'skills/ggb-construction/references/capabilities.md');
+      'skills/ggb-construction/references/worker-request.md');
     const original = await readFile(path, 'utf8');
     try {
       await writeFile(path, '## 请求\n' + '"'.repeat(13 * 1024));
@@ -204,3 +204,56 @@ test('batch budget counts escaped JSON bytes and never truncates a topic',
         /reference_response_oversized/);
     } finally {await writeFile(path, original);}
   });
+
+
+test('Worker request reference is preloaded once and cannot inherit CLI fields', async () => {
+  const reference = installation.loadReference('request').content.trim();
+  const body = installation.loadWorkerSkill();
+  assert.equal(body.split(reference).length, 2);
+  assert.ok(Buffer.byteLength(body) <= 6500);
+  assert.match(body, /Reference reads are not prerequisites/);
+  assert.match(body, /normally read at most 3 total/);
+  assert.match(body, /derived object also requires a[\s\S]*dependsOn/);
+  assert.match(body, /Explicit user-given free coordinates/);
+  const {RequestDraft} = await import(pathToFileURL(
+    join(bundle, 'dist/src/draft-requests.js')));
+  const {parseRequest} = await import(pathToFileURL(
+    join(bundle, 'dist/src/schema.js')));
+  const args = JSON.parse(/```json\n([\s\S]*?)\n```/u.exec(reference)[1]);
+  assert.deepEqual(Object.keys(JSON.parse(args.requestText)), ['plan']);
+  const draft = new RequestDraft('Create point P');
+  const saved = draft.operate(args);
+  assert.doesNotThrow(() => parseRequest({...draft.forCheck({revision: saved.revision}).request,
+    outputDir: '/tmp/worker-reference-only'}));
+  for (const key of ['protocolVersion', 'prompt', 'locale', 'title',
+    'outputDir', 'base']) {
+    const bad = {...args, requestText: JSON.stringify({
+      ...JSON.parse(args.requestText), [key]: 'forbidden'})};
+    assert.throws(() => draft.operate(bad), /draft_request_fields/);
+    assert.equal(draft.forCheck({revision: saved.revision}).domainRequestDigest,
+      saved.domainRequestDigest);
+  }
+  const path = join(bundle, 'skills/ggb-construction/references/capabilities.md');
+  const original = await readFile(path, 'utf8');
+  try {
+    await writeFile(path, original.replace('## 请求', '## CLI_ONLY_SENTINEL'));
+    assert.equal(installation.loadReference('request').content.trim(), reference);
+    assert.ok(!installation.loadWorkerSkill().includes('CLI_ONLY_SENTINEL'));
+  } finally {await writeFile(path, original);}
+});
+
+test('missing or oversized Worker request contract fails before registration', async () => {
+  const path = join(bundle, 'skills/ggb-construction/references/worker-request.md');
+  const original = await readFile(path, 'utf8');
+  try {
+    await writeFile(path, 'x'.repeat(25 * 1024));
+    const tools = [];
+    assert.throws(() => server.apply({tools: {register: t => tools.push(t)},
+      systemPrompt: {section() {}}}, {sdkVersion: '0.2.1-rc.2'}), /oversized/);
+    assert.equal(tools.length, 0);
+    await writeFile(path, '   \n');
+    assert.throws(() => installation.loadWorkerSkill(), /resource_invalid/);
+    await rm(path);
+    assert.throws(() => installation.loadWorkerSkill(), /ENOENT/);
+  } finally {await writeFile(path, original);}
+});

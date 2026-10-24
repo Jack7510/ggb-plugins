@@ -38,7 +38,7 @@ test('DSH tarball carries its own skill, references and the identical compiled r
     for (const module of ['cli','doctor','server','browser','schema','compile','verify','delivery']) {
       assert.deepEqual(await readFile(join(bundle, 'dist/src', module + '.js')), await readFile(join(root, 'dist/src', module + '.js')));
     }
-    for (const file of ['SKILL.md', 'worker.md', 'references/capabilities.md', 'references/command-coverage.md', 'references/patterns.md']) {
+    for (const file of ['SKILL.md', 'worker.md', 'references/capabilities.md', 'references/command-coverage.md', 'references/patterns.md', 'references/worker-request.md']) {
       assert.deepEqual(await readFile(join(bundle, 'skills/ggb-construction', file)), await readFile(join(root, 'skills/ggb-construction', file)));
     }
     assert.deepEqual(await readFile(join(bundle, 'capabilities.json')), await readFile(join(root, 'capabilities.json')));
