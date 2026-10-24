@@ -18,7 +18,7 @@ export const draftToolSchema = object({
   title: {type: 'string', maxLength: 60,
     description: 'Omitted repairs retain the saved title.'},
   transcription: {type: 'array', maxItems: 20,
-    description: 'Image text. Omit to retain it; an explicit array replaces it.',
+    description: 'Required on the first save when an image is attached: complete mathematical problem text, including givens, equations, labels, constraints and question. Preserve ambiguity; no solution or invented conditions. Omit on repairs to retain it; a nonempty array replaces it.',
     items: {type: 'string', maxLength: 2_000}},
 }, ['requestText']);
 export const checkReferenceSchema = object({revision:

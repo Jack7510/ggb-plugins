@@ -11,6 +11,7 @@ export const name = 'ggb-construct-server';
 export const inject = ['tools', 'systemPrompt'];
 const descriptions = {
   ggb_inspect: 'Request is already injected; do not read it again. ' +
+      'Resolve a specific unknown; do not confirm known fields or compare known constructions. ' +
       'Read only missing knowledge, normally 1-2 topics, not all topics. ' +
       'Use references to batch relevant fixed topics (1-6). ' +
       'reference reads one topic. Do not combine the two fields. ' +

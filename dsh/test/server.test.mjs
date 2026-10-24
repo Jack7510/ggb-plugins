@@ -218,6 +218,15 @@ test('Worker request reference is preloaded once and cannot inherit CLI fields',
   assert.match(body, /every defining input of every derived relation/);
   assert.match(body, /Type checks use objectType, not expected/);
   assert.match(body, /Copy source verbatim/);
+  assert.match(body, /Image tasks require nonempty transcription on the first save/);
+  assert.match(body, /complete mathematical problem text/);
+  assert.match(body, /not an image summary/);
+  assert.match(body, /without comparing known alternatives/);
+  assert.match(body, /Do not reread request to confirm known fields/);
+  const schema = server.createTool('ggb_request').parameters;
+  assert.ok(!schema.required.includes('transcription'));
+  assert.match(schema.properties.transcription.description,
+    /Required on the first save when an image is attached/);
   const {RequestDraft} = await import(pathToFileURL(
     join(bundle, 'dist/src/draft-requests.js')));
   const {parseRequest} = await import(pathToFileURL(
