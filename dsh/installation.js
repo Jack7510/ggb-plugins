@@ -6,7 +6,8 @@ import {fileURLToPath} from 'node:url';
 import {EXECUTOR_PROTOCOL_VERSION} from '../dist/src/execution-contract.js';
 import {assertDshCompatibility, HOST_PROTOCOL_VERSION,
   RECEIPT_SCHEMA_VERSION, SUPPORTED_DSH_VERSIONS, TOOL_NAMES,
-  REFERENCE_TOPICS, PRELOADED_REFERENCE_TOPICS, LIMITS, parseReferenceTopics,
+  REFERENCE_IDS, REFERENCE_SECTIONS,
+  PRELOADED_REFERENCE_TOPICS, LIMITS, parseReferenceTopics,
 } from '../dist/src/host-protocol.js';
 
 /** Resolve only this complete installed bundle; never another client's cache.
@@ -116,14 +117,16 @@ export async function assertRuntimeReady() {
  * @returns {{topic: string, content: string}} Complete bounded reference text.
  */
 export function loadReference(topic) {
-  if (!REFERENCE_TOPICS.includes(topic)) {
+  if (!REFERENCE_IDS.includes(topic)) {
     throw new Error('ggb_reference_topic_invalid');
   }
+  const part = REFERENCE_SECTIONS[topic];
+  const parent = part?.topic ?? topic;
   const sections = {program: '原生构图程序',
     verification: '通用核验', interactions: '呈现与交互', naming: '命名规则'};
   const root = loadInstallation().root;
-  const file = topic === 'request' ? 'worker-request.md'
-    : topic === 'patterns' ? 'patterns.md' : 'capabilities.md';
+  const file = parent === 'request' ? 'worker-request.md'
+    : parent === 'patterns' ? 'patterns.md' : 'capabilities.md';
   const path = join(root, 'skills/ggb-construction/references', file);
   const resolved = realpathSync(path);
   const info = statSync(resolved);
@@ -132,15 +135,13 @@ export function loadReference(topic) {
     throw new Error('ggb_reference_resource_invalid');
   }
   let content = readFileSync(resolved, 'utf8');
-  if (topic !== 'patterns' && topic !== 'request') {
-    const heading = new RegExp(`^##[ \\t]+${escapeRegExp(sections[topic])}[ \\t]*\\r?$`, 'mu');
-    const match = heading.exec(content);
-    if (!match) throw new Error('ggb_reference_section_missing');
-    const start = match.index;
-    const rest = content.slice(start + match[0].length);
-    const next = /^##[ \t]+/mu.exec(rest);
-    content = content.slice(start,
-      next ? start + match[0].length + next.index : undefined);
+  if (parent !== 'patterns' && parent !== 'request') {
+    content = sectionText(content, sections[parent], 2);
+  }
+  const level = parent === 'patterns' ? 2 : 3;
+  if (part) content = sectionText(content, part.heading, level);
+  else for (const section of Object.values(REFERENCE_SECTIONS)) {
+    if (section.topic === topic) sectionText(content, section.heading, level);
   }
   if (topic === 'request' && !content.trim()) {
     throw new Error('ggb_reference_resource_invalid');
@@ -163,6 +164,20 @@ export function loadReferences(topics) {
     throw new Error('ggb_reference_response_oversized');
   }
   return result;
+}
+
+/** Extract a complete fixed heading through its next peer or ancestor. */
+function sectionText(content, title, level) {
+  const heading = new RegExp(`^#{${level}}[ \\t]+${escapeRegExp(title)}`
+    + '[ \\t]*\\r?$', 'mu');
+  const matches = [...content.matchAll(new RegExp(heading.source, 'gmu'))];
+  if (matches.length !== 1) throw new Error('ggb_reference_section_missing');
+  const match = matches[0];
+  const start = match.index;
+  const end = start + match[0].length;
+  const next = new RegExp(`^#{1,${level}}[ \\t]+`, 'mu')
+    .exec(content.slice(end));
+  return content.slice(start, next ? end + next.index : undefined);
 }
 
 function escapeRegExp(value) {

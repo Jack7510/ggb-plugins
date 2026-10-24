@@ -12,6 +12,7 @@ let directory;
 let bundle;
 let server;
 let installation;
+let schemas;
 
 before(async () => {
   directory = await mkdtemp(join(tmpdir(), 'ggb-server-package-'));
@@ -23,6 +24,8 @@ before(async () => {
   server = await import(pathToFileURL(join(bundle, 'dsh/server.js')));
   installation = await import(pathToFileURL(
       join(bundle, 'dsh/installation.js')));
+  schemas = await import(pathToFileURL(
+    join(bundle, 'dist/src/host-protocol.js')));
 });
 after(async () => {
   if (directory) await rm(directory, {recursive: true, force: true});
@@ -135,7 +138,7 @@ test('model submits one complete requestText and reference-only check/build', as
 
 test('restricted reference topics read only complete bundled sections', () => {
   const inspect = server.createTool('ggb_inspect');
-  const topics = inspect.parameters.properties.reference.enum;
+  const topics = schemas.REFERENCE_TOPICS;
   assert.equal(topics.length, 6);
   for (const topic of topics) {
     const result = installation.loadReference(topic);
@@ -181,8 +184,12 @@ test('batch reference reads preserve complete ordered topics and deduplicate',
       .properties.references;
     assert.equal(topics.maxItems, 6);
     assert.equal(topics.minItems, 1);
-    assert.equal(topics.items.enum.length, 6);
-    const all = installation.loadReferences(topics.items.enum);
+    assert.deepEqual(topics.items.enum, schemas.REFERENCE_IDS);
+    const all = installation.loadReferences([
+      'program.outputs', 'program.cas', 'verification.engine',
+      'interactions.parameters', 'patterns.regular-polygon',
+      'patterns.dependencies',
+    ]);
     assert.equal(all.references.length, 6);
     assert.ok(Buffer.byteLength(JSON.stringify(all)) <= 24 * 1024);
     const invalid = [undefined, [], ['unknown'], Array(7).fill('request')];
@@ -225,6 +232,11 @@ test('Worker request reference is preloaded once and cannot inherit CLI fields',
   assert.match(body, /complete mathematical problem text/);
   assert.match(body, /not an image summary/);
   assert.match(body, /without comparing known alternatives/);
+  assert.match(body, /Submit when sources/);
+  assert.match(body, /No chapter survey/);
+  assert.match(body, /exists: one subject/);
+  assert.match(body, /coordinate: one point, coordinates/);
+  assert.match(body, /outputs defaults to/);
   assert.match(body, /Do not reread request to confirm known fields/);
   const schema = server.createTool('ggb_request').parameters;
   assert.ok(!schema.required.includes('transcription'));
@@ -248,7 +260,8 @@ test('Worker request reference is preloaded once and cannot inherit CLI fields',
     assert.equal(draft.forCheck({revision: saved.revision}).domainRequestDigest,
       saved.domainRequestDigest);
   }
-  const path = join(bundle, 'skills/ggb-construction/references/capabilities.md');
+  const path = join(bundle,
+    'skills/ggb-construction/references/capabilities.md');
   const original = await readFile(path, 'utf8');
   try {
     await writeFile(path, original.replace('## 请求', '## CLI_ONLY_SENTINEL'));
@@ -283,4 +296,54 @@ test('preloaded topic metadata and explicit refresh belong to the public plugin 
     {reference: '../request', refresh: true}]) {
     assert.throws(() => schemas.parseReferenceTopics(bad));
   }
+});
+
+
+test('fixed sections exclude neighboring content', async () => {
+  for (const [id, spec] of Object.entries(schemas.REFERENCE_SECTIONS)) {
+    const part = installation.loadReference(id);
+    assert.equal(part.topic, id);
+    assert.ok(part.content.includes(spec.heading));
+    const chapter = installation.loadReference(spec.topic).content;
+    assert.ok(chapter.includes(part.content));
+    assert.ok(Buffer.byteLength(part.content) <
+      Buffer.byteLength(installation.loadReference(spec.topic).content));
+  }
+  const parameters = installation.loadReference(
+    'interactions.parameters').content;
+  assert.match(parameters, /sample.roundTrip/);
+  assert.ok(!parameters.includes('### 样式与视图'));
+  const outputs = installation.loadReference('program.outputs').content;
+  assert.match(outputs, /Element/);
+  assert.ok(!outputs.includes('### CAS 结果与依赖'));
+  assert.throws(() => installation.loadReference('program.outputs/../request'));
+  assert.throws(() => installation.loadReference('program.unknown'));
+  const path = join(bundle,
+    'skills/ggb-construction/references/capabilities.md');
+  const original = await readFile(path, 'utf8');
+  try {
+    await writeFile(path, original.replace('### 多输出与列表', '### 缺失小节'));
+    assert.throws(() => installation.loadReference('program.outputs'),
+      /reference_section_missing/);
+    assert.throws(() => installation.loadReference('program'),
+      /reference_section_missing/);
+    const crlf = original.replaceAll('\n', '\r\n');
+    await writeFile(path, crlf);
+    const restored = installation.loadReference('program.outputs');
+    assert.match(restored.content, /Focus/);
+    await writeFile(path, original.replace('### 多输出与列表',
+      '### 多输出与列表\n### 多输出与列表'));
+    assert.throws(() => installation.loadReference('program.outputs'),
+      /reference_section_missing/);
+  } finally {await writeFile(path, original);}
+});
+
+
+test('coverage metadata never promotes a section to a complete chapter', () => {
+  assert.deepEqual(schemas.referenceCoverage('program.outputs'),
+    ['program.outputs']);
+  assert.deepEqual(schemas.referenceCoverage('program'),
+    ['program', 'program.outputs', 'program.cas']);
+  assert.deepEqual(schemas.referenceCoverage('request'), ['request']);
+  assert.throws(() => schemas.referenceCoverage('program.unknown'));
 });

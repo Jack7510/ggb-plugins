@@ -154,3 +154,25 @@ test('reference batches are bounded, exclusive and deduplicated without paths',
       assert.throws(() => parseToolRequest(value), /protocol_invalid/);
     }
   });
+
+
+test('fixed section IDs are closed and authenticated', () => {
+  const value = request();
+  value.toolName = 'ggb_inspect';
+  value.arguments = {reference: 'program.outputs'};
+  value.argumentsDigest = digestJson(value.arguments);
+  const {authentication: _, ...unsigned} = value;
+  value.authentication = signRequest(token, unsigned);
+  assert.equal(authenticateRequest(token, parseToolRequest(value)), true);
+  value.arguments = {reference: 'program.cas'};
+  assert.throws(() => parseToolRequest(value));
+  assert.deepEqual(parseReferenceTopics({reference: 'program.outputs'}),
+    ['program.outputs']);
+  assert.deepEqual(parseReferenceTopics({references: [
+    'verification.engine', 'program.outputs', 'verification.engine',
+  ]}), ['verification.engine', 'program.outputs']);
+  for (const reference of ['program.unknown', '../program.outputs',
+    '/program.outputs', 'https://example.com', 'program.outputs/../request']) {
+    assert.throws(() => parseReferenceTopics({reference}));
+  }
+});

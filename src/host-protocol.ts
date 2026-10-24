@@ -11,6 +11,29 @@ export const RECEIPT_SCHEMA_VERSION = 2;
 export const SUPPORTED_DSH_VERSIONS = ['0.2.1-rc.2'] as const;
 export const REFERENCE_TOPICS = ['request', 'program', 'verification',
   'interactions', 'patterns', 'naming'] as const;
+/** Fixed child sections; IDs are data, never paths or search expressions. */
+export const REFERENCE_SECTIONS = {
+  'program.outputs': {topic: 'program', heading: '多输出与列表'},
+  'program.cas': {topic: 'program', heading: 'CAS 结果与依赖'},
+  'verification.expression': {topic: 'verification', heading: '表达式观测'},
+  'verification.predicates': {topic: 'verification', heading: '谓词与依赖'},
+  'verification.engine': {topic: 'verification', heading: '表达式引擎语义'},
+  'interactions.styles': {topic: 'interactions', heading: '样式与视图'},
+  'interactions.parameters': {topic: 'interactions', heading: '参数采样'},
+  'interactions.drag': {topic: 'interactions', heading: '鼠标拖动'},
+  'patterns.regular-polygon': {topic: 'patterns', heading: '可变边数的正多边形'},
+  'patterns.bounded-outline': {topic: 'patterns', heading: '有界可变数量的轮廓'},
+  'patterns.dependencies': {topic: 'patterns', heading: '派生关系的完整依赖'},
+} as const;
+export const REFERENCE_IDS: readonly string[] =
+  [...REFERENCE_TOPICS, ...Object.keys(REFERENCE_SECTIONS)];
+
+/** A complete chapter covers its children; one child covers only itself. */
+export function referenceCoverage(id: string): string[] {
+  requireValue(REFERENCE_IDS.includes(id), 'reference');
+  return [id, ...Object.entries(REFERENCE_SECTIONS)
+    .filter(([, section]) => section.topic === id).map(([key]) => key)];
+}
 /** Topics whose complete text is injected before the first Worker model step. */
 export const PRELOADED_REFERENCE_TOPICS = ['request'] as const;
 export const TOOL_NAMES = ['ggb_inspect', 'ggb_request', 'ggb_check', 'ggb_build'] as const;
@@ -172,16 +195,18 @@ export function parseReferenceTopics(input: unknown): string[] | null {
   requireValue(args.reference === undefined || args.references === undefined,
     'reference_mode');
   if (args.reference !== undefined) {
-    requireValue(REFERENCE_TOPICS.some(topic => topic === args.reference),
+    requireValue(typeof args.reference === 'string' &&
+      REFERENCE_IDS.includes(args.reference),
       'reference');
     // Equality with the fixed string enum proves the external value's type.
     return [args.reference as string];
   }
   if (args.references === undefined) return null;
   requireValue(Array.isArray(args.references) && args.references.length >= 1
-    && args.references.length <= REFERENCE_TOPICS.length
+    && args.references.length <= 6
     && args.references.every(value =>
-      REFERENCE_TOPICS.some(topic => topic === value)), 'references');
+      typeof value === 'string' && REFERENCE_IDS.includes(value)),
+  'references');
   // Every array entry was matched against the fixed string enum above.
   return [...new Set(args.references as string[])];
 }
