@@ -52,3 +52,17 @@ Max(Sequence(abs(Distance(Vertex(poly,k),Vertex(poly,Mod(k,round(n))+1))-2*Dista
 再取活动前缀；轮廓用 `Polyline`。容量上限必须来自题目，
 且填充面或原生 `Polygon` 类型不能用轮廓替代。细节见能力契约中关于有界可变数量构造的
 段落。
+
+
+## 派生关系的完整依赖
+
+每条关系按定义输入验收，不能只保留滑块依赖。例如焦点 F_1 已从 ell 派生，
+过该点的直线可用 `g: y-y(F_1)=k*(x-x(F_1))`，并声明：
+
+```json
+{"kind":"dependsOn","subjects":["g","F_1","ell","k"],"scope":"sampled"}
+```
+
+`g: y=k*(x+1)` 即使在当前焦点为 (-1,0) 时位置正确，也没有使用 F_1。
+只检查 pointOn(F_1,g) 和 dependsOn(g,k) 会遗漏这条关系。
+依赖检查与独立数学期望并存；sampled 还需要相关交互，initial 也会重载复验。

@@ -202,3 +202,22 @@ test('check validation exposes structured source and check-field details', () =>
       fields: ['expected'], expectedFields: ['coordinates'] });
   }
 });
+
+
+test('type uses objectType, sources remain verbatim and captions may be display text', () => {
+  const body = {protocolVersion: 2, prompt: 'Given point F1', locale: 'en',
+    outputDir: '/tmp/contract', plan: {
+      program: [{id: 'A', op: 'native', source: 'A=(1,0)', mode: 'algebra'}],
+      interactions: [], styles: [{object: 'A', properties: {caption: 'F₁'}}],
+      requirements: [{id: 'point', source: 'point F1', checks: [
+        {kind: 'type', subjects: ['A'], objectType: 'point', scope: 'initial'},
+      ]}],
+    }};
+  assert.doesNotThrow(() => compile(parseRequest(body)));
+  const wrongType = structuredClone(body);
+  Object.assign(wrongType.plan.requirements[0]!.checks[0]!, {expected: 'point'});
+  assert.throws(() => parseRequest(wrongType), /Unexpected expression field/);
+  const wrongSource = structuredClone(body);
+  wrongSource.plan.requirements[0]!.source = 'point F₁';
+  assert.throws(() => parseRequest(wrongSource), /source is not in the input/);
+});

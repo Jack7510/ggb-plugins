@@ -4,14 +4,16 @@ Use ggb_request once with one complete `requestText` JSON object.
 Inside requestText allow only plan and optional clarifications:[{question,answer}].
 The host owns prompt, paths and base identity. Do not copy CLI
 fields (protocolVersion, prompt, outputDir, base, locale, title) into requestText.
-Tool arguments: requestText, optional locale/title/transcription. Omitted metadata
+Arguments: requestText, optional locale/title/transcription. Omitted metadata
 is retained on repair; an explicit transcription array replaces prior image text.
 
 Plan carries applicable program, requirements, interactions, styles, edits,
 updates, view and display. Each requirement has id, original source, optional
-purpose and nonempty checks in plan.requirements[].checks; never plan.checks or
-requirementId. Source comes from user text, transcription or a confirmed answer.
-Steps: id/source, op:"native", mode (default algebra), outputs, initial.
+purpose and nested checks in plan.requirements[].checks, never plan.checks.
+Copy source verbatim from user text, transcription or a confirmed answer.
+Do not beautify F1 into F₁ in source; display text belongs in caption.
+Type checks use objectType, not expected; expected belongs only to expression.
+Steps: id/source, optional op:"native"/mode, outputs, initial.
 Preserve CAS, initial and independently derived expected. Sampled checks require
 relevant interactions. Raw body and escaped arguments each fit 128 KiB.
 

@@ -11,6 +11,8 @@ export const RECEIPT_SCHEMA_VERSION = 2;
 export const SUPPORTED_DSH_VERSIONS = ['0.2.1-rc.2'] as const;
 export const REFERENCE_TOPICS = ['request', 'program', 'verification',
   'interactions', 'patterns', 'naming'] as const;
+/** Topics whose complete text is injected before the first Worker model step. */
+export const PRELOADED_REFERENCE_TOPICS = ['request'] as const;
 export const TOOL_NAMES = ['ggb_inspect', 'ggb_request', 'ggb_check', 'ggb_build'] as const;
 export type ToolName = typeof TOOL_NAMES[number];
 export const LIMITS = Object.freeze({
@@ -162,7 +164,11 @@ export function signRequest(token: string,
 
 /** Validate fixed topics; null means inspect the attached base. */
 export function parseReferenceTopics(input: unknown): string[] | null {
-  const args = object(input, ['reference', 'references']);
+  const args = object(input, ['reference', 'references', 'refresh']);
+  requireValue(args.refresh === undefined || typeof args.refresh === 'boolean',
+    'reference_refresh');
+  requireValue(args.refresh === undefined || args.reference !== undefined
+    || args.references !== undefined, 'reference_refresh_without_topic');
   requireValue(args.reference === undefined || args.references === undefined,
     'reference_mode');
   if (args.reference !== undefined) {

@@ -100,6 +100,11 @@ function styleStatus(fact: Fact, properties: Style): Status {
   const matches = ([key, value]: [string, unknown]): boolean => {
     const observed = actual[key];
     if (key === 'color') return observed === String(value).toUpperCase();
+    // GeoGebra stores an exact own-name caption as the empty default caption.
+    // Keep the raw observation; do not alias Unicode, subscripts or custom text.
+    if (key === 'caption' && observed === '' && value === fact.name) {
+      return true;
+    }
     // `filling` is a float opacity; other style fields are exact integers.
     if (key === 'filling') {
       return typeof observed === 'number' && typeof value === 'number'

@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {EXECUTOR_PROTOCOL_VERSION} from '../dist/src/execution-contract.js';
 import {assertDshCompatibility, HOST_PROTOCOL_VERSION,
   RECEIPT_SCHEMA_VERSION, SUPPORTED_DSH_VERSIONS, TOOL_NAMES,
-  REFERENCE_TOPICS, LIMITS, parseReferenceTopics,
+  REFERENCE_TOPICS, PRELOADED_REFERENCE_TOPICS, LIMITS, parseReferenceTopics,
 } from '../dist/src/host-protocol.js';
 
 /** Resolve only this complete installed bundle; never another client's cache.
@@ -70,7 +70,9 @@ export function loadWorkerSkill() {
   if (body === raw.trim() || Buffer.byteLength(body) > 16384 || !body) {
     throw new Error('ggb_worker_skill_invalid');
   }
-  const combined = `${body}\n\n${loadReference('request').content.trim()}`;
+  const references = PRELOADED_REFERENCE_TOPICS
+    .map(topic => loadReference(topic).content.trim()).join('\n\n');
+  const combined = `${body}\n\n${references}`;
   if (Buffer.byteLength(combined) > 6500) {
     throw new Error('ggb_worker_skill_invalid');
   }

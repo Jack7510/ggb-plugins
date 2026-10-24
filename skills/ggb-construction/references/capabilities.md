@@ -44,7 +44,7 @@ Worker 启动时注入 [专用请求契约](worker-request.md)，request 主题�
 
 `title` 可选，最长 60 字，不能含控制字符：它决定交付目录名和 GGB 文件名。省略时由 `prompt` 派生；两者都会清洗路径分隔符与非法字符，按码点截断，空结果回退为 `ggb-construction`。`outputDir` 建议填用户工作目录根。交付路径为 `<outputDir>/<title>/delivery/<title>.ggb`；同名交付已存在时目录与文件名同时追加 `-2`、`-3`，绝不覆盖。旧交付（`result.ggb`）仍可预览：预览按清单声明的文件名校验。
 
-工作语言由 Agent 选择中文或英文；locale 必须与 prompt 语言一致，构建页与预览页都据此显示说明与结束按钮，页面语言不符会被拒绝。caption 和 Text 由 Agent 用所选语言编写。locale 不翻译来源、命令、协议字段或原始诊断；其他既有 locale 值仍可解析，预览以英文回退。
+locale 与 prompt 语言一致，构建页、预览页、caption 和 Text 使用该语言。语言不符时拒绝。locale 不翻译来源、命令、字段和诊断；其他 locale 回退英文。
 
 保留用户原文、可选 `clarifications: [{question,answer}]`；边数等构图参数用滑块表达为变量；用户明确指定时按给定值构造。每个 requirement 有唯一 ID、用户 prompt 或澄清 answer 中的原文 source 和非空 checks。Agent 的 question 保留为问答记录，但不能单独作为条件来源。不得写入检查结果、容差或未知字段。图片由宿主读取并转述题意；把来源和歧义澄清保存在 prompt/clarifications，不把图片当脚本输入。
 
@@ -177,7 +177,7 @@ CAS 物化的是当次计算结果，不是动态 CAS 单元；它不会自动�
 
 `expression` 检查有 subjects、expression、mode、expected 和 scope。subjects 必须指向程序声明的对象且实际出现在表达式中。expected 为布尔、有限数值或嵌套数组（列表／矩阵），不是模型提交的 passed。
 
-每个 requirement 可选 purpose：construction（构造正确性）、constraint（题设约束）、interaction（交互行为）。未提供时记录 unspecified，兼容旧请求。purpose 不跳过任何检查，也不证明检查独立于构造。warnings 与报告 verificationNotes 对所有要求说明同一证据边界，不再按命令名检测“同义反复”。构造关系检查可以证明指定对象按要求构成；一般命题或独立证据仍需宿主对照题目审查。
+purpose 可选 construction、constraint、interaction，省略为 unspecified。它只分类证据，不豁免检查或证明独立性。warnings 和 verificationNotes 对所有要求说明相同边界；一般命题仍需宿主对照题目审查。
 
 `expected` 必须独立求出：按题目条件和本次构造推导，不从 `build` 的失败证据、`inspect` 结果或上一轮观测里抄数值。检查的意义在于声明值与引擎值独立相符；把观测值抄回 expected 只是自复述。观测与推导不一致时，先用证据区分构造错误与计算错误，再只改对应的一项。`verification_failed` 的 details 给出 subjects 的实际事实（坐标、数值、可见性等），它是诊断依据，不是期望值来源。每个结构最多 256 个节点、深度最多 8；布尔值不会与数值 0/1 混同，数组逐项采用固定容差和灰区判定。
 
@@ -202,7 +202,9 @@ CAS 物化的是当次计算结果，不是动态 CAS 单元；它不会自动�
 ]
 ```
 
-`exists` 每项只接受一个 subject；多个对象用多项检查。coordinate 仅用于题设支持的固定值，不能把观测坐标回填为期望。sampled 必须配相关交互样本。派生对象即使当前值固定，也必须用 `dependsOn` 验收对定义输入的依赖；坐标或距离符合不能代替该检查。题设给定的自由坐标不需虚构依赖。受约束动点用原生命令保留依赖；`pointOn` 检查位置，`dependsOn` 检查第一个 subject 对其余主语的传递依赖。固定坐标恰好在线上不能替代动态依赖；依赖无法确认时保持 unverified，不能跳过。
+`type` 使用 objectType，如 `{"kind":"type","subjects":["A"],"objectType":"point","scope":"initial"}`；expected 只用于 expression。source 逐字引用原文，不把 F1 改成 F₁；美化只用于 caption。
+
+`exists` 每项只接受一个 subject；多个对象用多项检查。coordinate 仅用于题设支持的固定值，不能把观测坐标回填为期望。sampled 必须配相关交互样本。派生对象即使当前值固定，也必须用 `dependsOn` 验收对定义输入的依赖；覆盖每条派生关系的全部定义输入，不能只检查滑块；坐标或距离符合不能代替依赖。题设给定的自由坐标不需虚构依赖。受约束动点用原生命令保留依赖；`pointOn` 检查位置，`dependsOn` 检查第一个 subject 对其余主语的传递依赖。固定坐标恰好在线上不能替代动态依赖；依赖无法确认时保持 unverified，不能跳过。
 
 可复用的结构检查仍可使用 exists、type、coordinate、dependsOn、style，以及中点、线/圆上的点、圆心半径、平行垂直、等长、距离和非共线。新数学关系优先写表达式，不逐命令增加谓词。type 使用实际事实类型，简单多边形归一为 polygon。
 
@@ -242,7 +244,7 @@ expression 检查的写法限制（本项目实测）：直接用比较表达式
 
 ## 呈现与交互
 
-`styles:[{object,properties}]` 支持 visible、labelVisible、color（#RRGGBB）、lineThickness（1–13）、lineStyle（0–4）、filling（0–1 的填充不透明度，可写小数）、caption（1–100 字）、fixed。点默认显示名称。原生列表和数值不强制在图形画布可见；关键几何对象需明确 `visible:true` 及对应 style 检查。
+`styles:[{object,properties}]` 支持 visible、labelVisible、color（#RRGGBB）、lineThickness（1–13）、lineStyle（0–4）、filling（0–1 的填充不透明度，可写小数）、caption（1–100 字）、fixed。点默认显示名称。同名 caption 的原始读回为空，核验仅对精确对象名等价处理，仍要求 labelStyle=3；自定义 caption 必须逐字匹配。原生列表和数值不强制在图形画布可见；关键几何对象需明确 `visible:true` 及对应 style 检查。
 
 填充与线条同色：GeoGebra 一个对象只有一种颜色，`color` 同时用于描边与填充，`filling` 只改不透明度。所以"虚线 + 填充"要写在同一个对象上（`lineStyle:1` 配 `filling:0.5`），否则不透明的填充面会盖住同位的虚线轮廓。
 

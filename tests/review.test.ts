@@ -324,3 +324,45 @@ test('derived fixed-value objects still need dependencies at initial and reload'
   request.plan.requirements[0]!.checks.pop();
   assert.equal(verify(request, [lost] as Snapshot, 'initial').status, 'passed');
 });
+
+
+test('own-name caption normalization does not waive custom text or label mode', () => {
+  const request: Request = {protocolVersion: 2, prompt: 'point caption',
+    locale: 'en', outputDir: '/tmp/unused', plan: {program: [],
+      interactions: [], requirements: [{id: 'caption', source: 'point caption',
+        checks: [{kind: 'style', subjects: ['A'],
+          properties: {caption: 'A'}, scope: 'initial'}]}]}};
+  const fact = {...numberFact('A', 'point', 0), x: 0, y: 0,
+    caption: '', labelStyle: 3};
+  assert.equal(verify(request, [fact], 'initial').status, 'passed');
+  assert.equal(verify(request, [{...fact, caption: 'Wrong'}], 'initial').status,
+    'failed');
+  assert.equal(verify(request, [{...fact, labelStyle: 0}], 'initial').status,
+    'failed');
+  for (const caption of ['a', 'A ', 'Custom A', 'A₁', 'A_{1}']) {
+    request.plan.requirements[0]!.checks[0]!.properties = {caption};
+    assert.equal(verify(request, [fact], 'initial').status, 'failed');
+  }
+});
+
+test('a line through a derived point must retain that input, not only a slider', () => {
+  const request: Request = {protocolVersion: 2, prompt: 'line through focus',
+    locale: 'en', outputDir: '/tmp/unused', plan: {program: [],
+      interactions: [], requirements: [{id: 'line', source: 'line through focus',
+        checks: [
+          {kind: 'pointOn', subjects: ['F', 'g'], scope: 'initial'},
+          {kind: 'dependsOn', subjects: ['g', 'F', 'ell', 'k'], scope: 'initial'},
+        ]}]}};
+  const focus = {...numberFact('F', 'point', 0), x: -1, y: 0,
+    independent: false, inputs: ['ell']};
+  for (const [inputs, status] of [[['F', 'k'], 'passed'],
+    [['k'], 'failed']] as const) {
+    const facts = [focus, numberFact('ell', 'ellipse', 0),
+      numberFact('k', 'numeric', 0.5), {...numberFact('g', 'line', 0),
+        independent: false, inputs: [...inputs], line: [0.5, -1, 0.5]}] as Snapshot;
+    const checks = verify(request, facts, 'initial').results
+      .filter(result => result.requirementId === 'line');
+    assert.equal(checks[0]?.status, 'passed');
+    assert.equal(checks[1]?.status, status);
+  }
+});

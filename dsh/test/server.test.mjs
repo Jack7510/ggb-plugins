@@ -215,6 +215,9 @@ test('Worker request reference is preloaded once and cannot inherit CLI fields',
   assert.match(body, /normally read at most 3 total/);
   assert.match(body, /derived object also requires a[\s\S]*dependsOn/);
   assert.match(body, /Explicit user-given free coordinates/);
+  assert.match(body, /every defining input of every derived relation/);
+  assert.match(body, /Type checks use objectType, not expected/);
+  assert.match(body, /Copy source verbatim/);
   const {RequestDraft} = await import(pathToFileURL(
     join(bundle, 'dist/src/draft-requests.js')));
   const {parseRequest} = await import(pathToFileURL(
@@ -256,4 +259,16 @@ test('missing or oversized Worker request contract fails before registration', a
     await rm(path);
     assert.throws(() => installation.loadWorkerSkill(), /ENOENT/);
   } finally {await writeFile(path, original);}
+});
+
+
+test('preloaded topic metadata and explicit refresh belong to the public plugin contract', async () => {
+  const schemas = await import(pathToFileURL(join(bundle, 'dist/src/host-protocol.js')));
+  assert.deepEqual(schemas.PRELOADED_REFERENCE_TOPICS, ['request']);
+  assert.deepEqual(schemas.parseReferenceTopics({reference: 'program', refresh: true}), ['program']);
+  assert.equal(server.createTool('ggb_inspect').parameters.properties.refresh.type, 'boolean');
+  for (const bad of [{refresh: true}, {reference: 'request', refresh: 'true'},
+    {reference: '../request', refresh: true}]) {
+    assert.throws(() => schemas.parseReferenceTopics(bad));
+  }
 });
