@@ -4,6 +4,10 @@
 
 ## 未发布
 
+- 交付 `verification.json` 使用 compact JSON；运行诊断保留 pretty 副本。
+  同一份 18 对象、每阶段 87 项检查的报告由约 1.47 MiB 缩到约 647 KiB，
+  低于 DSH 1 MiB report 限制；报告内容、核验、GGB/预览/manifest 与回执不变。
+  宿主 artifact 超限错误同时给出 kind、实际字节和上限，便于定位。
 - 原生执行失败消息附带可执行的修复提示：位置参数 `Polygon(A,B,C)` 指向
   `Polygon({...})` 列表形式，`Round(...)` 指向小写 `round(...)` 函数。
   提示覆盖 native 下标、方括号和嵌套参数；通过 execute 和失败日志路径验证。

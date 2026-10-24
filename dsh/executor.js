@@ -28,7 +28,8 @@ async function readMaterial(path, kind) {
     kind === 'request' ? LIMITS.requestBytes : LIMITS.reportBytes;
   const info = await lstat(path);
   assert(info.isFile() && info.size > 0 && info.size <= limit,
-    'Artifact size exceeds delivery contract');
+    `Artifact size exceeds delivery contract: ${kind} `
+    + `${info.size} > ${limit}`);
   const bytes = await readFile(path);
   assert.equal(bytes.length, info.size, 'Artifact size changed');
   return bytes;

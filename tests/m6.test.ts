@@ -16,7 +16,9 @@ test('nested native lists preserve small decimals, boolean types and empty lists
     const input = await fixture('statistics'); input.outputDir = directory;
     input.plan.program = [{id:'matrixA',op:'native',mode:'algebra',source:'matrixA={{0.000000123456789,true},{false,-0.0000001},{}}'}];
     input.plan.requirements[0].checks = [{kind:'expression',subjects:['matrixA'],expression:'matrixA',expected:[[0.000000123456789,true],[false,-0.0000001],[]],mode:'algebra',scope:'initial'}];
-    const result = await build(input), report = JSON.parse(await readFile(result.report, 'utf8'));
+    const result = await build(input), saved = await readFile(result.report, 'utf8');
+    const report = JSON.parse(saved);
+    assert.equal(saved.trim().split('\n').length, 1, 'delivery report is compact');
     assert.deepEqual(report.reload.objects[0].data, input.plan.requirements[0].checks[0].expected);
     const preview = await openPreview(result.delivery, false); await preview.close();
   } finally { await rm(directory, { recursive: true, force: true }); }

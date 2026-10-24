@@ -26,6 +26,8 @@ import { compareSnapshots, snapshotDifferences, equivalent, verify, type Verific
 
 export const sha256 = (data: Buffer) => createHash('sha256').update(data).digest('hex');
 const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n';
+/** Compact delivery evidence; readable diagnostics keep the pretty copy. */
+const compactJson = (value: unknown) => JSON.stringify(value) + '\n';
 const save = (path: string, value: unknown) => writeFile(path, json(value));
 export async function readJson(path: string, max = limits.requestBytes): Promise<unknown> {
   const info = await stat(path);
@@ -493,11 +495,12 @@ async function finishDelivery(context: BuildContext, input: {
   assert(session);
   context.stage = 'export_failed';
   validateDeliveryEvidence(context.request, input.report, input.objects);
-  if (Buffer.byteLength(json(input.report)) > limits.reportBytes) {
+  const report = Buffer.from(compactJson(input.report));
+  if (report.length > limits.reportBytes) {
     throw new ToolError('limit_exceeded',
       'Verification report exceeds the size limit');
   }
-  await save(join(context.temp, 'verification.json'), input.report);
+  await writeFile(join(context.temp, 'verification.json'), report);
   await writeFile(join(context.temp, 'request.json'), context.requestBytes);
   if (input.archive) {
     await writeFile(join(context.temp, 'base.ggb'), input.archive.bytes);
