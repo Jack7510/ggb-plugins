@@ -453,6 +453,8 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
     if (expectEmpty) api.setPerspective(display === 'algebra' ? 'A' : 'G');
     for (const { step, command, mode, outputs, initial } of program) {
       let operation = 'command';
+      let rawLabels: string | null | undefined;
+      let labels: string[] | null = null;
       try {
         const before = api.getAllObjectNames();
         if (outputs.some(id => before.includes(id))) throw new Error(`Object name collision: ${step.id}`);
@@ -462,8 +464,10 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
           if (!result || result.includes('?') || /undefined|error/i.test(result)) throw new Error(`CAS result unresolved: ${step.id}: ${result}`);
           source = `${step.id}=(${result})`;
         }
-        const labels = step.op === 'native'
-          ? normalizeLabels(await api.asyncEvalCommandGetLabels(source)) : null;
+        if (step.op === 'native') {
+          rawLabels = await api.asyncEvalCommandGetLabels(source);
+          labels = normalizeLabels(rawLabels);
+        }
         // Execute before probing definedness: a structured step defines its
         // outputs inside evalCommand, so a pre-check reports every output missing.
         const executed = step.op === 'native' ?
@@ -507,6 +511,8 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
           try { return read(); } catch { return null; }
         };
         const coordinate = (read: () => number): number | null => {
+          if (!safe(() => api.isDefined(step.id)) ||
+              safe(() => api.getObjectType(step.id)) !== 'point') return null;
           const value = safe(read);
           return value !== null && Number.isFinite(value) ? value : null;
         };
@@ -514,7 +520,12 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
           message: error instanceof Error ? error.message : String(error),
           stepId: step.id, source: command.slice(0, 512), operation,
           expected: {outputs, ...(initial ? {coordinates: initial} : {})},
-          actual: {defined: safe(() => api.isDefined(step.id)),
+          actual: {
+            ...(rawLabels === undefined ? {} : {
+              rawLabels: rawLabels === null ? null : rawLabels.slice(0, 1024),
+              outputs: labels?.slice(0, 64) ?? null,
+            }),
+            defined: safe(() => api.isDefined(step.id)),
             objectType: safe(() => api.getObjectType(step.id)),
             moveable: safe(() => api.isMoveable(step.id)),
             x: coordinate(() => api.getXcoord(step.id)),

@@ -12,7 +12,7 @@ import {parseRequest, ToolError} from '../src/schema.js';
 import {canonicalJson} from '../src/host-protocol.js';
 
 type Fault = 'none' | 'initial-undefined' | 'initial-throw' | 'command' |
-  'style-loss';
+  'style-loss' | 'command-null' | 'command-extra';
 interface State {defined: boolean; x: number; y: number; type: string;}
 
 /** No GeoGebra algorithm runs here: states and faults are explicit fixtures. */
@@ -32,10 +32,11 @@ function applet(fault: Fault) {
       const id = /^([^=:]+)[=:]/u.exec(source)?.[1]?.trim();
       assert.ok(id);
       if (fault === 'command' && id === 'A') throw new Error('first engine error');
+      if (fault === 'command-null' && id === 'A') return null;
       const type = id === 'p' ? 'parabola' : id === 'd' || id === 'l'
         ? 'line' : id === 's' ? 'segment' : 'point';
       objects.set(id, {defined: true, x: -1, y: 0, type});
-      return id;
+      return fault === 'command-extra' && id === 'A' ? 'A,Z' : id;
     },
     setCoords(id: string, x: number, y: number) {
       coordinates.push([id, x, y]);
@@ -109,6 +110,24 @@ for (const fault of ['initial-undefined', 'initial-throw', 'command'] as const) 
       assert.partialDeepStrictEqual(error.details, {stepId: 'A',
         source: 'A=Point(d)', operation: fault === 'command' ? 'command' : 'initial',
         expected: {coordinates: [-1, 2]}});
+      return true;
+    });
+    assert.equal(world.commands.includes('s=Segment(F,A)'), false);
+  });
+}
+
+for (const fault of ['command-null', 'command-extra'] as const) {
+  test(`raw native return survives normalization: ${fault}`, async () => {
+    const world = applet(fault);
+    await assert.rejects(browser.execute(pageFor(world), compile(request()),
+      'point on directrix'), error => {
+      assert.ok(error instanceof ToolError);
+      const actual = fault === 'command-null'
+        ? {rawLabels: null, outputs: null}
+        : {rawLabels: 'A,Z', outputs: ['A', 'Z']};
+      assert.partialDeepStrictEqual(error.details, {stepId: 'A',
+        source: 'A=Point(d)', operation: 'outputs', actual});
+      assert.doesNotThrow(() => canonicalJson(error.details));
       return true;
     });
     assert.equal(world.commands.includes('s=Segment(F,A)'), false);

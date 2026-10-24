@@ -4,6 +4,19 @@
 
 ## 未发布
 
+- expression 核验失败产生有界 evidence.message，保留实际类型、定义状态、期望类型
+  和失败类别；不把原始异常、值或对象快照写入摘要，不改变容差、灰区或准入结果。
+  宿主复用既有 reason 契约贯通工具结果、run failure 与前端实时/重连显示。
+- 固定 5.4.932.1 的真实输入栏/API 对照确认：最终检查中的 Vertex、Distance 有效；
+  单等号产生未定义 line，双等号产生 boolean。数值残差使用独立 expected:0。
+  参考增加 Focus 标签一致性及 Polygon 列表输入的准确示例，补全交付和拒绝回归。
+
+- 真实输入栏与异步接口对照确认：`Element(Focus(ell),1)` 在 5.4.932.1
+  中把第一个参数识别为 point，不能用作列表；`{Focus(ell)}` 显式包装后可索引
+  两个焦点，并保留参数依赖和重载。能力参考补充多输出与列表的契约及示例。
+  执行失败保留有界原始返回 rawLabels 与归一化 outputs，不自动改写模型 source。
+  新增真实 UI/API 矩阵、失败反例及完整构建、重载与参数采样回归。
+
 - runtime asset 和审计 manifest 使用同目录临时文件、文件同步、原子 rename；POSIX
   同步父目录。写入、同步或 rename 失败不以部分内容替换旧文件，拒绝符号链接目标。
   公开审计记录包含 `patchId`、`sourceVersion`、`asset`、`originalSha256` 和

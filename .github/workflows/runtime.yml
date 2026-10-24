@@ -29,9 +29,12 @@ jobs:
       - name: Raw and patched engine, style, reload, drag and conic controls
         run: |
           export DSH_GGB_BROWSER="$(node --input-type=module -e 'import {chromium} from "playwright"; console.log(chromium.executablePath())')"
-          node --test --test-concurrency=1 dist/tests/runtime-compatibility.test.js dist/tests/path-point-browser.test.js
+          node --test --test-concurrency=1 dist/tests/runtime-compatibility.test.js dist/tests/path-point-browser.test.js dist/tests/focus-browser.test.js dist/tests/expression-browser.test.js
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: directrix-runtime-evidence
-          path: output/path-point-regression
+          path: |
+            output/path-point-regression
+            output/focus-regression
+            output/expression-regression

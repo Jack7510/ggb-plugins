@@ -132,6 +132,33 @@ function conicResidual(x: number, y: number, a: number[]): Status {
     numeric(value / gradient, scale);
 }
 
+/** Describe probe facts without exporting expressions, values or raw errors. */
+function expressionFailureMessage(check: Check, observation: Observation | undefined,
+  status: Status, missingSubject: boolean): string | undefined {
+  if (status === 'passed') return undefined;
+  const expected = Array.isArray(check.expected) ? 'list'
+    : typeof check.expected === 'boolean' ? 'boolean' : 'numeric';
+  const observed = observation?.type?.replace(/[^A-Za-z0-9_]/gu, '')
+    .slice(0, 48) || 'unknown';
+  const defined = observation?.defined;
+  const prefix = `expression ${status}: probe returned ${observed}`
+    + ` (defined=${defined ?? 'unknown'}); expected ${expected}`;
+  let reason = '';
+  if (missingSubject) reason = 'required subject missing or undefined';
+  else if (!observation) reason = 'probe observation missing';
+  else if (observation.expression !== check.expression
+      || observation.mode !== check.mode
+      || !equivalent(observation.assumptions ?? [], check.assumptions ?? [])) {
+    reason = 'probe does not match the declared check';
+  } else if (observation.error) reason = 'probe evaluation error';
+  else if (defined && observed === expected) {
+    reason = status === 'failed' ? 'values differ'
+      : 'comparison unavailable or inconclusive';
+  }
+  return (reason ? `${prefix}; ${reason}` : prefix).slice(0, 256);
+}
+
+/** Verify only actual observations against the frozen request. */
 export function verify(request: Request, objects: Snapshot, phase: 'initial' | 'sampled', observations: Observation[] = []) {
   const facts = new Map(objects.map(fact => [fact.name, fact]));
   const get = (id: string) => {
@@ -258,7 +285,14 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
         if (typeof check.expected === 'boolean') return observation.type === 'boolean' ? truth(observation.value === (check.expected ? 1 : 0)) : 'unverified';
         return observation.type === 'numeric' ? numeric(observation.value - check.expected!, check.expected!) : 'unverified';
       }, check.scope);
-      if (check.kind === 'expression') results.at(-1)!.evidence = { observation: observation ?? null, objects: check.subjects.map(id => facts.get(id) ?? null) };
+      if (check.kind === 'expression') {
+        const result = results.at(-1)!;
+        const message = expressionFailureMessage(check, observation,
+          result.status, check.subjects.some(id => !facts.get(id)?.defined));
+        result.evidence = {observation: observation ?? null,
+          objects: check.subjects.map(id => facts.get(id) ?? null),
+          ...(message ? {message} : {})};
+      }
     }
   });
   return { status: all(results.map(r => r.status)), objects, results, observations };

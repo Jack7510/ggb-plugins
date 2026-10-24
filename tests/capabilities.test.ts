@@ -9,7 +9,8 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { root } from '../src/server.js';
-import { commands, limits, predicates } from '../src/schema.js';
+import { commands, limits, predicates, parseRequest } from '../src/schema.js';
+import {compile} from '../src/compile.js';
 
 const manifest = JSON.parse(await readFile(join(root, 'capabilities.json'), 'utf8'));
 const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
@@ -90,4 +91,31 @@ test('entrypoint references resolve to packaged files and section anchors',
         .map(([, heading]) => headingAnchor(heading ?? ''));
       assert(anchors.includes(anchor), `Missing section: ${target}`);
     }
+  });
+
+test('native reference examples compile with exact labels and nested checks',
+  () => {
+    const start = hostReference.indexOf('例如已创建椭圆 ell 后');
+    const section = hostReference.slice(start);
+    const blocks = [...section.matchAll(/```json\n([\s\S]*?)\n```/gu)];
+    assert.ok(blocks[0]?.[1] && blocks[1]?.[1]);
+    const program = JSON.parse(blocks[0][1]);
+    const polygon = JSON.parse(blocks[1][1]);
+    const input = parseRequest({protocolVersion: 2, prompt: 'Native examples',
+      locale: 'en', outputDir: '/tmp/unused', plan: {
+        program: [{id: 'ell', source: 'ell: 2x^2+3y^2=6',
+          op: 'native', mode: 'algebra'}, ...program,
+        ...['A', 'B', 'F2'].map((id, i) => ({id, source: `${id}=(${i},1)`,
+          op: 'native', mode: 'algebra'})), polygon], interactions: [],
+        requirements: [{id: 'example', source: 'Native examples', checks: [
+          {kind: 'type', subjects: ['tri'], objectType: 'polygon',
+            scope: 'initial'},
+        ]}],
+      }});
+    assert.equal(compile(input).program.at(-1)?.command,
+      'tri=Polygon({A,B,F2})');
+    const mismatched = structuredClone(input);
+    mismatched.plan.program[1] = {id: 'F_1', op: 'native', mode: 'algebra',
+      source: 'F_1=Focus(ell)', outputs: ['F_{1}', 'F_{2}']};
+    assert.throws(() => parseRequest(mismatched), /include step ID/u);
   });

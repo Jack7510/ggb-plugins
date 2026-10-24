@@ -1,0 +1,252 @@
+{
+  "protocolVersion": 2,
+  "prompt": "Draw the ellipse x²/a²+y²=1 and its two dependent foci, for 2≤a≤3. Draw a chord through its first focus and the triangle with its second focus.",
+  "locale": "en",
+  "title": "Ellipse focus chord and triangle",
+  "outputDir": "output",
+  "plan": {
+    "program": [
+      {
+        "id": "a",
+        "source": "a=Slider(2,3,1)",
+        "op": "native",
+        "mode": "algebra"
+      },
+      {
+        "id": "ell",
+        "source": "ell: x^2/a^2+y^2=1",
+        "op": "native",
+        "mode": "algebra"
+      },
+      {
+        "id": "L",
+        "source": "L={Focus(ell)}",
+        "op": "native",
+        "mode": "algebra"
+      },
+      {
+        "id": "F_1",
+        "source": "F_1=Element(L,1)",
+        "op": "native",
+        "mode": "algebra"
+      },
+      {
+        "id": "F_2",
+        "source": "F_2=Element({Focus(ell)},2)",
+        "op": "native",
+        "mode": "algebra"
+      },
+      {
+        "id": "ang",
+        "source": "ang=Slider(0.5,2.5,0.1)",
+        "op": "native",
+        "mode": "algebra"
+      },
+      {
+        "id": "Q",
+        "source": "Q=F_1+(cos(ang),sin(ang))",
+        "op": "native",
+        "mode": "algebra"
+      },
+      {
+        "id": "l",
+        "source": "l=Line(F_1,Q)",
+        "op": "native",
+        "mode": "algebra"
+      },
+      {
+        "id": "A",
+        "source": "A=Intersect(ell,l,1)",
+        "op": "native",
+        "mode": "algebra"
+      },
+      {
+        "id": "B",
+        "source": "B=Intersect(ell,l,2)",
+        "op": "native",
+        "mode": "algebra"
+      },
+      {
+        "id": "tri",
+        "source": "tri=Polygon({A,B,F_2})",
+        "op": "native",
+        "mode": "algebra"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "foci",
+        "source": "its two dependent foci",
+        "checks": [
+          {
+            "kind": "type",
+            "subjects": [
+              "L"
+            ],
+            "objectType": "list",
+            "scope": "initial"
+          },
+          {
+            "kind": "type",
+            "subjects": [
+              "F_1"
+            ],
+            "objectType": "point",
+            "scope": "sampled"
+          },
+          {
+            "kind": "type",
+            "subjects": [
+              "F_2"
+            ],
+            "objectType": "point",
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "F_1",
+              "L",
+              "ell",
+              "a"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "F_2",
+              "ell",
+              "a"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "F_1",
+              "a"
+            ],
+            "expression": "x(F_1)^2-(a^2-1)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "F_2",
+              "a"
+            ],
+            "expression": "x(F_2)^2-(a^2-1)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "F_1"
+            ],
+            "expression": "x(F_1)<0",
+            "mode": "algebra",
+            "expected": true,
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "F_2"
+            ],
+            "expression": "x(F_2)>0",
+            "mode": "algebra",
+            "expected": true,
+            "scope": "sampled"
+          }
+        ]
+      },
+      {
+        "id": "triangle",
+        "source": "the triangle with its second focus",
+        "checks": [
+          {
+            "kind": "type",
+            "subjects": [
+              "tri"
+            ],
+            "objectType": "polygon",
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "tri",
+              "A",
+              "B",
+              "F_2",
+              "ell"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "A",
+              "ell"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "pointOn",
+            "subjects": [
+              "B",
+              "ell"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "tri",
+              "F_2"
+            ],
+            "expression": "Distance(Vertex(tri,3),F_2)",
+            "mode": "algebra",
+            "expected": 0,
+            "scope": "sampled"
+          }
+        ]
+      }
+    ],
+    "interactions": [
+      {
+        "parameter": "a",
+        "value": 3
+      },
+      {
+        "parameter": "ang",
+        "value": 2
+      }
+    ],
+    "styles": [
+      {
+        "object": "L",
+        "properties": {
+          "visible": false
+        }
+      },
+      {
+        "object": "ell",
+        "properties": {
+          "labelVisible": false
+        }
+      }
+    ],
+    "view": {
+      "xMin": -4,
+      "xMax": 4,
+      "yMin": -2,
+      "yMax": 2
+    }
+  }
+}

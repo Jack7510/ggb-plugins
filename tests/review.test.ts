@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { deflateRawSync } from 'node:zlib';
-import type { Snapshot } from '../src/browser.js';
+import type { Snapshot, Observation } from '../src/browser.js';
 import { compile } from '../src/compile.js';
 import { validateHostMaterial } from '../src/delivery-contract.js';
 import { auditGgb, readGgb } from '../src/ggbfile.js';
@@ -198,4 +198,68 @@ test('host material validation rejects non-object and non-string manifests',
       { ...facts, file: 1 }, { ...facts, sha256: null }]) {
       assert.throws(() => validateHostMaterial(value, facts), /Manifest/);
     }
+  });
+
+/** Probe diagnostics must explain rejection without changing admission. */
+function expressionFixture(expected: number | boolean | number[]) {
+  const request = equalRequest();
+  request.plan.requirements[0]!.checks = [{kind: 'expression',
+    subjects: ['a'], expression: 'a', mode: 'algebra', expected,
+    scope: 'initial'}];
+  const observation: Observation = {id: 'equal:0', expression: 'a',
+    mode: 'algebra', type: 'numeric', defined: true, value: 3, result: 'a'};
+  return {request, observation};
+}
+
+test('expression summaries preserve actual types and independent expectations',
+  () => {
+    for (const [expected, type, defined, value, status] of [
+      [true, 'line', false, null, 'unverified'],
+      [true, 'numeric', true, 1, 'unverified'],
+      [0, 'numeric', true, 2, 'failed'],
+      [0, 'numeric', true, 5e-8, 'unverified'],
+      [[1], 'list', true, null, 'unverified'],
+    ] as const) {
+      const fixture = expressionFixture(Array.isArray(expected)
+        ? [...expected] : expected as number | boolean);
+      Object.assign(fixture.observation, {type, defined, value});
+      const result = verify(fixture.request, [numberFact('a', 'numeric', 3),
+        numberFact('b', 'numeric', 3)], 'initial', [fixture.observation]);
+      const check = result.results.find(r => r.checkId === 'equal:0');
+      assert.equal(check?.status, status);
+      const evidence = check?.evidence as {message: string};
+      assert.match(evidence.message, new RegExp(`returned ${type}`));
+      assert.ok(evidence.message.includes(`defined=${defined}`));
+      assert.ok(evidence.message.includes(`expected ${Array.isArray(expected)
+        ? 'list' : typeof expected === 'boolean' ? 'boolean' : 'numeric'}`));
+      assert.ok(evidence.message.length <= 256);
+    }
+  });
+
+test('expression summaries distinguish missing, mismatched and failed probes',
+  () => {
+    const {request, observation} = expressionFixture(0);
+    const facts = [numberFact('a', 'numeric', 3), numberFact('b', 'numeric', 3)];
+    for (const [probe, expected] of [
+      [undefined, 'probe observation missing'],
+      [{...observation, expression: 'b'}, 'does not match'],
+      [{...observation, error: '/Users/private sk-secret'}, 'evaluation error'],
+    ] as const) {
+      const check = verify(request, facts, 'initial', probe ? [probe] : [])
+        .results.find(r => r.checkId === 'equal:0');
+      const evidence = check?.evidence as {message: string};
+      assert.equal(check?.status, 'unverified');
+      assert.ok(evidence.message.includes(expected));
+      if (!probe) assert.ok(evidence.message.includes('defined=unknown'));
+      assert.doesNotMatch(evidence.message, /private|sk-secret/u);
+    }
+    const missing = verify(request, [], 'initial', [observation])
+      .results.find(r => r.checkId === 'equal:0');
+    assert.match((missing?.evidence as {message: string}).message,
+      /required subject missing/u);
+    const valid = expressionFixture(3);
+    const passed = verify(valid.request, facts, 'initial', [valid.observation])
+      .results.find(r => r.checkId === 'equal:0');
+    assert.equal(passed?.status, 'passed');
+    assert.equal((passed?.evidence as {message?: string}).message, undefined);
   });
