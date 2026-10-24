@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Directrix path origin reproduction</title>
+<button id="run" disabled>Run reproduction</button>
+<pre id="evidence">Waiting for the local engine.</pre>
+<div id="applet"></div>
+<script>
+// Serve alongside an extracted official bundle; no CDN or model is used.
+const runtime = new URL(new URLSearchParams(location.search).get('runtime')
+  || './', location.href);
+let api;
+const stages = [];
+function record(stage) {
+  const parameter = api.getValue('PathParameter(A)');
+  stages.push({stage, defined: api.isDefined('A'),
+    parameter: Number.isFinite(parameter) ? parameter : null,
+    parameterFinite: Number.isFinite(parameter),
+    x: api.getXcoord('A'), y: api.getYcoord('A'),
+    command: api.getCommandString('A', false),
+    labelVisible: api.getLabelVisible('d'), xml: api.getXML()});
+  document.querySelector('#evidence').textContent = JSON.stringify({
+    version: api.getVersion(), runtime: runtime.href, stages}, null, 2);
+}
+async function run() {
+  document.querySelector('#run').disabled = true;
+  stages.length = 0;
+  api.newConstruction();
+  for (const source of ['p:y^2=4x', 'd=Directrix(p)', 'A=Point(d)']) {
+    if (!await api.asyncEvalCommandGetLabels(source)) throw Error(source);
+  }
+  record('created');
+  api.setCoords('A', -1, 3);
+  record('initial');
+  api.setLabelVisible('d', false);
+  record('d.labelVisible=false');
+  const data = await new Promise(done => api.getBase64(done));
+  await new Promise(done => api.setBase64(data, done));
+  record('reload');
+  document.body.dataset.done = 'true';
+}
+document.querySelector('#run').onclick = () => run().catch(error => {
+  document.querySelector('#evidence').textContent = String(error);
+  document.body.dataset.error = 'true';
+});
+const script = document.createElement('script');
+script.src = new URL('deployggb.js', runtime).href;
+script.onload = () => {
+  const applet = new GGBApplet({appName: 'classic', width: 900, height: 600,
+    language: 'en', showToolBar: false, showAlgebraInput: false,
+    appletOnLoad(value) {api = value; document.querySelector('#run').disabled = false;}
+  }, true);
+  applet.setHTML5Codebase(new URL('HTML5/5.0/web3d/', runtime).href, true);
+  applet.inject('applet');
+};
+document.head.append(script);
+</script>
+</html>

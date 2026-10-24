@@ -93,6 +93,28 @@ test('entrypoint references resolve to packaged files and section anchors',
     }
   });
 
+test('canonical reference examples compile with independent fixed expectations',
+  () => {
+    const section = hostReference.slice(hostReference.indexOf('常用检查的最小形式'));
+    const block = /```json\n([\s\S]*?)\n```/u.exec(section);
+    assert.ok(block?.[1]);
+    const checks = JSON.parse(block[1]);
+    assert.deepEqual(checks.map((check: {kind: string}) => check.kind),
+      ['exists', 'coordinate', 'pointOn', 'expression', 'dependsOn']);
+    const request = parseRequest({protocolVersion: 2,
+      prompt: 'Canonical checks', locale: 'en', outputDir: '/tmp/unused',
+      plan: {
+        program: [['P', 'P=(1,0)'], ['p', 'p:y^2=4x'],
+          ['d', 'd=Directrix(p)'], ['A', 'A=Point(d)']]
+          .map(([id, source]) => ({id, op: 'native', source, mode: 'algebra'})),
+        requirements: [{id: 'canonical', source: 'Canonical checks', checks}],
+        interactions: [{point: 'A', dx: 0, dy: 30}],
+      },
+    });
+    assert.doesNotThrow(() => compile(request));
+  });
+
+
 test('native reference examples compile with exact labels and nested checks',
   () => {
     const start = hostReference.indexOf('例如已创建椭圆 ell 后');

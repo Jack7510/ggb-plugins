@@ -321,3 +321,26 @@ test('numeric literals preserve small and negative values without scientific not
     assert.equal(Number(radius), Math.abs(value) || 1);
   }
 });
+
+test('subject-count feedback preserves check identity and predicate arity',
+  () => {
+    for (const [kind, subjects, min, max] of [
+      ['exists', ['A', 'B'], 1, 1],
+      ['coordinate', [], 1, 1],
+      ['pointOn', ['A'], 2, 2],
+      ['expression', [], 1, 16],
+      ['dependsOn', ['A'], 2, 16],
+    ] as const) {
+      const input = structuredClone(fixture);
+      const requirement = input.plan.requirements[0];
+      requirement.checks[0] = {kind, subjects: [...subjects], scope: 'initial'};
+      assert.throws(() => parseRequest(input), {
+        code: 'invalid_input', details: {
+          requirementId: requirement.id, checkId: `${requirement.id}:0`,
+          kind, subjects: [...subjects], actualSubjectCount: subjects.length,
+          expectedMinSubjects: min, expectedMaxSubjects: max,
+          ...(min === max ? {expectedSubjectCount: min} : {}),
+        },
+      });
+    }
+  });

@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {EXECUTOR_PROTOCOL_VERSION} from '../dist/src/execution-contract.js';
 import {assertDshCompatibility, HOST_PROTOCOL_VERSION,
   RECEIPT_SCHEMA_VERSION, SUPPORTED_DSH_VERSIONS, TOOL_NAMES,
-  REFERENCE_TOPICS,
+  REFERENCE_TOPICS, LIMITS, parseReferenceTopics,
 } from '../dist/src/host-protocol.js';
 
 /** Resolve only this complete installed bundle; never another client's cache.
@@ -135,10 +135,24 @@ export function loadReference(topic) {
     content = content.slice(start,
       next ? start + match[0].length + next.index : undefined);
   }
-  if (Buffer.byteLength(content) > 24 * 1024) {
+  if (Buffer.byteLength(content) > LIMITS.referenceBytes) {
     throw new Error('ggb_reference_resource_oversized');
   }
   return {topic, content};
+}
+
+/** Read complete fixed topics under one serialized-response budget.
+ * @param {string[]} topics Fixed names; duplicates keep their first order.
+ * @returns {{references: {topic: string, content: string}[]}} Complete texts.
+ */
+export function loadReferences(topics) {
+  const selected = parseReferenceTopics({references: topics});
+  if (!selected) throw new Error('ggb_reference_topics_invalid');
+  const result = {references: selected.map(loadReference)};
+  if (Buffer.byteLength(JSON.stringify(result)) > LIMITS.referenceBytes) {
+    throw new Error('ggb_reference_response_oversized');
+  }
+  return result;
 }
 
 function escapeRegExp(value) {

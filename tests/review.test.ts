@@ -200,6 +200,34 @@ test('host material validation rejects non-object and non-string manifests',
     }
   });
 
+test('pointOn cannot substitute for a verified dynamic dependency', () => {
+  const request: Request = {protocolVersion: 2, prompt: 'point on line',
+    locale: 'en', outputDir: '/tmp/unused', plan: {
+      program: [], interactions: [], requirements: [{id: 'path',
+        source: 'point on line', checks: [
+          {kind: 'pointOn', subjects: ['A', 'd'], scope: 'initial'},
+          {kind: 'dependsOn', subjects: ['A', 'd', 'p'], scope: 'initial'},
+        ]}],
+    }};
+  for (const [independent, referenceState, status] of [
+    [true, 'direct', 'failed'], [false, 'direct', 'passed'],
+    [false, 'ambiguous', 'unverified'],
+  ] as const) {
+    const facts = [
+      {...numberFact('A', 'point', 0), x: -1, y: 3, independent,
+        inputs: independent ? [] : ['d'], referenceState},
+      {...numberFact('d', 'line', 0), independent: false,
+        inputs: ['p'], line: [1, 0, 1]},
+      numberFact('p', 'parabola', 0),
+    ] as Snapshot;
+    const result = verify(request, facts, 'initial', []);
+    assert.equal(result.results.find(r => r.checkId === 'path:0')?.status,
+      'passed');
+    assert.equal(result.results.find(r => r.checkId === 'path:1')?.status,
+      status);
+  }
+});
+
 /** Probe diagnostics must explain rejection without changing admission. */
 function expressionFixture(expected: number | boolean | number[]) {
   const request = equalRequest();

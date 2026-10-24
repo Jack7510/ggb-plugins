@@ -190,6 +190,20 @@ CAS 物化的是当次计算结果，不是动态 CAS 单元；它不会自动�
 - 工具创建临时原生探针，检查类型和定义有效性，读取结果后删除，并审计原对象未改变。缺失、未定义、无法读取的元素、未决符号和不匹配的结果类型为 unverified，不能用 API 默认 0 冒充答案。数值对象必须具有有限值。
 - `initial` 只检查原构型和文件重载。`sampled` 还在交互副本中检查；至少声明一个交互样本。采样不是全域证明。
 
+常用检查的最小形式如下。每项都放在 `requirements[].checks` 中；checkId 由工具按 requirement ID 和检查下标生成，不是请求字段。
+
+```json
+[
+  {"kind":"exists","subjects":["P"],"scope":"initial"},
+  {"kind":"coordinate","subjects":["P"],"coordinates":[1,0],"scope":"initial"},
+  {"kind":"pointOn","subjects":["A","d"],"scope":"sampled"},
+  {"kind":"expression","subjects":["A","d"],"expression":"Distance(A,d)","mode":"algebra","expected":0,"scope":"sampled"},
+  {"kind":"dependsOn","subjects":["A","d","p"],"scope":"sampled"}
+]
+```
+
+`exists` 每项只接受一个 subject；多个对象用多项检查。coordinate 仅用于题设支持的固定值，不能把观测坐标回填为期望。sampled 必须配相关交互样本。题设要求受约束动点时，用原生命令保留实际依赖；`pointOn` 检查位置，`dependsOn` 检查第一个 subject 对其余主语的传递依赖。固定坐标恰好在线上不能替代动态依赖；依赖无法确认时保持 unverified，不能跳过。
+
 可复用的结构检查仍可使用 exists、type、coordinate、dependsOn、style，以及中点、线/圆上的点、圆心半径、平行垂直、等长、距离和非共线。新数学关系优先写表达式，不逐命令增加谓词。type 使用实际事实类型，简单多边形归一为 polygon。
 
 常见实际类型为 point、line、segment、circle、polygon、polyline、numeric、angle、boolean、list 和 text。方程圆锥曲线按引擎实际 subtype 报告：`y^2=4x` 的 type 是 `parabola`，不是 `conic`。数值及滑块的 type 检查使用 numeric，不使用 number 或 slider；这不是全部类型的白名单。

@@ -127,6 +127,7 @@ function constructionRequest(): Request {
       requirements: [{id: 'path', source: 'Point on a moving directrix',
         checks: [
           {kind: 'pointOn', subjects: ['A', 'd'], scope: 'sampled'},
+          {kind: 'dependsOn', subjects: ['A', 'd', 'p'], scope: 'sampled'},
           {kind: 'coordinate', subjects: ['A'], coordinates: [-1, 3],
             scope: 'initial'},
           {kind: 'expression', subjects: ['A', 'd'],
@@ -249,3 +250,44 @@ test('ellipse and hyperbola directrix paths retain their original behavior',
       }
     } finally {await engine.close();}
   });
+
+for (const raw of [true, false]) {
+  test(`standalone upstream reproduction: ${raw ? 'raw' : 'fixed'}`,
+    {timeout: 60_000}, async () => {
+      const engine = await openBrowser(false);
+      const context = engine.browser.contexts()[0];
+      assert.ok(context);
+      const html = await readFile(join(root,
+        'examples/upstream/directrix-path-origin.html'));
+      await context.route(/\/directrix-repro\.html(?:\?|$)/u, route =>
+        route.fulfill({body: html, contentType: 'text/html'}));
+      if (raw) {
+        const asset = runtimeCompatibility('5.4.932.1').asset;
+        const original = await readFile(join(root, '.runtime/GeoGebra', asset));
+        await context.route('**/6.cache.js', route => route.fulfill({
+          body: original, contentType: 'text/javascript',
+        }));
+      }
+      try {
+        const page = await engine.page();
+        await page.goto(engine.url
+          + '/directrix-repro.html?runtime=/runtime/GeoGebra/');
+        await page.locator('#run:enabled').click();
+        await page.waitForFunction(() => document.body.dataset.done === 'true'
+          || document.body.dataset.error === 'true');
+        assert.equal(await page.getAttribute('body', 'data-error'), null);
+        const text = await page.locator('#evidence').innerText();
+        const evidence = JSON.parse(text);
+        assert.equal(evidence.version, '5.4.932.1');
+        assert.equal(evidence.stages[0].parameterFinite, !raw);
+        assert.equal(evidence.stages.at(-1).defined, !raw);
+        assert.equal(evidence.stages[2].defined, !raw);
+        await mkdir(evidenceRoot, {recursive: true});
+        await writeFile(join(evidenceRoot, `upstream-${raw}.json`),
+          JSON.stringify(evidence, null, 2));
+        await page.screenshot({
+          path: join(evidenceRoot, `upstream-${raw}.png`),
+        });
+      } finally {await engine.close();}
+    });
+}

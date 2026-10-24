@@ -15,6 +15,7 @@ export const TOOL_NAMES = ['ggb_inspect', 'ggb_request', 'ggb_check', 'ggb_build
 export type ToolName = typeof TOOL_NAMES[number];
 export const LIMITS = Object.freeze({
   requestBytes: REQUEST_ARGUMENT_BYTES, frameBytes: 256 * 1024,
+  referenceBytes: 24 * 1024,
   stdoutBytes: 1024 * 1024, stderrBytes: 64 * 1024,
   reportBytes: 1024 * 1024, manifestBytes: 1024 * 1024,
   ggbBytes: 6 * 1024 * 1024, previewBytes: 3 * 1024 * 1024,
@@ -159,15 +160,30 @@ export function signRequest(token: string,
       .update(canonicalJson(value)).digest('hex');
 }
 
+/** Validate fixed topics; null means inspect the attached base. */
+export function parseReferenceTopics(input: unknown): string[] | null {
+  const args = object(input, ['reference', 'references']);
+  requireValue(args.reference === undefined || args.references === undefined,
+    'reference_mode');
+  if (args.reference !== undefined) {
+    requireValue(REFERENCE_TOPICS.some(topic => topic === args.reference),
+      'reference');
+    // Equality with the fixed string enum proves the external value's type.
+    return [args.reference as string];
+  }
+  if (args.references === undefined) return null;
+  requireValue(Array.isArray(args.references) && args.references.length >= 1
+    && args.references.length <= REFERENCE_TOPICS.length
+    && args.references.every(value =>
+      REFERENCE_TOPICS.some(topic => topic === value)), 'references');
+  // Every array entry was matched against the fixed string enum above.
+  return [...new Set(args.references as string[])];
+}
+
 /** Separate model arguments from host paths and execution identity. */
 function toolArguments(toolName: unknown, input: unknown): void {
-  if (toolName !== 'ggb_inspect') {
-    parseDraftArguments(String(toolName), input);
-    return;
-  }
-  const args = object(input, ['reference']);
-  requireValue(args.reference === undefined ||
-    REFERENCE_TOPICS.some(topic => topic === args.reference), 'reference');
+  if (toolName === 'ggb_inspect') parseReferenceTopics(input);
+  else parseDraftArguments(String(toolName), input);
 }
 
 /** Parse a transport request, including version and argument digest. */

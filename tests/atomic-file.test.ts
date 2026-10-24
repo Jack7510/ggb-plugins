@@ -5,9 +5,13 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test, {mock} from 'node:test';
 
-let fault: 'write' | 'sync' | 'rename' | undefined;
+let fault: 'write' | 'sync' | 'rename' | 'parent-open' | 'parent-sync'
+  | undefined;
 mock.module('node:fs/promises', {namedExports: {...fs,
   async open(...args: Parameters<typeof fs.open>) {
+    if (fault === 'parent-open' && args[1] === 'r') {
+      throw new Error('injected parent-open');
+    }
     const handle = await fs.open(...args);
     const write = handle.writeFile.bind(handle);
     const sync = handle.sync.bind(handle);
@@ -20,6 +24,9 @@ mock.module('node:fs/promises', {namedExports: {...fs,
     };
     handle.sync = async () => {
       if (fault === 'sync') throw new Error('injected sync');
+      if (fault === 'parent-sync' && args[1] === 'r') {
+        throw new Error('injected parent-sync');
+      }
       await sync();
     };
     return handle;
@@ -66,3 +73,28 @@ test('atomic replacement refuses a symlink instead of replacing its referent',
         'original');
     } finally {await fs.rm(directory, {recursive: true, force: true});}
   });
+
+for (const failure of ['parent-open', 'parent-sync'] as const) {
+  test(`atomic replacement reports a committed file after ${failure} failure`,
+    {skip: process.platform === 'win32'}, async () => {
+      const directory = await fs.mkdtemp(join(tmpdir(), 'ggb-durability-'));
+      const path = join(directory, 'manifest.json');
+      try {
+        await fs.writeFile(path, 'original');
+        fault = failure;
+        await assert.rejects(writeAtomicFile(path, 'complete new bytes'), {
+          name: 'AtomicFileDurabilityError',
+          message: 'atomic_file_committed_durability_unconfirmed',
+          committed: true, durabilityConfirmed: false, phase: 'parent-sync',
+          cause: new Error(`injected ${failure}`),
+        });
+        assert.equal(await fs.readFile(path, 'utf8'), 'complete new bytes');
+        assert.deepEqual(await fs.readdir(directory), ['manifest.json']);
+        fault = undefined;
+        await writeAtomicFile(path, 'complete new bytes');
+      } finally {
+        fault = undefined;
+        await fs.rm(directory, {recursive: true, force: true});
+      }
+    });
+}

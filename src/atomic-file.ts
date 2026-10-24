@@ -3,6 +3,18 @@ import {randomUUID} from 'node:crypto';
 import {lstat, open, rename, rm} from 'node:fs/promises';
 import {basename, dirname, join} from 'node:path';
 
+/** Replacement is visible, but crash durability was not confirmed. */
+export class AtomicFileDurabilityError extends Error {
+  readonly committed = true;
+  readonly durabilityConfirmed = false;
+  readonly phase = 'parent-sync';
+
+  constructor(cause: unknown) {
+    super('atomic_file_committed_durability_unconfirmed', {cause});
+    this.name = 'AtomicFileDurabilityError';
+  }
+}
+
 /** Sync file bytes before replacement; preserve an existing regular file's mode. */
 export async function writeAtomicFile(
   path: string, data: string | Uint8Array,
@@ -24,8 +36,12 @@ export async function writeAtomicFile(
     await handle.close();
     await rename(temporary, path);
     if (process.platform !== 'win32') {
-      const parent = await open(directory, 'r');
-      try {await parent.sync();} finally {await parent.close();}
+      try {
+        const parent = await open(directory, 'r');
+        try {await parent.sync();} finally {await parent.close();}
+      } catch (cause) {
+        throw new AtomicFileDurabilityError(cause);
+      }
     }
   } finally {
     await handle.close().catch(() => {});

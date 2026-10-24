@@ -17,6 +17,16 @@
   执行失败保留有界原始返回 rawLabels 与归一化 outputs，不自动改写模型 source。
   新增真实 UI/API 矩阵、失败反例及完整构建、重载与参数采样回归。
 
+- 受限 `ggb_inspect` 新增 `references` 批量读取：最多 6 个固定主题、按首次出现去重，
+  与单个 `reference` 互斥。完整序列化响应限 24 KiB；超限拒绝，不截断正文。
+  Worker 按需合并相关主题，默认不读全量参考；四工具、权限边界和完整核验保持不变。
+- check 主语数量错误携带 requirementId/checkId、实际主语及期望数量范围。
+  verification 参考集中给出常用谓词的最小示例，明确位置核验与传递依赖核验的区别。
+- 原子替换后父目录打开或同步失败时，返回 `AtomicFileDurabilityError`：替换已完成，
+  持久性未确认。只在 rename 之前的失败保证旧目标保持，不做自动回滚。
+- 增加[上游最小复现材料](directrix-upstream-repro.md)和独立 HTML，对同一固定官方 asset
+  验证原始/修复行为；材料尚未提交上游。
+
 - runtime asset 和审计 manifest 使用同目录临时文件、文件同步、原子 rename；POSIX
   同步父目录。写入、同步或 rename 失败不以部分内容替换旧文件，拒绝符号链接目标。
   公开审计记录包含 `patchId`、`sourceVersion`、`asset`、`originalSha256` 和

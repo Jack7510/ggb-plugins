@@ -188,16 +188,26 @@ const baseLabelPattern = /^[^\s"<>&\u0000-\u001f]{1,64}$/;
 
 /** Subject counts follow the predicate arity; a miss names the check. */
 function subjectCount(
-  check: Record<string, any>, spec: { types: string[]; variadic?: boolean },
-  requirement: string,
-) {
+  check: Record<string, unknown>, spec: { types: string[]; variadic?: boolean },
+  requirement: string, index: number,
+): void {
   const min = spec.types.length;
   const max = spec.variadic ? 16 : min;
   const actual = Array.isArray(check.subjects) ? check.subjects.length : -1;
-  assert(actual >= min && actual <= max,
+  if (actual >= min && actual <= max) return;
+  throw new ToolError('invalid_input',
     `Check "${requirement}" ${String(check.kind)}: expected `
     + `${String(min)}${max === min ? '' : `..${String(max)}`} subjects, `
-    + `got ${actual < 0 ? 'none' : String(actual)}`);
+    + `got ${actual < 0 ? 'none' : String(actual)}`, {
+      requirementId: requirement, checkId: `${requirement}:${index}`,
+      kind: check.kind, actualSubjectCount: actual,
+      subjects: Array.isArray(check.subjects) ? check.subjects.slice(0, 16)
+        .map((value: unknown) => typeof value === 'string'
+          ? value.slice(0, 64) : null)
+        : [],
+      expectedMinSubjects: min, expectedMaxSubjects: max,
+      ...(min === max ? {expectedSubjectCount: min} : {}),
+    });
 }
 
 /** Accepts any label an existing file may hold. */
@@ -381,7 +391,7 @@ function validateCheck(input: unknown, requirement: string, index: number,
       'Unsupported verification method');
   }
   const spec = predicates[c.kind]!;
-  subjectCount(c, spec, requirement);
+  subjectCount(c, spec, requirement, index);
   c.subjects.forEach(subject);
   assert(['initial', 'sampled'].includes(c.scope),
     'Check scope must be initial or sampled');

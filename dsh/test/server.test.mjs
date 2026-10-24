@@ -170,3 +170,37 @@ test('drag rejection reports pixel units and a usable threshold', async () => {
   assert.throws(() => parseRequest({...example, outputDir: directory}),
     /screen pixels.*>= 20/);
 });
+
+test('batch reference reads preserve complete ordered topics and deduplicate',
+  () => {
+    const result = installation.loadReferences(
+      ['request', 'verification', 'request']);
+    assert.deepEqual(result.references, ['request', 'verification']
+      .map(topic => installation.loadReference(topic)));
+    const topics = server.createTool('ggb_inspect').parameters
+      .properties.references;
+    assert.equal(topics.maxItems, 6);
+    assert.equal(topics.minItems, 1);
+    assert.equal(topics.items.enum.length, 6);
+    const all = installation.loadReferences(topics.items.enum);
+    assert.equal(all.references.length, 6);
+    assert.ok(Buffer.byteLength(JSON.stringify(all)) <= 24 * 1024);
+    const invalid = [undefined, [], ['unknown'], Array(7).fill('request')];
+    for (const value of invalid) {
+      assert.throws(() => installation.loadReferences(value));
+    }
+  });
+
+test('batch budget counts escaped JSON bytes and never truncates a topic',
+  async () => {
+    const path = join(bundle,
+      'skills/ggb-construction/references/capabilities.md');
+    const original = await readFile(path, 'utf8');
+    try {
+      await writeFile(path, '## 请求\n' + '"'.repeat(13 * 1024));
+      assert.ok(Buffer.byteLength(installation.loadReference('request')
+        .content) < 24 * 1024);
+      assert.throws(() => installation.loadReferences(['request']),
+        /reference_response_oversized/);
+    } finally {await writeFile(path, original);}
+  });

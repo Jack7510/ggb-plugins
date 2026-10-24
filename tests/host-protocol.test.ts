@@ -4,7 +4,7 @@ import {randomUUID} from 'node:crypto';
 import test from 'node:test';
 import {authenticateRequest, assertDshCompatibility, digestJson,
   parseBuildReceipt, parseExecutionContext, parseToolRequest,
-  parseToolResponse, signRequest, type BuildReceipt,
+  parseToolResponse, parseReferenceTopics, signRequest, type BuildReceipt,
   type ToolRequest} from '../src/host-protocol.js';
 
 const digest = 'a'.repeat(64);
@@ -137,3 +137,20 @@ test('inspect permits only fixed bundled reference topics', () => {
     assert.throws(() => parseToolRequest(value), /reference/);
   }
 });
+
+test('reference batches are bounded, exclusive and deduplicated without paths',
+  () => {
+    assert.deepEqual(parseReferenceTopics({references:
+      ['request', 'program', 'request']}), ['request', 'program']);
+    for (const args of [
+      {references: []}, {references: 'program'},
+      {references: Array(7).fill('program')},
+      {references: ['../run.json']}, {references: ['unknown']},
+      {references: ['program'], reference: 'request'},
+      {references: ['program'], path: '/etc/passwd'},
+    ]) {
+      const value = {...request(), toolName: 'ggb_inspect', arguments: args,
+        argumentsDigest: digestJson(args)};
+      assert.throws(() => parseToolRequest(value), /protocol_invalid/);
+    }
+  });

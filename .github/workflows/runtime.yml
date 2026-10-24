@@ -23,6 +23,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Select the pinned Playwright browser for every test
+        run: node --input-type=module -e 'import {chromium} from "playwright"; console.log("DSH_GGB_BROWSER="+chromium.executablePath())' >> "$GITHUB_ENV"
       - run: pnpm run setup:runtime
       - run: pnpm build
       - run: pnpm test
