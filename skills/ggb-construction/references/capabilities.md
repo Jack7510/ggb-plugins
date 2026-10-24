@@ -1,6 +1,6 @@
 # 原生二维程序与核验契约（M6 / 0.6.0）
 
-执行入口为 `build --request <file>`；先用 `check --request <file>` 进行无浏览器的结构预检。修改已有 GGB 属于编辑模式，先用 `inspect --ggb <file>` 取得对象清单，见[编辑已有 GGB](#编辑已有-ggb-p0)。check 复用 schema 和 compile，检查来源及声明引用；返回 validation:structural，不核验引擎语法、实际输出标签或数学关系。请求协议是 2，CLI 结果信封仍是 1。M1/M5 的协议 2 请求仍可执行；旧交付须重新构造以补齐 M6 证据。GeoGebra 负责解析数学语法，不按题型或数学命令白名单选择实现。
+执行入口为 `build --request <file>`；先用 `check --request <file>` 进行无浏览器的结构预检。修改已有 GGB 属于编辑模式，先用 `inspect --ggb <file>` 取得对象清单，见[编辑已有 GGB](#编辑已有-ggbp0)。check 复用 schema 和 compile，检查来源及声明引用；返回 validation:structural，不核验引擎语法、实际输出标签或数学关系。请求协议是 2，CLI 结果信封仍是 1。M1/M5 的协议 2 请求仍可执行；旧交付须重新构造以补齐 M6 证据。GeoGebra 负责解析数学语法，不按题型或数学命令白名单选择实现。
 
 请求编写及交付展示遵循 [分析与作图边界](../SKILL.md#分析与作图边界)。下列示例绘制给定函数，不输出零点答案；底层 CAS 和核验数据能力仍保留。
 

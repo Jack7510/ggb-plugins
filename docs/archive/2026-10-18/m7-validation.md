@@ -8,7 +8,7 @@
 
 八个生产模块保持不变，没有新增运行依赖、题型分支或数学命令包装。M7 增加开发工具 `scripts/command-coverage.mjs`、目录快照、覆盖记录、Skill 边界说明和客户端生成的输入回归。请求仍为协议 2，交付仍标记 M6；发布阶段不改变数学交付格式。
 
-[官方目录](https://geogebra.github.io/docs/manual/en/commands/All_Commands/)快照包含 502 个名称，保存获取日期及 HTML SHA-256。它包含三维和脚本等范围，不是二维支持清单。与实际固定 runtime 关联的[覆盖记录](../../command-coverage.json)中，28 个名称出现在六个成功交付的程序或检查中，474 个未实测。不推断未实测项是否可用，也不宣称已覆盖这些命令的全部重载。
+[官方目录](https://geogebra.github.io/docs/manual/en/commands/All_Commands/)快照包含 502 个名称，保存获取日期及 HTML SHA-256。它包含三维和脚本等范围，不是二维支持清单。与实际固定 runtime 关联的[覆盖记录](command-coverage.json)中，28 个名称出现在六个成功交付的程序或检查中，474 个未实测。不推断未实测项是否可用，也不宣称已覆盖这些命令的全部重载。
 
 运行 `pnpm coverage:commands` 重建证据。名称检索不是数学解析器；记录保留通道、程序／检查角色、原语句、请求和 GGB 摘要、交付路径。构造、独立检查、真实重载、适用的交互样本及 headless preview 均走既有统一管线。检查调用不等于交付了该命令对象；数学正确性的范围仍以 requirement 和报告为准。
 

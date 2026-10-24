@@ -20,7 +20,7 @@ import {
   validateModifyStyles, validateUpdates, validateParameterChanges,
   type BaseFact,
 } from './modify.js';
-import { limits, parseRequest, ToolError, toolError, type Request, type Style } from './schema.js';
+import { limits, parseRequest, ToolError, toolError, type Request } from './schema.js';
 import { claimRunDirectory, requestedName } from './naming.js';
 import { compareSnapshots, snapshotDifferences, equivalent, verify, type Verification } from './verify.js';
 

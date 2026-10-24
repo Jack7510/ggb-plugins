@@ -1,6 +1,6 @@
 # Third-party notices
 
-The repository's MIT license covers its original code. No code has been copied from `ggb_copilot` for M1.
+The repository's MIT license covers its original code. No code has been copied from `ggb_copilot`.
 
 ## GeoGebra
 

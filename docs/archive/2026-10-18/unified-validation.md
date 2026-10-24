@@ -1,6 +1,8 @@
 # 统一事实与核验门禁验证
 
-日期：2026-10-17。本文记录未发布工作区的统一修复。版本字段仍为 0.8.0，不代表公开发布资产已更新。历史案例记录保留在 [Codex v2 验证](../codex/docs/archive/2026-10-18/codex-v2-validation.md)。
+> 历史记录（2026-10-17，0.8.0 时期）。本文保留当时门禁的证据和测试数字，不适用于当前 0.8.4；当前设计约束见[第 11 节](../../ggb-plugins-design.md#11-统一事实与证据边界)。
+
+日期：2026-10-17。本文记录未发布工作区的统一修复。版本字段仍为 0.8.0，不代表公开发布资产已更新。历史案例记录保留在 [Codex v2 验证](../../../codex/docs/archive/2026-10-18/codex-v2-validation.md)。
 
 ## 根因与统一处理
 
@@ -27,7 +29,7 @@ facts 是同一包内的纯事实与授权规则模块，不是新的服务或�
 
 requirement.purpose 可选 construction、constraint、interaction，未提供时为 unspecified。该字段只记录作者的证据目的，不认证独立性，也不豁免采样覆盖。CLI warnings 与报告 verificationNotes 说明执行断言的边界，不按命令名称推导证明。
 
-请求协议仍为 2，原请求无需增加 purpose 才能执行。事实中的 inputs 改为引擎确认的传递依赖，并增加外观归属字段。旧交付缺少这些事实时不能直接当作新版本验收结果，须重新 build。字段与操作契约见 [能力契约](../skills/ggb-construction/references/capabilities.md)。
+请求协议仍为 2，原请求无需增加 purpose 才能执行。事实中的 inputs 改为引擎确认的传递依赖，并增加外观归属字段。旧交付缺少这些事实时不能直接当作新版本验收结果，须重新 build。字段与操作契约见 [能力契约](../../../skills/ggb-construction/references/capabilities.md)。
 
 标题现在保留原始 LaTeX 字面文本，不承诺完整数学排版。该选择避免继续扩展自制语法子集；长标题仍完整换行。更成熟的离线排版器可以作为独立展示需求评估，不能借此改写原始题目。
 
@@ -71,7 +73,7 @@ requirement.purpose 可选 construction、constraint、interaction，未提供�
 
 ## 证据目录
 
-本机证据位于 [output/unified-validation](../output/unified-validation/)，不提交生成物。源码设计见 [统一事实设计](ggb-plugins-design.md#11-统一事实与证据边界)。
+本机证据位于 [output/unified-validation](../../../output/unified-validation/)，不提交生成物。源码设计见 [统一事实设计](../../ggb-plugins-design.md#11-统一事实与证据边界)。
 
 | 文件 | 内容 |
 | --- | --- |
@@ -91,10 +93,10 @@ requirement.purpose 可选 construction、constraint、interaction，未提供�
 
 ## 命名校验修正复验
 
-2026-10-17 后续修正：此前整体移除 reservedNames 过度依赖执行阶段，丢失了必要的命名前置检查。当前 src/names.ts 区分官方禁用标签与插件内置名称保护；schema 对所有新建步骤 id 和显式 outputs 调用同一策略，续构新增对象也不例外。已有对象身份不受新建规则追溯限制。命名契约及依据见 [能力契约](../skills/ggb-construction/references/capabilities.md#命名规则)。
+2026-10-17 后续修正：此前整体移除 reservedNames 过度依赖执行阶段，丢失了必要的命名前置检查。当前 src/names.ts 区分官方禁用标签与插件内置名称保护；schema 对所有新建步骤 id 和显式 outputs 调用同一策略，续构新增对象也不例外。已有对象身份不受新建规则追溯限制。命名契约及依据见 [能力契约](../../../skills/ggb-construction/references/capabilities.md#命名规则)。
 
 反例覆盖 ln、sin、坐标轴名、特殊函数名、常量、工具命名空间及命令名遮蔽，并遍历已有官方目录中的 502 个命令名。freePoint、command、Algebra、CAS、显式多输出及续构声明均有前置拒绝回归。普通名称、名称后缀、下标和已有基线标签保留正例。
 
 仅运行受影响的必要检查：build（包含 TypeScript 检查）、schema／modify／preflight 共 45 项离线检查，以及 2 项真实 headless 浏览器回归，全部通过。浏览器正例使用 Circle 命令并完成重载交付；反例以合法声明名包裹 Circle=1、sin=1，确认 source 不能绕过实际输出身份门禁且不会产生正式 delivery。引擎执行实现与数学容差未修改。
 
-本次证据保留在 [output/naming-validation](../output/naming-validation/)：build.log、unit.log、browser.log，以及每次浏览器运行的诊断、截图或正式交付。git diff --check 通过。没有重复运行全量浏览器组或 11 例验收，也没有重新打包、更新安装缓存；前述安装包摘要只对应此前统一修复，不能作为本次命名修正的安装证据。已有未提交改动保留。
+本次证据保留在 [output/naming-validation](../../../output/naming-validation/)：build.log、unit.log、browser.log，以及每次浏览器运行的诊断、截图或正式交付。git diff --check 通过。没有重复运行全量浏览器组或 11 例验收，也没有重新打包、更新安装缓存；前述安装包摘要只对应此前统一修复，不能作为本次命名修正的安装证据。已有未提交改动保留。

@@ -4,7 +4,6 @@ import test, {mock} from 'node:test';
 import {mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {runInNewContext} from 'node:vm';
 import type {Page} from 'playwright';
 import * as browser from '../src/browser.js';
 import {validateParameterChanges} from '../src/modify.js';
@@ -45,7 +44,7 @@ function fakePage(): Page {
   if (++pageCount === 2) reloadedPage = page;
   return page;
 }
-function observations(page: Page, request: Request): browser.Observation[] {
+function observations(page: Page): browser.Observation[] {
   const facts = states.get(page)!;
   const n = facts.find(f => f.name === 'n')!.value!;
   const q = facts.find(f => f.name === 'q')!.value!;
@@ -73,9 +72,9 @@ mock.module('../src/browser.js', {namedExports: {...browser,
   async applyStyles() {return [];},
   async applyUpdates() {return [];},
   async snapshot(page: Page) {return structuredClone(states.get(page)!);},
-  async observe(page: Page, request: Request) {
+  async observe(page: Page) {
     return {objects: structuredClone(states.get(page)!),
-      observations: observations(page, request),
+      observations: observations(page),
       durations: {casMs: 0, probesMs: 0, valuesMs: 0, snapshotMs: 0}};
   },
   async exportGgb(page: Page) {

@@ -63,5 +63,5 @@ Worker Skill 通过 systemPrompt.section 在启动时直接加载，不依赖 sk
 构建阶段证明位于执行响应，不改变 receipt 2 的产物证明结构。
 宿主只有验证响应绑定和进程安全退出后，才能使用 preflight 拒绝退还 build 次数。
 
-受限服务端的模型参数、分段与局部修复规则见 [DSH 小块请求契约](../dsh/README.md#小块请求与局部修复)。
+受限服务端的模型参数、分段与局部修复规则见 [DSH 请求契约](../dsh/README.md#单次完整请求)。
 领域请求仍为 2，check/build 最终消费组装后的完整请求并保留全部核验门禁。

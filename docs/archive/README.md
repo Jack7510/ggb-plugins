@@ -6,7 +6,7 @@
 
 历史里程碑、性能比较及客户端验收记录移入各自文档目录的 `archive/2026-10-18/`。仅调整位置、相对链接并添加历史标记，原有结论、失败记录、版本和验收限制保留。配套结果 JSON 原样迁移。
 
-这些记录是历史证据，不是当前操作指南。现行规则从 [设计文档](../ggb-plugins-design.md)、[能力契约](../../skills/ggb-construction/references/capabilities.md)、客户端安装说明和 [AGENTS](../../AGENTS.md) 进入。后续修复依据见 [统一核验记录](../unified-validation.md)。发布说明继续保留在 [releases](../releases/)。
+这些记录是历史证据，不是当前操作指南。现行规则从 [设计文档](../ggb-plugins-design.md)、[能力契约](../../skills/ggb-construction/references/capabilities.md)、客户端安装说明和 [AGENTS](../../AGENTS.md) 进入。统一门禁的历史证据见 [统一核验记录](2026-10-18/unified-validation.md)；发布说明继续保留在 [releases](../releases/)。
 
 ## 位置对照
 
@@ -28,6 +28,8 @@
 | `codex/docs/codex-v2-validation.md` | [codex-v2-validation.md](../../codex/docs/archive/2026-10-18/codex-v2-validation.md) |
 | `dsh/docs/dsh-primary-validation.md` | [dsh-primary-validation.md](../../dsh/docs/archive/2026-10-18/dsh-primary-validation.md) |
 | `dsh/docs/dsh-solve-stability-pilot.md` | [dsh-solve-stability-pilot.md](../../dsh/docs/archive/2026-10-18/dsh-solve-stability-pilot.md) |
+| `docs/unified-validation.md` | [unified-validation.md](2026-10-18/unified-validation.md) |
+| `docs/command-coverage.json` | [command-coverage.json](2026-10-18/command-coverage.json) |
 
 ## 仓库范围与检查
 
