@@ -474,8 +474,14 @@ function validatePresentation(p: Fields, base: boolean): void {
 
 function validateInteractions(p: Fields, base: boolean): void {
   array(p.interactions, 0, limits.samples);
-  assert(!base || p.interactions.length === 0,
-    'Edit requests take no interaction samples yet');
+  if (base && p.interactions.length > 0) {
+    assert(p.edits === undefined,
+      'Appearance-only edits do not support interaction samples');
+    assert(p.interactions.every(input => input &&
+      typeof input === 'object' && 'parameter' in input),
+      'Modifications support parameter samples only; '
+      + 'mouse drag is unsupported');
+  }
   const points = new Set<string>();
   for (const input of p.interactions) {
     const sample = record(input, input && 'parameter' in input

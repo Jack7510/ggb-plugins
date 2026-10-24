@@ -149,8 +149,14 @@ function numberLiteral(value: number): string {
 
 /** A base request that adds objects, styles them, or updates values. */
 function compileModify(request: Request, base?: BaseFacts): Compiled {
-  assert(request.plan.interactions.length === 0,
-    'Base modifications take no interaction samples yet');
+  assert(request.plan.interactions.every(sample => 'parameter' in sample),
+    'Modifications support parameter samples only; mouse drag is unsupported');
+  for (const requirement of request.plan.requirements) {
+    for (const check of requirement.checks) {
+      assert(check.scope !== 'sampled' || request.plan.interactions.length > 0,
+        'Sampled checks need interaction evidence');
+    }
+  }
   const program = request.plan.program.map(step => {
     assert(step.op === 'native',
       'Base modifications declare native program steps');
@@ -187,6 +193,14 @@ function validateModifyBase(
   validateModifyUpdates(base, updates);
   checkModifyStyleTypes(base, styles);
   validateModifyChecks(base, request, has);
+  for (const sample of request.plan.interactions) {
+    assert('parameter' in sample);
+    has(sample.parameter);
+    if (base.labels.has(sample.parameter)) {
+      assert(base.types.get(sample.parameter) === 'numeric',
+        `Parameter sample needs a numeric slider: ${sample.parameter}`);
+    }
+  }
 }
 
 function validateModifyUpdates(base: BaseFacts, updates: Update[]) {
@@ -247,7 +261,7 @@ export function compile(request: Request, base?: BaseFacts): Compiled {
       const edits = request.plan.edits ?? [];
       assert(edits.length > 0, 'An edit request needs at least one edit');
       assert(request.plan.interactions.length === 0,
-        'Edit requests take no interaction samples yet');
+        'Appearance-only edits do not support interaction samples');
       return {
         mode: 'edit', edits, updates: [], program: [], view: undefined,
         styles: [], native: true,

@@ -22,7 +22,7 @@
     "ggb": "node dist/src/cli.js",
     "coverage:commands": "pnpm build && node scripts/command-coverage.mjs",
     "pack:dsh": "pnpm build && node scripts/package-plugin.mjs --target=dsh",
-    "test:offline:execution": "node --experimental-test-module-mocks --test dist/tests/execution-offline.test.js dist/tests/atomic-file.test.js"
+    "test:offline:execution": "node --experimental-test-module-mocks --test dist/tests/execution-offline.test.js dist/tests/modify-sampling-offline.test.js dist/tests/parameter-input-offline.test.js dist/tests/atomic-file.test.js"
   },
   "dependencies": {
     "playwright": "1.64.1"

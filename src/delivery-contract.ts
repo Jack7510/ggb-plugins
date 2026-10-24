@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import type {Snapshot} from './browser.js';
 import type {Request} from './schema.js';
 import {ToolError, parseRequest} from './schema.js';
+import {validateParameterChanges} from './modify.js';
 import {isOnSliderStep, requireSampleCoverage} from './facts.js';
 import {compareSnapshots, equivalent, verify, type Verification}
   from './verify.js';
@@ -50,8 +51,10 @@ export function validateDeliveryEvidence(request: Request,
   validatePhase(request, report.reload, 'initial');
   compareSnapshots(report.construction.objects, objects);
   compareSnapshots(report.reload.objects, objects);
-  assert(report.interaction?.status === 'passed'
-    && Array.isArray(report.interaction.samples),
+  assert(Array.isArray(report.interaction?.samples) &&
+    (report.interaction.status === 'passed' ||
+      report.interaction.status === 'not_sampled' &&
+      report.interaction.samples.length === 0),
   'Missing or failed interaction evidence');
   assert.equal(report.interaction.samples.length,
     request.plan.interactions.length, 'Incomplete interaction coverage');
@@ -83,6 +86,12 @@ function validateSamples(
     const before = sample.before.find(fact => fact.name === id);
     const after = sample.after.objects.find(fact => fact.name === id);
     assert(before && after, 'Missing interaction facts');
+    if (request.base) {
+      assert(request.plan.edits === undefined && 'parameter' in expected,
+        'Unsupported base interaction evidence');
+      validateParameterChanges(sample.before, sample.after.objects,
+        expected.parameter, expected.value);
+    }
     if ('point' in expected) {
       assert(typeof after.x === 'number' && typeof before.x === 'number' &&
         typeof after.y === 'number' && typeof before.y === 'number');
@@ -90,7 +99,8 @@ function validateSamples(
         after.y - before.y) > 1e-8, 'No observed drag movement');
     } else {
       assert(method === 'native_value' && before.type === 'numeric' &&
-        before.independent && before.moveable && before.slider &&
+        before.independent && before.moveable && !before.fixed &&
+        before.slider &&
         after.value !== null && before.value !== null &&
         Math.abs(after.value - before.value) > 1e-8 &&
         equivalent(after.value, expected.value) &&
@@ -175,6 +185,7 @@ export function summarizeHostVerification(input: unknown): object {
   const interaction = report.interaction;
   return {construction: phase(report.construction),
     reload: phase(report.reload),
-    interaction: {status: interaction.status,
+    interaction: {status: interaction.samples.length === 0 &&
+      interaction.status === 'passed' ? 'not_sampled' : interaction.status,
       samples: interaction.samples.length}};
 }

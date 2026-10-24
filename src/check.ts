@@ -46,6 +46,7 @@ async function checkRequestValue(request: Request): Promise<CheckData> {
     edits: compiled.edits.length,
     updates: compiled.updates.length,
     styles: compiled.styles.length,
-    requirements: request.plan.requirements.length, samples: 0,
+    requirements: request.plan.requirements.length,
+    samples: request.plan.interactions.length,
   };
 }

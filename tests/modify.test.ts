@@ -10,6 +10,8 @@ import {
   type BaseFact,
 } from '../src/modify.js';
 import { parseRequest, ToolError } from '../src/schema.js';
+import {checkRequest} from '../src/check.js';
+import {readGgb} from '../src/ggbfile.js';
 import { root } from '../src/server.js';
 
 const basePath = join(root, 'tests/fixtures/edit-base.ggb');
@@ -207,3 +209,40 @@ test('the modify gate rejects removals, undeclared additions and edits',
       { object: 'O', field: 'visible', expected: true, actual: false },
     ]).length, 1);
   });
+
+
+test('modify binds parameter samples to base or declared outputs', () => {
+  const input = modifyRequest();
+  const request = parseRequest(input);
+  request.plan.program.push({id: 'n', op: 'native', mode: 'algebra',
+    source: 'n=Slider(3,12,1)'});
+  request.plan.interactions = [{parameter: 'n', value: 7}];
+  request.plan.requirements[0]!.checks[0]!.scope = 'sampled';
+  assert.equal(compile(request, facts).mode, 'modify');
+  assert.throws(() => compile({...request, plan: {...request.plan,
+    interactions: [{parameter: 'missing', value: 7}]}}, facts),
+  /Unknown object reference/);
+  assert.throws(() => compile({...request, plan: {...request.plan,
+    interactions: [{parameter: 'O', value: 7}]}}, facts),
+  /numeric slider/);
+  assert.throws(() => compile({...request, plan: {...request.plan,
+    interactions: []}}, facts), /Sampled checks need interaction/);
+  const withSlider = {...facts, labels: new Set([...facts.labels, 'baseN']),
+    types: new Map([...facts.types, ['baseN', 'numeric']])};
+  request.plan.interactions = [{parameter: 'baseN', value: 4}];
+  assert.equal(compile(request, withSlider).mode, 'modify');
+});
+
+
+test('public check accepts slider samples on an offline archive', async () => {
+  const input = parseRequest(modifyRequest());
+  input.base!.sha256 = (await readGgb(basePath)).sha256;
+  input.plan.program.push({id: 'n', op: 'native', mode: 'algebra',
+    source: 'n=Slider(3,12,1)'});
+  input.plan.interactions = [{parameter: 'n', value: 7}];
+  const result = await checkRequest(input);
+  assert.equal(result.mode, 'modify');
+  assert.equal(result.samples, 1);
+  input.plan.interactions = [{parameter: 'missing', value: 7}];
+  await assert.rejects(checkRequest(input), /Unknown object reference/);
+});

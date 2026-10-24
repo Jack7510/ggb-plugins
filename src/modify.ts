@@ -7,6 +7,8 @@
  * updated object. It never allows a deletion, a rename or an undeclared
  * addition.
  */
+import type {Snapshot} from './browser.js';
+import {equivalent, snapshotDifferences} from './verify.js';
 import { ToolError, type Style, type Update } from './schema.js';
 import {
   allowedStyleChanges, dependents, type Difference, type FactLink,
@@ -190,4 +192,40 @@ export function modifyViolations(input: {
       && recomputedFields.has(difference.field)) return false;
     return true;
   });
+}
+
+/** A parameter sample can only change its value and dependent mathematics. */
+export function validateParameterChanges(before: Snapshot, after: Snapshot,
+  parameter: string, value: number): void {
+  const original = new Map(before.map(fact => [fact.name, fact]));
+  const recomputed = dependents(after, [parameter]);
+  const differences = snapshotDifferences(after, before).filter(change => {
+    if (change.field !== 'nativeType' || !recomputed.has(change.object)) {
+      return true;
+    }
+    // A changing polygon can become a triangle/quadrilateral while keeping
+    // its normalized mathematical type, definition and dependency graph.
+    return original.get(change.object)?.type !==
+      after.find(fact => fact.name === change.object)?.type;
+  });
+  for (const fact of after) {
+    const old = original.get(fact.name);
+    if (!old) continue;
+    // Snapshot normalization ignores numeric label flags after reload;
+    // within a sample, presentation is never an allowed parameter effect.
+    for (const field of ['labelVisible', 'labelStyle'] as const) {
+      if (!equivalent(old[field], fact[field])) differences.push({
+        object: fact.name, field, expected: old[field], actual: fact[field],
+      });
+    }
+  }
+  const violations = modifyViolations({
+    styles: [], updates: [{object: parameter, value}], differences,
+    links: after,
+    declared: new Set(), baseLabels: new Set(original.keys()),
+  });
+  if (violations.length) {
+    throw new ToolError('preservation_violation',
+      'Parameter sampling changed unrelated construction facts', violations);
+  }
 }

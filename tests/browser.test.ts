@@ -163,7 +163,8 @@ test('numeric and native visibility boundaries survive delivery and preview', { 
     for (const phase of ['construction', 'reload']) {
       assert.equal(report[phase].status, 'passed'); inspect(report[phase].objects);
     }
-    assert.equal(report.interaction.status, 'passed');
+    assert.equal(report.interaction.status,
+      report.interaction.samples.length ? 'passed' : 'not_sampled');
     for (const sample of report.interaction.samples) inspect(sample.after.objects);
     const session = await openPreview(result.delivery, false);
     try { inspect(await snapshot(session.page)); }
@@ -320,7 +321,9 @@ test('different constructions use one execution, verification and delivery pipel
       for (const sample of request.plan.interactions) { assert('point' in sample); sample.point = rename(sample.point); }
       const result = await build(request);
       const report = JSON.parse(await readFile(result.report, 'utf8'));
-      assert.equal(report.reload.status, 'passed'); assert.equal(report.interaction.status, 'passed');
+      assert.equal(report.reload.status, 'passed');
+      assert.equal(report.interaction.status,
+      report.interaction.samples.length ? 'passed' : 'not_sampled');
       assert(!report.reload.objects.some((o: any) => ['A', 'B', 'C', 'M', 'shape', 'median'].includes(o.name)));
     });
 

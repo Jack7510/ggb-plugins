@@ -103,12 +103,12 @@ inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`byt
 
 ## 构造修改已有 GGB
 
-构造修改与显示属性编辑使用同一 `base`，但一个请求只能二选一：有 `plan.edits` 时不得同时有 `plan.program`／`plan.updates`／`plan.styles`。删除、重命名和视图修改不开放。
+同一 `base` 下，`edits` 与 `program`／`updates`／`styles` 互斥；禁止删除、重命名和修改视图。
 
 - `plan.program`：只写新增的 native 步骤。参数可引用基线标签；新输出不得与基线重名，并声明引擎实际返回的全部标签。
 - `plan.updates`：每个对象一条。独立数值对象用 `value`；独立可移动点用 `coords: [x, y]`。滑块值必须在 `slider` 区间内；有 `step` 时必须落在 `min + k*step` 网格上。依赖对象不能更新。
 - `plan.styles`：可同时引用基线与新对象；基线对象不接受 `fixed`。
-- `plan.interactions` 为 `[]`；不写 `view`、`edits`。检查覆盖每个新增对象、更新和样式。
+- `plan.interactions` 可为空或仅含 `{parameter,value}`；不支持鼠标拖动。不写 `view`、`edits`。检查覆盖每个新增对象、更新和样式。
 - 更新用 GeoGebra 受控 API 执行；模型不写 `SetValue`、`SetCoords` 或 `SetColor`。
 
 **门禁**：除沿用摘要、归档、可解释、读回与重载门禁外，差异白名单还要求：
@@ -252,11 +252,16 @@ expression 检查的写法限制（本项目实测）：直接用比较表达式
 
 `interactions:[{point,dx,dy}]` 是真实鼠标拖动样本，支持实际可移动自由点和路径点。像素位移各不超过 120，长度至少 20，同一点不重复。代数视图不能声明画布拖动。
 
-另可声明 `{parameter:"a",value:2}`。参数必须是独立、可移动、未固定的数值滑块，目标在有限区间内且实际发生变化。同一参数可用不同目标值采样；每个样本都独立重载原 GGB。报告 method 为 `native_value`，表示原生 API 参数设置，不冒充鼠标拖动。Algebra 视图也允许参数采样。
+`{parameter:"a",value:2}` 只操作独立、可移动、未固定的数值滑块；值须变化、在区间和步长网格内。同参数可采不同值，method 为 `native_value`。新建、构造修改和 Algebra 支持；仅样式编辑不支持。修改采样只允许目标值及依赖数学字段变化，不允许增删、样式或无关变化。
 
-每个参数样本在目标状态核验后，会在同一副本恢复原值，再执行初态核验及完整快照比较。sample.roundTrip 保存原值 value 和恢复后的 after 报告；往返失败阻止交付，不能忽略隐藏未定义对象。preview 要求对应证据并重算判定；旧参数交付缺少 roundTrip 时必须重新 build。鼠标样本不要求用坐标赋值恢复。真实拖动若有距离目标不超过 10 屏幕像素的其他可见、已定义点，会提前拒绝并记录 target、screen 与逐点 overlaps（含 moveable 与 fixed 标记）：可移动点按重叠可移动点拒绝，固定点（`fixed:true`）按重叠固定点拒绝，依赖型可见点只记录不提前拒绝；其他未移动情况仍保留原时限。
+每个样本独立重载交付 GGB，在同一副本改值、核验、恢复、初态核验及完整快照比较。`sample.roundTrip:{value,after}` 保存恢复证据，缺失或失败阻止交付和 preview；不忽略隐藏未定义对象，不回写原件或交付。
 
-有界的可变数量构造，可以先生成容量固定的原生辅助对象，再取活动前缀。`Take(allPoints,1,count)` 取前 count 个对象，二参数 Take 从指定位置取到末尾。若只要求轮廓，可依次保存 `active=Take(allPoints,1,count)`、`first=Element(active,1)`、`closed=Append(active,first)`、`outline=Polyline(closed)`；拆开命令以保留直接依赖。所有辅助对象必须始终有定义，容量上限必须来自题目且满足 steps 限制。周长从实际相邻点距离求和并独立核验，不用“边数×边长”同时生成和检查结果。若要求填充面或原生 Polygon 类型，不能将轮廓表示当作完成。
+鼠标样本不赋坐标恢复。拖动目标 10 像素内有其他可见且已定义的可移动或固定点时拒绝，记录 target、screen、overlaps（含 moveable、fixed）；依赖型可见点只记录。其余沿用原时限。
+
+
+可变数量构造可先生成固定容量辅助对象，再取活动前缀。`Take(allPoints,1,count)` 取前 count 个对象，二参数 Take 从指定位置取到末尾。若只要求轮廓，可依次保存 `active=Take(allPoints,1,count)`、`first=Element(active,1)`、`closed=Append(active,first)`、`outline=Polyline(closed)`；拆开命令以保留直接依赖。辅助对象须始终有定义，容量上限来自题目并满足 steps 限制。周长从实际相邻点距离求和并独立核验，不用“边数×边长”同时生成和检查结果。若要求填充面或原生 Polygon 类型，不能将轮廓表示当作完成。
+
+零样本为 `not_sampled`，采样通过为 `passed`；缩放不替代采样。不支持时报告限制，禁止原样重试或删必需 sampled 检查。
 
 所有输入形式共用执行后的采样覆盖门禁：具有可操控输入的 sampled 数学关系，至少有一个与 subjects 同名或存在确定依赖路径的交互目标。可操控能力来自真实的点移动／数值滑块、fixed 与 moveable 状态，不按对象名或检查种类推测。固定量仍执行每次 sampled 复验；声明 purpose:interaction 却没有可操控输入时拒绝。值保持不变量不表示失败；无关输入移动不能算联动覆盖。缺少确定性元数据的旧交付需要重新 build。
 

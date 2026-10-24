@@ -218,6 +218,9 @@ test('Worker request reference is preloaded once and cannot inherit CLI fields',
   assert.match(body, /every defining input of every derived relation/);
   assert.match(body, /Type checks use objectType, not expected/);
   assert.match(body, /Copy source verbatim/);
+  assert.match(body, /modifications support parameter samples only/);
+  assert.match(body, /Zero samples means not_sampled/);
+  assert.match(body, /Never resubmit an unchanged unsupported/);
   assert.match(body, /Image tasks require nonempty transcription on the first save/);
   assert.match(body, /complete mathematical problem text/);
   assert.match(body, /not an image summary/);

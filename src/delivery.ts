@@ -17,7 +17,8 @@ import { compile, type BaseFacts } from './compile.js';
 import { verificationNotes } from './tautology.js';
 import {
   modifyViolations, requireUpdateEffects, updateFields, valueMatches,
-  validateModifyStyles, validateUpdates, type BaseFact,
+  validateModifyStyles, validateUpdates, validateParameterChanges,
+  type BaseFact,
 } from './modify.js';
 import { limits, parseRequest, ToolError, toolError, type Request, type Style } from './schema.js';
 import { claimRunDirectory, requestedName } from './naming.js';
@@ -289,6 +290,10 @@ async function sampleOne(
     },
   );
   const after = await collect(context, page, `sample.${index}`, 'sampled');
+  if (request.base && 'parameter' in sample) {
+    validateParameterChanges(before, after.objects,
+      sample.parameter, sample.value);
+  }
   const evidence: SampleEvidence = { ...sample, method, before, after };
   samples.push(evidence);
   await persist();
@@ -469,15 +474,14 @@ async function buildBase(context: BuildContext): Promise<DeliveryResult> {
   await acceptConstruction(context, input.gates.verification);
   const bytes = await exportArtifact(context, page);
   const artifact = await reload(context, input.gates.verification);
-  context.stage = 'export_failed';
-  await context.timed('screenshot', () => artifact.reloaded.screenshot({
-    path: join(context.temp, 'preview.png'),
-  }));
+  const samples = await sampleInteractions(
+    context, artifact, input.gates.verification);
+  compareSnapshots(await snapshot(artifact.reloaded), artifact.reload.objects);
   const shared = { archive, summary, bytes, reload: artifact.reload,
     page: artifact.reloaded };
   return input.mode === 'edit'
     ? await commitEdit(context, { ...shared, gates: input.gates })
-    : await commitModify(context, { ...shared, gates: input.gates });
+    : await commitModify(context, { ...shared, samples, gates: input.gates });
 }
 
 /** All modes use the same evidence and atomic directory commit. */
@@ -562,7 +566,7 @@ async function commitEdit(
     },
     construction: input.gates.verification,
     reload: input.reload,
-    interaction: { status: 'passed', samples: [], zoom: zoomResult },
+    interaction: { status: 'not_sampled', samples: [], zoom: zoomResult },
   };
   return await finishDelivery(context, {
     bytes: input.bytes, archive: input.archive, report,
@@ -576,7 +580,7 @@ async function commitModify(
   input: {
     archive: { bytes: Buffer }; summary: GgbSummary; bytes: Buffer;
     gates: Awaited<ReturnType<typeof modifyGates>>;
-    reload: Verification; page: Page;
+    reload: Verification; page: Page; samples: SampleEvidence[];
   },
 ): Promise<DeliveryResult> {
   const { request } = context;
@@ -608,7 +612,8 @@ async function commitModify(
     },
     construction: input.gates.verification,
     reload: input.reload,
-    interaction: { status: 'passed', samples: [], zoom: zoomResult },
+    interaction: { status: input.samples.length ? 'passed' : 'not_sampled',
+      samples: input.samples, zoom: zoomResult },
   };
   return await finishDelivery(context, {
     bytes: input.bytes, archive: input.archive, report,
@@ -629,7 +634,8 @@ async function commitDelivery(
   const report = {
     milestone: 'M6', requestSha256: context.requestSha256,
     construction, reload: artifact.reload,
-    interaction: { status: 'passed', samples, zoom: zoomResult },
+    interaction: { status: samples.length ? 'passed' : 'not_sampled',
+      samples, zoom: zoomResult },
     ...(guaranteed.length ? { verificationNotes: guaranteed } : {}),
   };
   return await finishDelivery(context, {

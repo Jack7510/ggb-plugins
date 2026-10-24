@@ -139,7 +139,7 @@ test('edit requests carry a digest and never mix with a program', () => {
     /Invalid base object name/);
   reject(input => {
     input.plan.interactions = [{ point: 'O', dx: 40, dy: 0 }];
-  }, /no interaction samples/);
+  }, /Appearance-only edits do not support interaction samples/);
   const primed: any = editRequest();
   primed.plan.edits[0].object = "A'";
   primed.plan.requirements[0].checks[0].subjects = ["A'"];
