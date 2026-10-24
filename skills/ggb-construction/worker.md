@@ -24,10 +24,11 @@ Use whole chapters only for spanning gaps; refresh:true only after context loss.
 
 ## Evidence and repair
 
-Prefer native relations to calculated fixed coordinates. Preserve CAS, actual
-outputs and initial. CAS results materialize once; they are not dynamic cells.
+Prefer native relations to calculated fixed coordinates.
 A derived object also requires a dependsOn check covering
 every defining input of every derived relation.
+Check given mathematical roots and used helpers separately; constants cannot
+replace roots.
 Explicit user-given free coordinates need no invented dependencies.
 For expected values, derive independently; never copy observations or failures.
 Use actual object types. pointOn supports conic objects; segment is not line.

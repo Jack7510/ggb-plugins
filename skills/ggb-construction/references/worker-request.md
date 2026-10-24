@@ -10,7 +10,9 @@ Copy source verbatim from user text/transcription/confirmed answers.
 Clarifications are [{question,answer}]; the question alone is not a condition.
 
 Plan: program, requirements, interactions; optional styles/edits/updates/view/display.
-Requirements: [{id,source,checks,purpose?}]; unique IDs, nonempty nested checks;
+Requirements: [{id,source,checks,purpose?}]; sourceRef:"input" may replace source.
+Copies current input plus transcription. Never combine both;
+Long inputs may need a literal excerpt for byte limits. Unique IDs, nonempty checks;
 never plan.checks. purpose: construction/constraint/interaction; no exemption.
 
 ## Program and identities
@@ -34,7 +36,8 @@ Forms (add scope):
 - type: one subject, objectType:<actual engine type>; sliders use numeric.
 - coordinate: one point, coordinates:[x,y]; only justified fixed values.
 - pointOn: [point,line|circle|conic], no extra fields.
-- dependsOn: [derived,...defining inputs], transitive dependence; at least two.
+- dependsOn: [derived,...given defining objects,...used intermediates];
+  transitive dependence, at least two. A helper cannot replace a given root.
 - style: one subject, properties:<requested style fields>.
 - expression: subjects occurring literally in expression, expression, mode:algebra|cas,
   expected:<independently derived finite number,boolean,nested array>.
@@ -46,7 +49,8 @@ also. Keep full verification.
 
 styles:[{object,properties}]. Properties: visible/labelVisible/fixed booleans,
 color:#RRGGBB, lineThickness:1..13, lineStyle:0..4, filling:0..1, caption:1..100 chars.
-Caption is display only; source/refs keep identities.
+Caption is display only; source/refs keep identities. For hidden algebra values,
+prefer visible:false alone; explicit label flags must survive reload.
 view:{xMin,xMax,yMin,yMax}; display:graphics(default)|algebra.
 With a base: no view; edits:[{object,properties}] is appearance only and exclusive
 with program/updates/styles. Edits allow only color/lineThickness/lineStyle/

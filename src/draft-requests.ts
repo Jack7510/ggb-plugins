@@ -1,5 +1,6 @@
 /** @fileoverview Bounded run-local drafts and immutable checked snapshots. */
 import {randomUUID} from 'node:crypto';
+import {resolveRequirementSources} from './draft-sources.js';
 import {digestJson, LIMITS} from './host-protocol.js';
 import {DRAFT_ARGUMENT_BYTES, DRAFT_SECTIONS, DraftError,
   parseDraftArguments, requireDraft, type DraftSection} from './draft-arguments.js';
@@ -133,12 +134,14 @@ export class RequestDraft {
       'draft_request_fields');
     requireDraft(body.plan !== undefined, 'draft_request_plan');
     const plan = record(body.plan);
-    const normalizedPlan = {...plan,
-      ...(Array.isArray(plan.program) ? {program: plan.program.map(nativeStep)} : {})};
     // parseDraftArguments has validated an explicit transcription as string[].
     const prompt = args.transcription === undefined
       ? this.document?.prompt ?? this.prompt
       : [this.prompt, ...args.transcription as string[]].join('\n');
+    const normalizedPlan = {...plan,
+      ...(Array.isArray(plan.program) ? {program: plan.program.map(nativeStep)} : {}),
+      ...(plan.requirements === undefined ? {} : {requirements:
+        resolveRequirementSources(plan.requirements, String(prompt))})};
     const title = args.title ?? this.document?.title;
     const request = {protocolVersion: 2,
       prompt, locale: args.locale ?? this.document?.locale ?? 'zh-CN',

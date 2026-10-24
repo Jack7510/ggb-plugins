@@ -225,6 +225,9 @@ test('Worker request reference is preloaded once and cannot inherit CLI fields',
   assert.match(body, /every defining input of every derived relation/);
   assert.match(body, /Type checks use objectType, not expected/);
   assert.match(body, /Copy source verbatim/);
+  assert.match(body, /sourceRef:"input" may replace source/);
+  assert.match(body, /A helper cannot replace a given root/);
+  assert.match(body, /explicit label flags must survive reload/);
   assert.match(body, /modifications support parameter samples only/);
   assert.match(body, /Zero samples means not_sampled/);
   assert.match(body, /Never resubmit an unchanged unsupported/);

@@ -375,3 +375,69 @@ test('metadata and inherited prompt count toward their respective budgets', () =
     checked.checkedRequestId}).request.prompt,
   'Create point P\n' + transcription.join('\n'));
 });
+
+test('sourceRef resolves exact input text, retains transcription and binds checked snapshots', async () => {
+  const {parseRequest} = await import('../../dist/src/schema.js');
+  const text = '椭圆 C：x²/16 + y²/9 = 1 的左焦点为 F';
+  const draft = new RequestDraft('Read the image');
+  const body = {plan: {program: [{id: 'P', source: 'P=(0,0)'}],
+    requirements: [{id: 'r', sourceRef: 'input', checks: [
+      {kind: 'exists', subjects: ['P'], scope: 'initial'},
+    ]}], interactions: []}};
+  draft.operate({requestText: JSON.stringify(body), transcription: [text]});
+  const first = draft.forCheck({revision: 1});
+  const source = 'Read the image\n' + text;
+  assert.equal(first.request.plan.requirements[0].source, source);
+  assert.ok(!('sourceRef' in first.request.plan.requirements[0]));
+  assert.doesNotThrow(() => parseRequest({...first.request,
+    outputDir: '/tmp/source-reference'}));
+  const checked = draft.acceptCheck(first);
+  for (const requirement of [
+    {sourceRef: '../other-run'}, {sourceRef: {path: '/etc/passwd'}},
+    {sourceRef: 'input', source: text},
+  ]) {
+    const bad = structuredClone(body);
+    Object.assign(bad.plan.requirements[0], requirement);
+    assert.throws(() => draft.operate({requestText: JSON.stringify(bad)}),
+      /sourceRef|draft_source_reference/);
+    assert.equal(draft.forBuild({checkedRequestId:
+      checked.checkedRequestId}).domainRequestDigest,
+      first.domainRequestDigest);
+  }
+  draft.operate({requestText: JSON.stringify(body)});
+  assert.equal(draft.forCheck({revision: 2}).request.plan.requirements[0].source,
+    source);
+  assert.throws(() => draft.forBuild({checkedRequestId:
+    checked.checkedRequestId}), /draft_check_required/);
+  const literal = structuredClone(body);
+  delete literal.plan.requirements[0].sourceRef;
+  literal.plan.requirements[0].source = source;
+  draft.operate({requestText: JSON.stringify(literal)});
+  assert.equal(draft.forCheck({revision: 3}).domainRequestDigest,
+    first.domainRequestDigest);
+  const other = new RequestDraft('Different turn');
+  other.operate({requestText: JSON.stringify(body)});
+  assert.equal(other.forCheck({revision: 1}).request.plan.requirements[0].source,
+    'Different turn');
+});
+
+test('source references never repair invalid literals or bypass the expanded budget', async () => {
+  const {parseRequest} = await import('../../dist/src/schema.js');
+  const input = '椭圆 C：x²/16 + y²/9 = 1';
+  const body = {plan: {program: [{id: 'P', source: 'P=(0,0)'}],
+    requirements: [{id: 'r', source: 'C: x^2/16+y^2/9=1', checks: [
+      {kind: 'exists', subjects: ['P'], scope: 'initial'},
+    ]}], interactions: []}};
+  const draft = new RequestDraft(input);
+  draft.operate({requestText: JSON.stringify(body)});
+  assert.throws(() => parseRequest({...draft.forCheck({revision: 1}).request,
+    outputDir: '/tmp/source-reference'}), /source is not in the input/);
+  delete body.plan.requirements[0].source;
+  body.plan.requirements[0].sourceRef = 'input';
+  const large = new RequestDraft('x'.repeat(10000));
+  body.plan.requirements = Array.from({length: 20}, (_, id) =>
+    ({...body.plan.requirements[0], id: String(id)}));
+  assert.throws(() => large.operate({requestText: JSON.stringify(body)}),
+    /draft_request_too_large/);
+  assert.throws(() => large.forCheck({revision: 1}), /draft_missing/);
+});

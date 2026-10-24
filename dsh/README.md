@@ -372,3 +372,26 @@ GGB 上限为 6 MiB，preview 为 3 MiB，报告和 manifest 各为 1 MiB。
 
 开发 TGZ 的 `source/` 保存精确源码与构建输入。`source/dependencies.lock` 对应源码仓库
 `pnpm-lock.yaml`；npm 不会原样发行该文件名。宿主供应锁固定快照内每个文件的摘要。
+
+
+### 失败观测与原文引用
+
+失败的 `type`、`style`、`presentation` 结果附带有界的 `expected`、`actual` 和
+`message`，保留完整报告供交付核验。缺少观测时为未知，不生成虚假 actual=false。
+宿主把必要事实投影到工具修复反馈和最终失败；不转发原始对象、XML、路径或凭据。
+成功判据不变，失败摘要不代替完整核验。
+
+Worker 的 `requestText` requirement 可使用 `sourceRef:"input"` 替代 `source`。
+插件在原子保存前解析为本轮原始输入（含同次或已保存转写）；不能同时指定两个字段，
+不能指定路径或其他 run。修复保留转写；新 turn 不复用旧输入。展开后仍受请求字节上限
+约束；过大时应使用逐字摘录。CLI 仍只接收 `source`；非法摘录不自动改写。
+check/build 的版本、摘要和回执均绑定解析后的完整请求。
+
+派生对象须检查对题设定义对象的依赖，同时保留实现中间量的依赖检查。
+例如 `F=(-cval,0)`、`cval=sqrt(16-9)` 即使满足 `dependsOn(F,cval)`，也不能替代
+题设“F 是 C 的焦点”所需的 `dependsOn(F,C)`。原文条件的完整提取仍由 Worker 负责。
+
+隐藏数值对象的已有证据显示：构造时 labelVisible=false，重载后为 true，defined、值和
+visible 不变。离线回放定位到导出/重载边界，不宣称已确认引擎内部的序列化或加载函数。
+快照归一化不放宽显式样式检查；只有隐藏需求时可用 visible:false，明确要求标签状态时
+仍须通过重载核验。当前没有新增引擎补丁。

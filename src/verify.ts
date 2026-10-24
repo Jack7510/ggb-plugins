@@ -1,5 +1,6 @@
 /** @fileoverview Pure mathematical verification and snapshot comparison. */
 import assert from 'node:assert/strict';
+import {verificationFeedback} from './verification-feedback.js';
 import type { Snapshot, Observation } from './browser.js';
 import { commands, ToolError, type Check, type Request, type Style, type MathValue } from './schema.js';
 
@@ -275,6 +276,14 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
       const properties: Style = { ...(step.op === 'native' ? {} : { visible: true }), ...(facts.get(id)?.type === 'point' ? { labelVisible: true } : {}), ...request.plan.styles?.find(s => s.object === id)?.properties };
       add('$style:' + id, 0, [id], 'presentation', () => all([styleStatus(get(id), properties),
         get(id).type === 'point' ? truth(get(id).labelStyle === (properties.caption === undefined ? 0 : 3)) : 'passed']));
+      const result = results.at(-1)!;
+      if (result.status !== 'passed') {
+        const expected = {...properties,
+          ...(properties.caption !== undefined ? {labelStyle: 3}
+            : facts.get(id)?.type === 'point' ? {labelStyle: 0} : {})};
+        result.evidence = verificationFeedback('presentation', facts.get(id),
+          expected, [facts.get(id) ?? null]);
+      }
     }
   }
   for (const requirement of request.plan.requirements) requirement.checks.forEach((check, index) => {
@@ -290,6 +299,16 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
         if (typeof check.expected === 'boolean') return observation.type === 'boolean' ? truth(observation.value === (check.expected ? 1 : 0)) : 'unverified';
         return observation.type === 'numeric' ? numeric(observation.value - check.expected!, check.expected!) : 'unverified';
       }, check.scope);
+      const checked = results.at(-1)!;
+      if (checked.status !== 'passed' &&
+        (check.kind === 'type' || check.kind === 'style')) {
+        const fact = facts.get(check.subjects[0]!);
+        const expected = check.kind === 'type'
+          ? {objectType: check.objectType} : {...check.properties,
+            ...(check.properties?.caption === undefined ? {} : {labelStyle: 3})};
+        checked.evidence = verificationFeedback(check.kind, fact, expected,
+          check.subjects.map(id => facts.get(id) ?? null));
+      }
       if (check.kind === 'expression') {
         const result = results.at(-1)!;
         const message = expressionFailureMessage(check, observation,

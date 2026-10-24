@@ -66,3 +66,9 @@ Max(Sequence(abs(Distance(Vertex(poly,k),Vertex(poly,Mod(k,round(n))+1))-2*Dista
 `g: y=k*(x+1)` 即使在当前焦点为 (-1,0) 时位置正确，也没有使用 F_1。
 只检查 pointOn(F_1,g) 和 dependsOn(g,k) 会遗漏这条关系。
 依赖检查与独立数学期望并存；sampled 还需要相关交互，initial 也会重载复验。
+
+题设定义输入与实现中间量必须分别审查。若题设把 F 定义为 C 的焦点，
+`F=(-cval,0)` 配 `cval=sqrt(16-9)` 和 `dependsOn(F,cval)` 不验收 F 对 C 的依赖。
+即使本题数值位置正确，仍须原生构造保留 C 并检查 `dependsOn(F,C)`；
+中间列表或其他辅助对象不能替代题设定义输入。工具只验证已声明条件，
+不会从任意原文自动证明依赖要求提取完整。
