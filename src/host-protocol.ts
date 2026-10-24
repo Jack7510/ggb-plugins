@@ -14,6 +14,7 @@ export const REFERENCE_TOPICS = ['request', 'program', 'verification',
 /** Fixed child sections; IDs are data, never paths or search expressions. */
 export const REFERENCE_SECTIONS = {
   'program.outputs': {topic: 'program', heading: '多输出与列表'},
+  'program.text': {topic: 'program', heading: '文本与区域点'},
   'program.cas': {topic: 'program', heading: 'CAS 结果与依赖'},
   'verification.expression': {topic: 'verification', heading: '表达式观测'},
   'verification.predicates': {topic: 'verification', heading: '谓词与依赖'},

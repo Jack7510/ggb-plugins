@@ -1,0 +1,288 @@
+{
+  "protocolVersion": 2,
+  "prompt": "Illustrate the area-weighted vector identity for a strictly interior point of a triangle, with a live area label.",
+  "locale": "en",
+  "title": "Interior area identity",
+  "outputDir": "output",
+  "plan": {
+    "program": [
+      {
+        "id": "A",
+        "op": "native",
+        "mode": "algebra",
+        "source": "A=(0,0)"
+      },
+      {
+        "id": "B",
+        "op": "native",
+        "mode": "algebra",
+        "source": "B=(6,0)"
+      },
+      {
+        "id": "C",
+        "op": "native",
+        "mode": "algebra",
+        "source": "C=(1.5,4)"
+      },
+      {
+        "id": "tri",
+        "op": "native",
+        "mode": "algebra",
+        "source": "tri=Polygon({A,B,C})"
+      },
+      {
+        "id": "u",
+        "op": "native",
+        "mode": "algebra",
+        "source": "u=Slider(1,5,1)"
+      },
+      {
+        "id": "v",
+        "op": "native",
+        "mode": "algebra",
+        "source": "v=Slider(1,5,1)"
+      },
+      {
+        "id": "P",
+        "op": "native",
+        "mode": "algebra",
+        "source": "P=(u*A+v*B+C)/(u+v+1)"
+      },
+      {
+        "id": "sA",
+        "op": "native",
+        "mode": "algebra",
+        "source": "sA=Area(P,B,C)"
+      },
+      {
+        "id": "sB",
+        "op": "native",
+        "mode": "algebra",
+        "source": "sB=Area(P,C,A)"
+      },
+      {
+        "id": "sC",
+        "op": "native",
+        "mode": "algebra",
+        "source": "sC=Area(P,A,B)"
+      },
+      {
+        "id": "sumS",
+        "op": "native",
+        "mode": "algebra",
+        "source": "sumS=sA+sB+sC"
+      },
+      {
+        "id": "TAnchor",
+        "op": "native",
+        "mode": "algebra",
+        "source": "TAnchor=(0,4.9)"
+      },
+      {
+        "id": "UAnchor",
+        "op": "native",
+        "mode": "algebra",
+        "source": "UAnchor=(0,4.5)"
+      },
+      {
+        "id": "titleText",
+        "op": "native",
+        "mode": "algebra",
+        "source": "titleText=Text(\"Area identity; P stays strictly inside\",TAnchor)"
+      },
+      {
+        "id": "valueText",
+        "op": "native",
+        "mode": "algebra",
+        "source": "valueText=Text(\"area sum = \"+sumS,UAnchor)"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "identity",
+        "source": "Illustrate the area-weighted vector identity for a strictly interior point of a triangle, with a live area label.",
+        "checks": [
+          {
+            "kind": "type",
+            "subjects": [
+              "P"
+            ],
+            "objectType": "point",
+            "scope": "initial"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "P",
+              "A",
+              "B",
+              "C",
+              "u",
+              "v"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "valueText",
+              "sumS",
+              "UAnchor"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "sA",
+              "P",
+              "B",
+              "C"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "sB",
+              "P",
+              "C",
+              "A"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "dependsOn",
+            "subjects": [
+              "sC",
+              "P",
+              "A",
+              "B"
+            ],
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "sA",
+              "sB",
+              "sC"
+            ],
+            "expression": "sA+sB+sC",
+            "expected": 12,
+            "mode": "algebra",
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "sA",
+              "sB",
+              "sC"
+            ],
+            "expression": "sA>0 && sB>0 && sC>0",
+            "expected": true,
+            "mode": "algebra",
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "sA",
+              "sB",
+              "sC",
+              "A",
+              "B",
+              "C",
+              "P"
+            ],
+            "expression": "sA*(x(A)-x(P))+sB*(x(B)-x(P))+sC*(x(C)-x(P))",
+            "expected": 0,
+            "mode": "algebra",
+            "scope": "sampled"
+          },
+          {
+            "kind": "expression",
+            "subjects": [
+              "sA",
+              "sB",
+              "sC",
+              "A",
+              "B",
+              "C",
+              "P"
+            ],
+            "expression": "sA*(y(A)-y(P))+sB*(y(B)-y(P))+sC*(y(C)-y(P))",
+            "expected": 0,
+            "mode": "algebra",
+            "scope": "sampled"
+          },
+          {
+            "kind": "type",
+            "subjects": [
+              "TAnchor"
+            ],
+            "objectType": "point",
+            "scope": "initial"
+          },
+          {
+            "kind": "type",
+            "subjects": [
+              "UAnchor"
+            ],
+            "objectType": "point",
+            "scope": "initial"
+          },
+          {
+            "kind": "type",
+            "subjects": [
+              "titleText"
+            ],
+            "objectType": "text",
+            "scope": "initial"
+          },
+          {
+            "kind": "type",
+            "subjects": [
+              "valueText"
+            ],
+            "objectType": "text",
+            "scope": "initial"
+          }
+        ]
+      }
+    ],
+    "interactions": [
+      {
+        "parameter": "u",
+        "value": 5
+      },
+      {
+        "parameter": "v",
+        "value": 5
+      }
+    ],
+    "styles": [
+      {
+        "object": "TAnchor",
+        "properties": {
+          "visible": false,
+          "fixed": true
+        }
+      },
+      {
+        "object": "UAnchor",
+        "properties": {
+          "visible": false,
+          "fixed": true
+        }
+      }
+    ],
+    "view": {
+      "xMin": -1,
+      "xMax": 7,
+      "yMin": -1,
+      "yMax": 6
+    }
+  }
+}

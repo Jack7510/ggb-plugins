@@ -122,15 +122,16 @@ inspect 读取归档、审计后在全新 applet 打开，返回 `sha256`、`byt
 
 ## 原生构图程序
 
-每步包含 `id`、`op:"native"`、`mode`、`source`。同一原生程序均使用 native 步骤，按顺序执行。
-优先使用 GeoGebra 原生关系命令，不要先由模型计算坐标再写死：已知圆锥曲线时用
-`F=Focus(p)`、`d=Directrix(p)`，再以 `A=Point(d)` 等命令建立依赖；`F=(1,0)`、`d: x=-1`
-只在题目要求固定坐标或原生命令无法表达关系时使用。命令是否可用仍以实际重载和核验为准。
+每步为 `{id,op:"native",mode,source,outputs?,initial?}`，按依赖顺序执行。
+优先用原生关系保留依赖，如 `F=Focus(p)`、`d=Directrix(p)`、`A=Point(d)`。
+固定坐标只用于题设给定值或原生命令无法表达的关系；命令仍须重载核验。
 
-- `mode:"algebra"`：source 是一条完整英文 GeoGebra 数学语句，包括命名、方程、函数、嵌套命令、列表、矩阵等。例如 `p: y^2=4x`、`A=Point(d)`、`g=Derivative(f)`。
-- `mode:"cas"`：source 是 CAS 数学表达式，例如 `Factor(x^4-1)`、`Expand((x+2)^3)`、`Solutions(x^2-1,x)`。工具等待 CAS 就绪，执行计算，并把结果赋给 id，成为可重载的原生对象。
-- 可选 `outputs:[ID,...]` 包含 id，缺省为 `[id]`。必须完整匹配原生返回标签，遗漏输出即失败；未返回标签的附属对象也会采集。可声明原生下标名，例如 id 为 `B_{1}`、source 为 `B=Intersect(c,l)`、outputs 为 `["B_{1}","B_{2}"]`。显式 outputs 与 id 使用同一新建对象命名规则，不豁免保留字或内置名称保护。CAS 只物化一个命名结果。输出已存在、缺失或未定义均失败；不允许隐式新增未声明的独立参数。
-- 可选 `initial:[x,y]` 只初始化该步可移动点，适用于准线等路径上的点。原生约束仍生效，不把初始化坐标当作题目给定条件。
+- Algebra：source 为一条完整英文数学语句，支持方程、函数、嵌套命令、列表和矩阵。
+- CAS：source 为 CAS 表达式；等待 CAS 后把结果物化为 id，不是动态 CAS 单元。
+- outputs 缺省 `[id]`；显式声明须包含 id 和全部实际返回标签，支持原生下标名。
+  附属对象仍采集；所有新标签受命名保护。CAS 只有一个物化输出。
+  输出已存在、缺失、未定义或存在未声明的独立参数时失败。
+- initial:[x,y] 只初始化该步可移动点，保留原生约束，不成为题目给定条件。
 
 ### 多输出与列表
 
@@ -174,6 +175,16 @@ ID 最长 32 字符，首位为 ASCII 字母，后续为字母、数字或下划
 仅有动态构法知识缺口时读取 patterns 的相关小节；字段已在 Worker 契约注入，无需整章确认。
 
 构造和探针使用固定 runtime 的异步输入接口，等待引擎按需加载数学模块，每次等待上限 30 秒；CAS 仍按实际使用等待。新数学命令不需新增 TypeScript 包装。任意 JavaScript、脚本触发器、外部资源、文件操作和三维材料不在开放范围；呈现通过结构化 styles 设置。未知命令、计算未决及超时返回真实错误，不允许降级为已通过。
+
+### 文本与区域点
+
+5.4.932.1：`q=(0,4)` 是 vector，`Anchor=(0,4)` 是 point。
+`Text(n,q)` 报非法 Vector 参数，异步返回 null；用 point 锚点并保留 type 检查。
+source 示例：`msg=Text("说明; 继续",Anchor)`、`valueText=Text("n = "+n,Anchor)`。
+只在 JSON 传输层转义，不把额外反斜杠留在 source 外层引号前。
+引号内分号合法；外部多语句、控制字符及未闭合引号仍拒绝。
+此版本拒绝 JavaScript 风格的内嵌反斜杠双引号；用 `UnicodeToLetter(34)` 拼接 ASCII 引号。
+不自动修补 source。`PointIn(poly)` 包含边界；严格内点见 patterns 的完整依赖小节。
 
 ### CAS 结果与依赖
 

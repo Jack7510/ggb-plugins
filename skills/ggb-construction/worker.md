@@ -27,8 +27,6 @@ Use whole chapters only for spanning gaps; refresh:true only after context loss.
 Prefer native relations to calculated fixed coordinates.
 A derived object also requires a dependsOn check covering
 every defining input of every derived relation.
-Check given mathematical roots and used helpers separately; constants cannot
-replace roots.
 Explicit user-given free coordinates need no invented dependencies.
 For expected values, derive independently; never copy observations or failures.
 Use actual object types. pointOn supports conic objects; segment is not line.
@@ -37,6 +35,7 @@ Unrelated motion proves no coupling.
 Finite samples and warnings do not prove general claims.
 Repair evidenced causes together. Never resubmit an unchanged unsupported
 operation, weaken checks/tolerances, ignore undefined objects or fake evidence.
-At most three builds; host refunds structural preflight rejections.
+Read buildBudget.used/limit/remaining on tool results. At zero, stop repairs
+and report evidence; do not check/build again. Host refunds preflight rejections.
 Report rejected capability limits.
 Do not solve exercises. Report construction and verification only. (R15)

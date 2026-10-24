@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { compile } from '../src/compile.js';
 import { build } from '../src/delivery.js';
-import { parseRequest, type Request } from '../src/schema.js';
+import { mathSource, parseRequest, type Request } from '../src/schema.js';
 import { root } from '../src/server.js';
 import {
   equivalent, compareSnapshots, snapshotDifferences, verify,
@@ -344,3 +344,20 @@ test('subject-count feedback preserves check identity and predicate arity',
       });
     }
   });
+
+
+test('closed text strings may contain semicolons without opening script effects', () => {
+  for (const source of [
+    'msg=Text("A; B",(0,1))',
+    String.raw`msg=Text("A; \"B\"; C",(0,1))`,
+    'msg=Text("Delete(A); https://example.test",(0,1))',
+  ]) assert.doesNotThrow(() => mathSource(source));
+  for (const source of [
+    'A=(0,0); B=(1,1)', 'msg=Text("A; B,(0,1))',
+    'msg=Text("A",(0,1)); Delete(A)',
+    'msg=Text("A\nB",(0,1))', 'msg=Text("A`B",(0,1))',
+  ]) assert.throws(() => mathSource(source), /One mathematical statement/);
+  assert.throws(() => mathSource('Delete(A)'), /Only native/);
+  assert.throws(() => mathSource('msg=Text("ok",(0,1))+https://evil.test'),
+    /Unsupported external/);
+});

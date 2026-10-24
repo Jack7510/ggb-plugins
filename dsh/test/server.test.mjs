@@ -228,6 +228,10 @@ test('Worker request reference is preloaded once and cannot inherit CLI fields',
   assert.match(body, /sourceRef:"input" may replace source/);
   assert.match(body, /A helper cannot replace a given root/);
   assert.match(body, /explicit label flags must survive reload/);
+  assert.match(body, /buildBudget.used\/limit\/remaining/);
+  assert.match(body, /initial coordinates do not constrain dragging/);
+  assert.match(installation.loadReference('program.text').content,
+    /UnicodeToLetter\(34\)/);
   assert.match(body, /modifications support parameter samples only/);
   assert.match(body, /Zero samples means not_sampled/);
   assert.match(body, /Never resubmit an unchanged unsupported/);
@@ -346,7 +350,7 @@ test('coverage metadata never promotes a section to a complete chapter', () => {
   assert.deepEqual(schemas.referenceCoverage('program.outputs'),
     ['program.outputs']);
   assert.deepEqual(schemas.referenceCoverage('program'),
-    ['program', 'program.outputs', 'program.cas']);
+    ['program', 'program.outputs', 'program.text', 'program.cas']);
   assert.deepEqual(schemas.referenceCoverage('request'), ['request']);
   assert.throws(() => schemas.referenceCoverage('program.unknown'));
 });

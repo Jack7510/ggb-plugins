@@ -1,6 +1,6 @@
 /** @fileoverview Regression tests for review boundaries without a browser. */
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -365,4 +365,35 @@ test('a line through a derived point must retain that input, not only a slider',
     assert.equal(checks[0]?.status, 'passed');
     assert.equal(checks[1]?.status, status);
   }
+});
+
+
+test('strict interior example keeps positive weights, dependencies and samples', async () => {
+  const {root} = await import('../src/server.js');
+  const {checkRequest} = await import('../src/check.js');
+  const input = JSON.parse(await readFile(join(root,
+    'examples/v2-cases/interior-triangle.json'), 'utf8'));
+  const request = parseRequest(input);
+  assert.equal((await checkRequest(request)).samples, 2);
+  const steps = compile(request).program;
+  assert.equal(steps.find(item => item.step.id === 'P')?.command,
+    'P=(u*A+v*B+C)/(u+v+1)');
+  assert.ok(steps.some(item => item.command.includes(';')));
+  const checks = request.plan.requirements[0]!.checks;
+  assert.ok(checks.some(check => check.kind === 'dependsOn'
+    && check.subjects.join(',') === 'P,A,B,C,u,v'));
+  assert.ok(checks.some(check => check.kind === 'expression'
+    && check.expression === 'sA>0 && sB>0 && sC>0'
+    && check.expected === true && check.scope === 'sampled'));
+  const {RequestDraft} = await import('../src/draft-requests.js');
+  const draft = new RequestDraft(input.prompt);
+  draft.operate({requestText: JSON.stringify({plan: {
+    ...input.plan, requirements: input.plan.requirements.map((r: {
+      id: string; checks: unknown[];
+    }) => ({id: r.id, checks: r.checks, sourceRef: 'input'})),
+  }})});
+  const checked = draft.forCheck({revision: 1});
+  const token = draft.acceptCheck(checked);
+  assert.deepEqual(draft.forBuild({checkedRequestId: token.checkedRequestId})
+    .request.plan, checked.request.plan);
 });

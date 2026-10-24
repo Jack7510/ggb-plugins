@@ -1,8 +1,8 @@
 # Worker common execution contract
 
 Use one complete requestText JSON object: {plan,clarifications?}.
-Host-owned protocolVersion, prompt, outputDir, base, locale and title are forbidden
-inside requestText. Tool metadata: locale/title/transcription; omissions persist.
+No protocolVersion/prompt/outputDir/base/locale/title in requestText.
+Tool metadata: locale/title/transcription; omissions persist.
 Image tasks require nonempty transcription on the first save: complete mathematical problem text
 (givens, equations, labels, constraints, question), not an image summary.
 Keep ambiguity; no solution/invented conditions. Empty cannot clear saved text.
@@ -11,21 +11,22 @@ Clarifications are [{question,answer}]; the question alone is not a condition.
 
 Plan: program, requirements, interactions; optional styles/edits/updates/view/display.
 Requirements: [{id,source,checks,purpose?}]; sourceRef:"input" may replace source.
-Copies current input plus transcription. Never combine both;
-Long inputs may need a literal excerpt for byte limits. Unique IDs, nonempty checks;
+Copies input + transcription; exclude source.
+Long inputs: use literal excerpts for byte limits. Unique IDs, nonempty checks;
 never plan.checks. purpose: construction/constraint/interaction; no exemption.
 
 ## Program and identities
 
 Step: {id,source,op?:"native",mode?:"algebra",outputs?,initial?}; default native/algebra.
-Algebra: one English GeoGebra statement. CAS: expression, one materialized id;
-not dynamic dependence.
+Algebra: one English GeoGebra statement. CAS: one materialized id, not dynamic.
 outputs defaults to [id]; otherwise include id and every actual returned label.
 initial:[x,y] positions that movable point, preserving its native constraint.
-Order dependencies first. Existing base labels remain exact, including Unicode/subscripts.
-New IDs: ASCII letter, then letters/digits/underscore, optional final {subscript};
-max 32 chars. No constants, logical operators, protected function/command names
-or GgbProbe prefix. No scripts, deletion, renaming or undeclared outputs.
+Dependencies first; base labels stay exact, including Unicode/subscripts.
+Lowercase tuple names may create vectors; use uppercase point anchors and type checks.
+Constrain interior points; initial coordinates do not constrain dragging.
+New IDs: ASCII letter + letters/digits/underscore, optional final {subscript};
+max 32 chars. No constants/logical operators/protected names/GgbProbe prefix;
+no scripts, deletion, renaming or undeclared outputs.
 
 ## Checks
 
@@ -42,14 +43,14 @@ Forms (add scope):
 - expression: subjects occurring literally in expression, expression, mode:algebra|cas,
   expected:<independently derived finite number,boolean,nested array>.
 Equality: residual, expected:0; equation is not boolean.
-No passed/tolerance. initial: construction/reload; sampled: relevant input changes
-also. Keep full verification.
+No passed/tolerance. initial: construction/reload; sampled: also input changes.
+Keep full verification.
 
 ## Presentation and samples
 
 styles:[{object,properties}]. Properties: visible/labelVisible/fixed booleans,
 color:#RRGGBB, lineThickness:1..13, lineStyle:0..4, filling:0..1, caption:1..100 chars.
-Caption is display only; source/refs keep identities. For hidden algebra values,
+Caption changes display only. For hidden algebra values,
 prefer visible:false alone; explicit label flags must survive reload.
 view:{xMin,xMax,yMin,yMax}; display:graphics(default)|algebra.
 With a base: no view; edits:[{object,properties}] is appearance only and exclusive
@@ -61,7 +62,7 @@ numeric slider; changed in-range value on its step grid. Mouse: movable point,
 20<=hypot(dx,dy), each |component|<=120; no mouse sample in algebra view.
 With a base, modifications support parameter samples only; edits support none.
 Reload each copy; restore parameters and verify full state.
-Zero samples means not_sampled. CAS, initial and independent expected stay intact.
+Zero samples means not_sampled.
 
 ```json
 {"requestText":"{\"plan\":{\"program\":[{\"id\":\"P\",\"source\":\"P=(0,0)\"}],\"requirements\":[{\"id\":\"point\",\"source\":\"point P\",\"checks\":[{\"kind\":\"exists\",\"subjects\":[\"P\"],\"scope\":\"initial\"}]}],\"interactions\":[]}}","locale":"en"}
@@ -70,5 +71,5 @@ Zero samples means not_sampled. CAS, initial and independent expected stay intac
 Save returns revision/domainRequestDigest; ggb_check({revision}) is structural and
 returns checkedRequestId; ggb_build({checkedRequestId}) executes/verifies/reloads it.
 Accepted saves invalidate checks/deliveries; rejections retain state.
-Repair complete requestText; keep all conditions/dependencies.
+Repair complete requestText; preserve conditions/dependencies.
 Receipts bind the final request. Body and escaped arguments each fit 128 KiB.

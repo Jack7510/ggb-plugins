@@ -548,8 +548,9 @@ export function mathTokens(source: string): string[] {
 }
 export function mathSource(source: unknown): asserts source is string {
   text(source, 8192);
-  assert(!/[\r\n;\x00-\x1f`]/.test(source), 'One mathematical statement per step');
+  assert(!/[\r\n\x00-\x1f`]/.test(source), 'One mathematical statement per step');
   const unquoted = source.replace(/"(?:\\.|[^"\\])*"/g, ' ');
+  assert(!/[;"]/.test(unquoted), 'One mathematical statement per step');
   assert(!/https?:|javascript:|:=/i.test(unquoted), 'Unsupported external/script input');
   const calls = [...unquoted.matchAll(/([A-Za-z][A-Za-z0-9_]*)\s*[\[(]/g)].map(m => m[1]!.toLowerCase());
   if (calls.some(name => effects.has(name))) throw new ToolError('unsupported_operation', 'Only native mathematical commands are accepted; use structured presentation controls');
