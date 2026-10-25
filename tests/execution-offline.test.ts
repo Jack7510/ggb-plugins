@@ -82,7 +82,7 @@ function request(outputDir = '/tmp/offline-execution') {
         {id: 'F', op: 'native', mode: 'algebra', source: 'F=Focus(p)'},
         {id: 'd', op: 'native', mode: 'algebra', source: 'd=Directrix(p)'},
         {id: 'A', op: 'native', mode: 'algebra', source: 'A=Point(d)',
-          initial: [-1, 2]},
+          outputs: ['A'], initial: [-1, 2]},
         {id: 's', op: 'native', mode: 'algebra', source: 's=Segment(F,A)'},
       ], requirements: [{id: 'point', source: 'point on directrix', checks: [
         {kind: 'exists', subjects: ['A'], scope: 'initial'},
@@ -101,7 +101,7 @@ function failureRequest(id: string, source: string,
           mode: 'algebra', source: `${id}=(${index},1)`})),
         {id: 'L', source: 'L={P,B,C}', op: 'native', mode: 'algebra'},
         {id: 'S', source: 'S=Vector(P,B)', op: 'native', mode: 'algebra'},
-        {id, source, op: 'native', mode: 'algebra'},
+        {id, source, op: 'native', mode: 'algebra', outputs: [id]},
         {id: 'Tail', source: 'Tail=(1,1)', op: 'native', mode: 'algebra'},
       ], requirements: [{id: 'native', source: 'native error', checks: [
         {kind: 'exists', subjects: [id], scope: 'initial'},
@@ -135,6 +135,13 @@ for (const item of hintCases) {
           : /^Incomplete native outputs:/u);
         assert.match(error.message, item.raw === null
           ? /unrounded residuals and area sums/u : /Polygon\(\{/u);
+        if (item.raw !== null) {
+          assert.match(error.message, /preserve.*dependencies, requirements/u);
+          assert.match(error.message, /do not replace required objects/u);
+          assert.match(error.message, /first repair this step outputs/u);
+          assert.partialDeepStrictEqual(error.details, {actual: {
+            outputs: item.raw.split(',')}});
+        }
         assert.partialDeepStrictEqual(error.details, {stepId: item.id,
           source: item.source.slice(0, 512), operation: 'outputs',
           expected: {outputs: [item.id]}, actual: {rawLabels: item.raw}});
@@ -158,6 +165,10 @@ for (const item of [
       assert.ok(error instanceof ToolError);
       assert.equal(error.code, 'execution_failed');
       assert.doesNotMatch(error.message, /face-only|built-in rounding/u);
+      if (item.raw?.includes(',')) {
+        assert.match(error.message, /first repair this step outputs/u);
+        assert.match(error.message, /preserve source, IDs, dependencies/u);
+      }
       return true;
     });
   });

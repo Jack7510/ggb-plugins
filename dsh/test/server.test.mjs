@@ -133,6 +133,11 @@ test('model submits one complete requestText and reference-only check/build', as
     outputDir: '/tmp/synthetic-worker-example',
   }));
   assert.match(draft.properties.requestText.description, /escaping/);
+  assert.match(body, /Polygon\(\{A,B,C\}\)/u);
+  assert.match(body, /output errors first fix outputs from actual labels/u);
+  assert.match(body, /Never weaken checks/u);
+  assert.match(draft.properties.requestText.description,
+    /preserve required objects, dependencies, checks and samples/u);
 });
 
 
@@ -223,9 +228,9 @@ test('Worker request reference is preloaded once and cannot inherit CLI fields',
   assert.match(body, /derived object also requires a[\s\S]*dependsOn/);
   assert.match(body, /Explicit user-given free coordinates/);
   assert.match(body, /every defining input of every derived relation/);
-  assert.match(body, /Type checks use objectType, not expected/);
+  assert.match(body, /Only expression uses expected; type uses objectType/);
   assert.match(body, /Copy source verbatim/);
-  assert.match(body, /sourceRef:"input" may replace source/);
+  assert.match(body, /sourceRef:"input" copies input/);
   assert.match(body, /A helper cannot replace a given root/);
   assert.match(body, /explicit label flags must survive reload/);
   assert.match(body, /buildBudget.used\/limit\/remaining/);
@@ -234,18 +239,19 @@ test('Worker request reference is preloaded once and cannot inherit CLI fields',
   assert.match(body, /initial coordinates do not constrain dragging/);
   assert.match(installation.loadReference('program.text').content,
     /UnicodeToLetter\(34\)/);
-  assert.match(body, /modifications support parameter samples only/);
-  assert.match(body, /Zero samples means not_sampled/);
+  assert.match(body, /Base modifications: parameter samples only/);
+  assert.match(body, /Zero samples: not_sampled/);
   assert.match(body, /Never resubmit an unchanged unsupported/);
-  assert.match(body, /Image tasks require nonempty transcription on the first save/);
-  assert.match(body, /complete mathematical problem text/);
-  assert.match(body, /not an image summary/);
+  assert.match(body, /Image first save: nonempty transcription/);
+  assert.match(body, /givens\/equations\/labels\/constraints\/question/);
+  assert.match(body, /no solutions\/invented conditions/);
   assert.match(body, /without comparing known alternatives/);
   assert.match(body, /Submit when sources/);
   assert.match(body, /No chapter survey/);
   assert.match(body, /exists: one subject/);
   assert.match(body, /coordinate: one point, coordinates/);
-  assert.match(body, /outputs defaults to/);
+  assert.match(body, /Omit outputs: accept verified same-command dependents/);
+  assert.match(body, /Explicit outputs: exact labels including id/);
   assert.match(body, /Do not reread request to confirm known fields/);
   const schema = server.createTool('ggb_request').parameters;
   assert.ok(!schema.required.includes('transcription'));
@@ -265,7 +271,11 @@ test('Worker request reference is preloaded once and cannot inherit CLI fields',
     'outputDir', 'base']) {
     const bad = {...args, requestText: JSON.stringify({
       ...JSON.parse(args.requestText), [key]: 'forbidden'})};
-    assert.throws(() => draft.operate(bad), /draft_request_fields/);
+    assert.throws(() => draft.operate(bad), error => {
+      assert.equal(error.code, 'draft_request_fields');
+      assert.match(error.message, /outer tool arguments/u);
+      return true;
+    });
     assert.equal(draft.forCheck({revision: saved.revision}).domainRequestDigest,
       saved.domainRequestDigest);
   }

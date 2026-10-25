@@ -14,6 +14,7 @@ import {
 import {validateDeliveryEvidence, type DeliveryEvidence,
   type SampleEvidence} from './delivery-contract.js';
 import { compile, type BaseFacts } from './compile.js';
+import {programOutputNames} from './native-outputs.js';
 import { verificationNotes } from './tautology.js';
 import {
   modifyViolations, requireUpdateEffects, updateFields, valueMatches,
@@ -394,7 +395,8 @@ async function modifyGates(
   const verification = await context.timed('modify.verify',
     () => collect(context, page, 'construction', 'initial'));
   const differences = snapshotDifferences(verification.objects, baseline);
-  const declared = new Set(compiled.program.flatMap(step => step.outputs));
+  const declared = programOutputNames(context.request.plan.program,
+    verification.objects, facts.labels);
   const violations = modifyViolations({
     styles: compiled.styles, updates: compiled.updates, differences,
     links: verification.objects, declared,
@@ -596,7 +598,9 @@ async function commitModify(
     const [object, field] = key.split('\u0000');
     return { object, field };
   });
-  const added = compiled.program.flatMap(step => step.outputs);
+  const added = [...programOutputNames(request.plan.program,
+    input.gates.verification.objects,
+    new Set(input.gates.baseline.map(fact => fact.name)))];
   await save(join(context.temp, 'diff.json'), {
     mode: 'modify', baseSha256: base.sha256, allowed, added,
     changes: input.gates.differences,
@@ -848,7 +852,8 @@ async function recheckModify(
     assert(equivalent(differences, report.modify.changes),
       'Recorded modify diff does not match the files');
     const baseLabels = new Set(baseline.map(fact => fact.name));
-    const declared = new Set(compiled.program.flatMap(step => step.outputs));
+    const declared = programOutputNames(request.plan.program, objects,
+      new Set(baseline.map(fact => fact.name)));
     const violations = modifyViolations({
       styles: compiled.styles, updates: compiled.updates, differences,
       links: objects, declared, baseLabels,

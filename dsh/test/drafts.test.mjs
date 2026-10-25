@@ -164,7 +164,11 @@ test('invalid or host-owned requestText is rejected without changing state', () 
   const draft = new RequestDraft('prompt');
   assert.throws(() => draft.operate({requestText: '{'}), /not valid JSON/);
   assert.throws(() => draft.operate({requestText: JSON.stringify({
-    prompt: 'injected', plan: {}})}), /draft_request_fields/);
+    prompt: 'injected', plan: {}})}), error => {
+    assert.equal(error.code, 'draft_request_fields');
+    assert.match(error.message, /Put only.*inside requestText/u);
+    return true;
+  });
   assert.throws(() => draft.operate({requestText: JSON.stringify({
     plan: {}}), locale: 'zh-CN', outputDir: '/tmp'}),
   /draft_unknown_field/);
@@ -440,4 +444,65 @@ test('source references never repair invalid literals or bypass the expanded bud
   assert.throws(() => large.operate({requestText: JSON.stringify(body)}),
     /draft_request_too_large/);
   assert.throws(() => large.forCheck({revision: 1}), /draft_missing/);
+});
+
+for (const item of [
+  {text: '{"plan":{}},"locale":"PRIVATE_INPUT"}',
+    location: {offset: 11, line: 1, column: 12}},
+  {text: '{"plan":', location: {offset: 8, line: 1, column: 9}},
+  {text: '{\n"plan": {}\n "x":1}',
+    location: {offset: 14, line: 3, column: 2}},
+  {text: 'PRIVATE_INPUT', location: undefined},
+]) {
+  test('JSON errors expose coordinates without input and retain checked state: '
+    + JSON.stringify(item.location), () => {
+    const draft = new RequestDraft('Create point P');
+    draft.operate({requestText: JSON.stringify(textBody())});
+    const snapshot = draft.forCheck({revision: 1});
+    const checked = draft.acceptCheck(snapshot);
+    assert.throws(() => draft.operate({requestText: item.text,
+      locale: 'wrong', title: 'wrong', transcription: ['wrong']}),
+    error => {
+      assert.equal(error.code, 'draft_request_json');
+      assert.deepEqual(error.details, item.location);
+      assert.match(error.message, /locale\/title\/transcription in outer/u);
+      assert.match(error.message, /Fix syntax\/argument placement only/u);
+      assert.doesNotMatch(error.message, /PRIVATE_INPUT/u);
+      return true;
+    });
+    assert.deepEqual(draft.forBuild({checkedRequestId:
+      checked.checkedRequestId}), {...snapshot, ...checked});
+  });
+}
+
+test('output-only repairs retain geometry, dependencies, checks and samples',
+  () => {
+  const draft = new RequestDraft('Draw triangle ABC');
+  const body = {plan: {
+    program: [{id: 'A', source: 'A=(0,0)'},
+      {id: 'B', source: 'B=(4,0)'}, {id: 'C', source: 'C=(1,3)'},
+      {id: 't', source: 't=Polygon(A,B,C)'}],
+    requirements: [{id: 'triangle', source: 'Draw triangle ABC', checks: [
+      {kind: 'type', subjects: ['t'], objectType: 'triangle', scope: 'initial'},
+      {kind: 'dependsOn', subjects: ['t','A','B','C'], scope: 'initial'},
+    ]}], interactions: [{point: 'A', dx: 30, dy: 0}],
+    styles: [{object: 't', properties: {filling: 0.2}}],
+  }};
+  draft.operate({requestText: JSON.stringify(body)});
+  const first = draft.forCheck({revision: 1});
+  const checked = draft.acceptCheck(first);
+  body.plan.program[3].outputs = ['t','c','a','b'];
+  draft.operate({requestText: JSON.stringify(body)});
+  assert.throws(() => draft.forBuild({checkedRequestId:
+    checked.checkedRequestId}), /draft_check_required/u);
+  const next = draft.forCheck({revision: 2});
+  assert.notEqual(next.domainRequestDigest, first.domainRequestDigest);
+  const old = structuredClone(first.request.plan);
+  old.program[3].outputs = ['t','c','a','b'];
+  assert.deepEqual(next.request.plan, old);
+  assert.doesNotThrow(() => parseRequest({...next.request,
+    outputDir: '/tmp/synthetic-output-repair'}));
+  const rechecked = draft.acceptCheck(next);
+  assert.deepEqual(draft.forBuild({checkedRequestId:
+    rechecked.checkedRequestId}), {...next, ...rechecked});
 });

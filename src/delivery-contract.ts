@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import type {Snapshot} from './browser.js';
 import type {Request} from './schema.js';
 import {ToolError, parseRequest} from './schema.js';
+import {requireStableOutputs} from './native-outputs.js';
 import {validateParameterChanges} from './modify.js';
 import {isOnSliderStep, requireSampleCoverage} from './facts.js';
 import {compareSnapshots, equivalent, verify, type Verification}
@@ -34,9 +35,11 @@ export interface DeliveryEvidence {
 }
 
 function validatePhase(request: Request, input: Verification,
-  phase: 'initial' | 'sampled'): void {
+  phase: 'initial' | 'sampled', original?: Snapshot): void {
   assert(input?.status === 'passed' && Array.isArray(input.objects) &&
     input.objects.length > 0, 'Missing or failed verification evidence');
+  if (original) requireStableOutputs(request.plan.program,
+    original, input.objects);
   const actual = verify(request, input.objects, phase, input.observations);
   requirePassed(actual);
   assert(equivalent(actual.results, input.results),
@@ -48,7 +51,7 @@ export function validateDeliveryEvidence(request: Request,
   report: DeliveryEvidence, objects: Snapshot): void {
   requireSampleCoverage(request, report.construction.objects);
   validatePhase(request, report.construction, 'initial');
-  validatePhase(request, report.reload, 'initial');
+  validatePhase(request, report.reload, 'initial', report.construction.objects);
   compareSnapshots(report.construction.objects, objects);
   compareSnapshots(report.reload.objects, objects);
   assert(Array.isArray(report.interaction?.samples) &&
@@ -81,7 +84,7 @@ function validateSamples(
     const { before: _, after: __, roundTrip, method, ...input } = sample;
     assert(equivalent(input, expected), 'Interaction sample changed');
     compareSnapshots(sample.before, original);
-    validatePhase(request, sample.after, 'sampled');
+    validatePhase(request, sample.after, 'sampled', original);
     const id = 'point' in expected ? expected.point : expected.parameter;
     const before = sample.before.find(fact => fact.name === id);
     const after = sample.after.objects.find(fact => fact.name === id);
@@ -126,7 +129,7 @@ function validateRoundTrips(request: Request, samples: SampleEvidence[]): void {
       'Missing parameter round-trip evidence; rebuild');
     assert(equivalent(sample.roundTrip.value, before.value),
       'Parameter restore value changed');
-    validatePhase(request, sample.roundTrip.after, 'initial');
+    validatePhase(request, sample.roundTrip.after, 'initial', sample.before);
     compareSnapshots(sample.roundTrip.after.objects, sample.before);
   }
 }

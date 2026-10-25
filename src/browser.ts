@@ -10,6 +10,7 @@ import { promisify } from 'node:util';
 import { resolve } from 'node:path';
 import { browserTarget } from './browser-target.js';
 import {executionFailureHint} from './native-failure-hints.js';
+import {validateNewObjectIdentifier} from './names.js';
 import { root, serve } from './server.js';
 import {
   dependencyFacts, presentationOwner, type ObjectMetadata, type ReferenceFact,
@@ -228,13 +229,16 @@ export async function loadGgb(
 function readConstructionMetadata(): ObjectMetadata[] {
   const api = window.ggb;
   const xml = new DOMParser().parseFromString(api.getXML(), 'text/xml');
+  const objectNames = new Set(api.getAllObjectNames());
   const commands = [...xml.querySelectorAll('construction > command')];
   const definitions = new Map(commands
     .flatMap(command => {
       const args = [...(command.querySelector('input')?.attributes ?? [])]
         .map(attribute => attribute.value);
-      const outputs = [...(command.querySelector('output')?.attributes ?? [])]
-        .map(attribute => attribute.value);
+      const outputs = [...new Set(
+        [...(command.querySelector('output')?.attributes ?? [])]
+          .map(attribute => attribute.value)
+          .filter(name => objectNames.has(name)))];
       return outputs.map(name => [name, {
         definition: { name: command.getAttribute('name') ?? '', args }, outputs,
       }] as const);
@@ -325,7 +329,7 @@ type CompletedFact = Omit<NativeFact, 'radius'>
   & Pick<ReferenceFact,
     'inputs' | 'referenceState' | 'styleOwner' | 'styleFields'>
   & Pick<ObjectMetadata, 'expression' | 'fixed' | 'slider'>
-  & { nativeDefinition: ObjectMetadata['definition'] };
+  & {nativeDefinition: ObjectMetadata['definition']; nativeOutputs?: string[]};
 
 /** Joins native identity metadata and observed values without guessing. */
 function completeFact(fact: NativeFact, metadata: ObjectMetadata,
@@ -337,6 +341,8 @@ function completeFact(fact: NativeFact, metadata: ObjectMetadata,
   return {
     ...observed, ...geometry(fact, metadata),
     nativeDefinition: metadata.definition, expression: metadata.expression,
+    ...(metadata.outputs.length > 1
+      ? {nativeOutputs: metadata.outputs} : {}),
     inputs, referenceState: 'direct' as const,
     ...presentationOwner(metadata, types),
     fixed: metadata.fixed, slider: metadata.slider,
@@ -452,6 +458,8 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
     if (expectEmpty && api.getAllObjectNames().length) throw new Error('Expected an empty canvas');
     if (!expectEmpty && api.getAllObjectNames().length === 0) throw new Error('Expected the declared base');
     if (expectEmpty) api.setPerspective(display === 'algebra' ? 'A' : 'G');
+    const reserved = new Set(program.flatMap(item => item.outputs));
+    const discovered: string[] = [];
     for (const { step, command, mode, outputs, initial } of program) {
       let operation = 'command';
       let rawLabels: string | null | undefined;
@@ -474,7 +482,11 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
         const executed = step.op === 'native' ?
           Boolean(labels?.length) : api.evalCommand(source);
         operation = 'outputs';
-        const missing = outputs.filter(id => !api.isDefined(id));
+        const automatic = step.op === 'native' && mode === 'algebra'
+          && step.outputs === undefined;
+        const actual = automatic ? labels ?? outputs : outputs;
+        const missing = [...new Set([...outputs, ...actual])]
+          .filter(id => !api.isDefined(id));
         if (!executed || missing.length > 0) {
           // A created label can still be undefined, for example an intersection
           // that does not exist. Telling those cases apart shortens a repair.
@@ -485,8 +497,34 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
           throw new Error(
             `Execution failed or output undefined: ${step.id}; ${detail}`);
         }
-        if (labels && (labels.length !== outputs.length || labels.some(id => !outputs.includes(id)))) throw new Error(`Incomplete native outputs: ${step.id}: ${labels.join(',')}`);
-        if (step.op === 'native' && api.getAllObjectNames().some(id => !before.includes(id) && !outputs.includes(id) && api.isIndependent(id)))
+        if (automatic && !labels?.includes(step.id)) {
+          throw new Error(`Native primary output not returned: ${step.id}`);
+        }
+        if (!automatic && labels && (labels.length !== outputs.length || labels.some(id => !outputs.includes(id)))) throw new Error(`Incomplete native outputs: ${step.id}: ${labels.join(',')}`);
+        const extras = actual.filter(id => !outputs.includes(id));
+        if (extras.length) {
+          if (actual.length > 16 || extras.some(id =>
+            before.includes(id) || reserved.has(id))) {
+            throw new Error(`Native output name collision or limit: ${step.id}`);
+          }
+          const material = new DOMParser().parseFromString(api.getXML(), 'text/xml');
+          const objectNames = new Set(api.getAllObjectNames());
+          const groups = [...material.querySelectorAll('construction > command')]
+            .map(node => [...new Set(
+              [...(node.querySelector('output')?.attributes ?? [])]
+                .map(attribute => attribute.value)
+                .filter(name => objectNames.has(name)))]);
+          const group = groups.find(names => names.includes(step.id));
+          if (!group || group.length !== actual.length ||
+            actual.some(id => !group.includes(id))) {
+            throw new Error(`Unverified native output ownership: ${step.id}`);
+          }
+          if (extras.some(id => api.isIndependent(id))) {
+            throw new Error(`Undeclared independent output: ${step.id}`);
+          }
+          discovered.push(...extras);
+        }
+        if (step.op === 'native' && api.getAllObjectNames().some(id => !before.includes(id) && !actual.includes(id) && api.isIndependent(id)))
           throw new Error(`Undeclared independent output: ${step.id}`);
         if (initial) {
           operation = 'initial';
@@ -499,10 +537,10 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
           }
         }
         operation = 'presentation';
-        for (const id of outputs) if (api.getObjectType(id) === 'point') { api.setLabelVisible(id, true); api.setLabelStyle(id, 0); }
+        for (const id of actual) if (api.getObjectType(id) === 'point') { api.setLabelVisible(id, true); api.setLabelStyle(id, 0); }
         // GeoGebra reloads a text object's default thickness as 5, not 0.
         // Canonicalize at construction; explicit styles below still take precedence.
-        for (const id of outputs) if (api.getObjectType(id) === 'text') api.setLineThickness(id, 5);
+        for (const id of actual) if (api.getObjectType(id) === 'text') api.setLineThickness(id, 5);
         const xml = new DOMParser().parseFromString(api.getXML(), 'text/xml');
         if ([...xml.querySelectorAll('element')].some(e => /3d|plane|quadric|surface|image|button|textfield/i.test(e.getAttribute('type') ?? ''))
           || [...xml.querySelectorAll('javascript, ggbscript')].some(e => e.textContent?.trim() || [...e.attributes].some(a => a.value.trim()))) throw new Error('Unsupported spatial, external or scripted material');
@@ -546,7 +584,7 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
       }
       api.setMode(0);
     }
-    return {failure: null};
+    return {failure: null, discovered};
   }, { ...compiled, prompt, expectEmpty });
   if (outcome.failure !== null) {
     const {message, ...details} = outcome.failure;
@@ -555,6 +593,11 @@ export async function execute(page: Page, compiled: import('./compile.js').Compi
       ?.command ?? details.source;
     throw new ToolError('execution_failed',
       message + executionFailureHint({...outcome.failure, source}), details);
+  }
+  try {
+    for (const name of outcome.discovered) validateNewObjectIdentifier(name);
+  } catch (error) {
+    throw toolError(error, 'execution_failed');
   }
   if (expectEmpty && !compiled.view && compiled.display === 'graphics') {
     const objects = await snapshot(page);

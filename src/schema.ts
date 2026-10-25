@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { AssertionError } from 'node:assert';
 import { isAbsolute } from 'node:path';
-import { validateNewObjectName } from './names.js';
+import {validateNewObjectIdentifier} from './names.js';
 
 export class ToolError extends Error {
   constructor(public code: string, message: string, public details?: unknown) { super(message); }
@@ -117,10 +117,7 @@ function identifier(value: unknown): asserts value is string {
 }
 /** Every declared new output uses the same syntax and built-in protection. */
 function newObjectIdentifier(value: unknown): asserts value is string {
-  assert(typeof value === 'string' && value.length <= 32
-    && labelPattern.test(value),
-  `Invalid object identifier: ${JSON.stringify(value)}`);
-  validateNewObjectName(value);
+  validateNewObjectIdentifier(value);
 }
 function finite(value: unknown, max = limits.coordinate): asserts value is number {
   assert(typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= max, 'Invalid finite number');

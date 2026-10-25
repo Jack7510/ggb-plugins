@@ -12,7 +12,9 @@ export type DraftArguments = Record<string, unknown>;
 
 /** A recoverable draft error; it never contains submitted data or paths. */
 export class DraftError extends Error {
-  constructor(readonly code: string, message = code) {
+  constructor(readonly code: string, message = code,
+    /** Zero-based UTF-16 offset; one-based line and column. No input text. */
+    readonly details?: {offset: number; line: number; column: number}) {
     super(message);
     this.name = 'DraftError';
   }

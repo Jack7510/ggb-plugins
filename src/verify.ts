@@ -1,5 +1,6 @@
 /** @fileoverview Pure mathematical verification and snapshot comparison. */
 import assert from 'node:assert/strict';
+import {resolveProgramOutputs} from './native-outputs.js';
 import {verificationFeedback} from './verification-feedback.js';
 import type { Snapshot, Observation } from './browser.js';
 import { commands, ToolError, type Check, type Request, type Style, type MathValue } from './schema.js';
@@ -261,8 +262,9 @@ export function verify(request: Request, objects: Snapshot, phase: 'initial' | '
   add('$canvas', 0, objects.map(o => o.name), 'objects_defined', () => truth(
     objects.length > 0 && (request.base ? true : objects.every(o =>
       o.defined && (o.type !== 'numeric' || o.value !== null)))));
+  const resolvedOutputs = resolveProgramOutputs(request.plan.program, objects);
   for (const step of request.plan.program) {
-    const outputs = step.op === 'native' ? step.outputs ?? [step.id] : [step.id];
+    const outputs = resolvedOutputs.get(step.id)!;
     add('$program:' + step.id, 0, outputs, 'construction', () => {
       if (step.op === 'native') return truth(outputs.every(id => Boolean(get(id))));
       const fact = get(step.id);

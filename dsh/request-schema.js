@@ -9,9 +9,10 @@ const object = (properties, required = Object.keys(properties)) =>
 export const draftToolSchema = object({
   requestText: {type: 'string', minLength: 1, maxLength: REQUEST_TEXT_BYTES,
     description: 'One complete JSON object containing plan and optional clarifications. '
-      + 'Do not include prompt, locale, outputDir or base; the host owns them. '
+      + 'Keep locale/title/transcription outside requestText; the host owns prompt, outputDir and base. '
       + 'Nest checks in plan.requirements[].checks; never use plan.checks. '
       + 'Include every program step, requirement, check, interaction and style. '
+      + 'On repair, change only the failing part; preserve required objects, dependencies, checks and samples. '
       + `All arguments including escaping and metadata must fit ${REQUEST_ARGUMENT_BYTES} UTF-8 bytes.`},
   locale: {type: 'string', minLength: 1, maxLength: 32,
     description: 'Working language; omitted repairs retain the saved locale.'},

@@ -13,6 +13,8 @@ export interface DraftSnapshot {
 }
 interface Checked extends DraftSnapshot { checkedRequestId: string; }
 const clone = <T>(value: T): T => structuredClone(value);
+const REQUEST_SHAPE = 'Put only {plan,clarifications?} inside requestText; '
+  + 'put locale/title/transcription in outer tool arguments.';
 
 /** One authenticated turn owns this state. No filesystem or execution access. */
 export class RequestDraft {
@@ -126,12 +128,17 @@ export class RequestDraft {
   }
   private assembleText(value: string, args: Record<string, unknown>): Record<string, unknown> {
     let parsed: unknown;
-    try { parsed = JSON.parse(value); } catch {
-      throw new DraftError('draft_request_json', 'requestText is not valid JSON');
+    try { parsed = JSON.parse(value); } catch (error) {
+      throw new DraftError('draft_request_json',
+        'requestText is not valid JSON. ' + REQUEST_SHAPE
+        + ' Fix syntax/argument placement only; preserve construction, '
+        + 'dependencies, requirements, checks and interactions.',
+        jsonErrorLocation(value, error));
     }
     const body = record(parsed);
-    requireDraft(Object.keys(body).every(k => ['plan', 'clarifications'].includes(k)),
-      'draft_request_fields');
+    if (Object.keys(body).some(k => !['plan', 'clarifications'].includes(k))) {
+      throw new DraftError('draft_request_fields', REQUEST_SHAPE);
+    }
     requireDraft(body.plan !== undefined, 'draft_request_plan');
     const plan = record(body.plan);
     // parseDraftArguments has validated an explicit transcription as string[].
@@ -201,6 +208,20 @@ export class RequestDraft {
       ...(sections.clarifications.length ?
         {clarifications: sections.clarifications} : {})};
   }
+}
+/** Use parser coordinates only; never forward its input-bearing error text. */
+function jsonErrorLocation(value: string,
+  error: unknown): DraftError['details'] {
+  if (!(error instanceof SyntaxError)) return undefined;
+  const position = / at position (\d+)(?: \(line \d+ column \d+\))?$/u
+    .exec(error.message);
+  const offset = position ? Number(position[1])
+    : error.message === 'Unexpected end of JSON input' ? value.length : null;
+  if (offset === null || !Number.isSafeInteger(offset) || offset < 0 ||
+    offset > value.length) return undefined;
+  const before = value.slice(0, offset);
+  return {offset, line: before.split('\n').length,
+    column: offset - before.lastIndexOf('\n')};
 }
 function record(value: unknown): Item {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {

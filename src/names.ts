@@ -134,6 +134,15 @@ const commandNames = new Set([
   'Zipf', 'ZoomIn', 'ZoomOut',
 ]);
 
+/** Apply the shared syntax and protection policy to every new object. */
+export function validateNewObjectIdentifier(name: unknown):
+    asserts name is string {
+  assert(typeof name === 'string' && name.length <= 32 &&
+    /^[A-Za-z][A-Za-z0-9_]*(?:\{[A-Za-z0-9]+\})?$/u.test(name),
+  `Invalid object identifier: ${JSON.stringify(name)}`);
+  validateNewObjectName(name);
+}
+
 /** Rejects engine-reserved labels and plugin-protected built-in names.
  * The caller validates label syntax. References to existing objects do not call
  * this function. Native execution must still validate actual output identity.
