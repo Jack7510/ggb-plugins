@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { access, copyFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -7,6 +8,11 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const exists = path => access(join(root, path)).then(() => true, () => false);
 const run = (command, args) => execFileSync(command, args, { cwd: root, stdio: 'inherit' });
 const pnpm = args => run('pnpm', ['--ignore-workspace', ...args]);
+const packageRequire = createRequire(join(root, 'package.json'));
+const hasPlaywright = () => {
+  try { packageRequire.resolve('playwright/package.json'); return true; }
+  catch { return false; }
+};
 // npm excludes pnpm-lock.yaml from TGZs; restore the same pinned contents.
 if (await exists('dependencies.lock')) await copyFile(join(root, 'dependencies.lock'), join(root, 'pnpm-lock.yaml'));
 // Source installs always rebuild; only sourceless ZIPs use compiled code.
@@ -15,7 +21,9 @@ if (await exists('src/cli.ts')) {
   pnpm(['build']);
 } else {
   if (!await exists('dist/src/cli.js')) throw new Error('Missing compiled CLI and source; reinstall the plugin');
-  pnpm(['install', '--prod', '--frozen-lockfile', '--ignore-scripts']);
+  // dsh plugin add already installed dependencies in the profile. Running pnpm
+  // here would join the profile workspace and fail on its lockfile.
+  if (!hasPlaywright()) pnpm(['install', '--prod', '--frozen-lockfile', '--ignore-scripts']);
 }
 // The runtime drives an installed Chromium browser; nothing is downloaded here.
 const resolver = new URL('../dist/src/browser-target.js', import.meta.url);

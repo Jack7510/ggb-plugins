@@ -46,7 +46,9 @@ DSH 包新增服务端公开入口，与默认桌面 Skill 入口分开：
 | `./cli` | 现有公开 CLI，仍使用 CLI envelope 1；尚未消费新的执行上下文或产生新构建回执 |
 
 服务端入口当前只接受已验证 SDK `0.2.1-rc.2`。宿主必须从实际 SDK 包读取版本，传入
-`sdkVersion`；server.patch 通过 `GGB_DSH_SDK_VERSION` 接收。此约束不收紧桌面入口的兼容声明。
+`sdkVersion`；server.patch 通过 `GGB_DSH_SDK_VERSION` 接收。此约束不收紧桌面入口的兼容声明：
+桌面 bundle 的 `engines.dsh` 为 `>=0.2.1-rc.2 <0.2.2`，已在 DSH `0.2.1-rc.3` 验证安装；
+SDK Server 入口仍只接受 `0.2.1-rc.2`。
 Worker Skill 通过 systemPrompt.section 在启动时直接加载，不依赖 skills 服务、模型发现或桌面 CLI 注入。
 安装描述只声明 runtime 锁身份，不代表浏览器已经准备或 doctor 已通过；实际发行包摘要由宿主独立计算。
 

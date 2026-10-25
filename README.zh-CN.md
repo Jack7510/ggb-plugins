@@ -24,7 +24,7 @@
 - Codex：[安装与升级说明](codex/README.md)。
 - DSH：[独立 headless profile 安装说明](dsh/README.md)。
 
-DSH bundle 也已发布到 npm：`dsh plugin --profile desktop add ggb-plugins-dsh@0.8.2`。
+DSH bundle 也已发布到 npm：`dsh plugin --profile desktop add ggb-plugins-dsh@0.8.5`。
 
 桌面用户可以把[这一句安装指令](dsh/README.md#用一句对话安装桌面应用)粘贴到 DSH 对话框，由 DSH 代为安装。
 

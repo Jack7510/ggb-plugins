@@ -33,7 +33,7 @@ Codex guide for package availability, installation, and runtime preparation:
 - Codex: [installation and upgrade guide](codex/README.md), in Chinese.
 - DSH: [independent headless profile guide](dsh/README.md), in Chinese.
 
-The DSH bundle is also on npm: `dsh plugin --profile desktop add ggb-plugins-dsh@0.8.2`.
+The DSH bundle is also on npm: `dsh plugin --profile desktop add ggb-plugins-dsh@0.8.5`.
 
 Desktop users can paste [one install message](dsh/README.md#用一句对话安装桌面应用) into the DSH chat instead of running the commands themselves.
 

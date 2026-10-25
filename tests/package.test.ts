@@ -98,6 +98,34 @@ if (args.includes('build')) {
   });
 }
 
+test('installer reuses dependencies already installed by a DSH profile', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ggb-profile-install-'));
+  try {
+    for (const folder of ['scripts', 'bin', 'dist/src', '.runtime',
+      'node_modules/playwright']) {
+      await mkdir(join(directory, folder), { recursive: true });
+    }
+    await copyFile(join(root, 'scripts/setup-plugin.mjs'),
+      join(directory, 'scripts/setup-plugin.mjs'));
+    await writeFile(join(directory, 'package.json'), '{"type":"module"}');
+    await writeFile(join(directory, 'node_modules/playwright/package.json'),
+      '{"name":"playwright","version":"1.64.1"}');
+    await writeFile(join(directory, '.runtime/runtime.json'), '{}');
+    await writeFile(join(directory, 'dist/src/cli.js'),
+      "console.log('doctor:profile');\n");
+    await writeFile(join(directory, 'dist/src/browser-target.js'),
+      "export const browserTarget = () => ({label: 'Google Chrome', executablePath: '/fixture/chrome'});\n");
+    await writeFile(join(directory, 'bin/pnpm'), `#!${process.execPath}
+process.exit(1);
+`, { mode: 0o755 });
+    const { stdout } = await run(
+      process.execPath, [join(directory, 'scripts/setup-plugin.mjs')],
+      { env: { ...process.env,
+        PATH: join(directory, 'bin') + delimiter + process.env.PATH } });
+    assert.match(stdout, /doctor:profile/);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
 test('plugin ZIP contains a standalone compiled tool and discoverable skill, not local state', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ggb-package-'));
   try {

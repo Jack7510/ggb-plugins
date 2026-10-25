@@ -1,0 +1,45 @@
+{
+  "format": 1,
+  "title": { "en": "GeoGebra Construction", "zh": "GeoGebra 数学作图" },
+  "description": {
+    "en": "Verified interactive GeoGebra files for 2D math problems.",
+    "zh": "把二维数学题变成经核验、可交互的 GeoGebra 文件。"
+  },
+  "metadata": {
+    "categories": {
+      "education": { "title": { "en": "Education", "zh": "教育" } }
+    }
+  },
+  "plugins": [
+    {
+      "name": "ggb-plugins-dsh",
+      "title": { "en": "GeoGebra Construction", "zh": "GeoGebra 数学作图" },
+      "description": {
+        "en": "Turn Chinese or English 2D math problems into verified, interactive GeoGebra files.",
+        "zh": "把中英文二维数学题变成经核验、可交互的 GeoGebra 文件。"
+      },
+      "icon": "icons/ggb.svg",
+      "author": "Jack7510",
+      "homepage": "https://github.com/Jack7510/ggb-plugins/tree/main/dsh",
+      "repository": {
+        "url": "https://github.com/Jack7510/ggb-plugins",
+        "directory": "dsh"
+      },
+      "metadata": { "category": "education" },
+      "versions": [
+        {
+          "version": "0.8.5",
+          "publishTimestamp": 1792913191,
+          "source": { "type": "npm" },
+          "engines": { "dsh": ">=0.2.1-rc.2 <0.2.2" }
+        },
+        {
+          "version": "0.8.2",
+          "publishTimestamp": 1792391564,
+          "source": { "type": "npm" },
+          "engines": { "dsh": ">=0.2.1-rc.2" }
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "ggb-plugins-dsh",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "private": false,
   "type": "module",
   "description": "GeoGebra construction Skill and verified delivery CLI for DeepSeek Harness",
@@ -62,13 +62,15 @@
   "license": "MIT",
   "engines": {
     "node": "^22.19.0 || >=24.0.0",
-    "dsh": "0.2.1-rc.2"
+    "dsh": ">=0.2.1-rc.2 <0.2.2"
   },
   "keywords": [
     "dsh-plugin",
-    "deepeek-harness",
+    "deepseek-harness",
     "geogebra",
     "geometry",
+    "mathematics",
+    "math-education",
     "education"
   ],
   "repository": {

@@ -6,33 +6,46 @@
 
 ## 从 npm 安装（推荐）
 
-DSH bundle 已发布为 npm 包 `ggb-plugins-dsh`。桌面应用安装：
+DSH bundle 已发布为 npm 包 `ggb-plugins-dsh`。桌面应用使用 `desktop` profile；
+DSH 插件中心或 Web 宿主使用 `web` profile：
 
 ```sh
-dsh plugin --profile desktop add ggb-plugins-dsh@0.8.2
-node ~/.dsh/profiles/desktop/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
+profile=desktop   # DSH 插件中心/Web 宿主改为 web
+dsh plugin --profile "$profile" add ggb-plugins-dsh@0.8.5
+node ~/.dsh/profiles/$profile/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 ```
 
-然后重启 DSH。升级时把 `@0.8.2` 换成新版本；版本列表见
+然后重启 DSH。升级时把 `@0.8.5` 换成新版本；版本列表见
 `npm view ggb-plugins-dsh versions`。发布流程见
 [发布到 npm](https://github.com/Jack7510/ggb-plugins/blob/main/docs/publish-npm.md)。
 
 不需要构建权限，也不需要校验压缩包；npm 分发的是预编译产物。
+
+也可以在 DSH 中启用 **Experimental plugins → Custom plugin markets**，在
+**Discover → Add index source** 添加本仓库的索引查看并安装：
+
+```text
+https://cdn.jsdelivr.net/gh/Jack7510/ggb-plugins@main/docs/market/index.json
+```
+
+上架与社区曝光文案见
+[DSH 社区分发](https://github.com/Jack7510/ggb-plugins/blob/main/docs/community-submission.md)。
 
 ## 用一句对话安装（桌面应用）
 
 给桌面用户发这一句，让他粘贴到 DSH 对话框；DSH 会自己下载、校验并安装：
 
 ```text
-请安装 npm 包 ggb-plugins-dsh@0.8.2 到 desktop profile，运行安装副本里的
-setup-plugin，然后提醒我重启 DSH。
+请安装 npm 包 ggb-plugins-dsh@0.8.5 到 desktop profile（Web 宿主改用 web），
+运行安装副本里的 setup-plugin，然后提醒我重启 DSH。
 ```
 
 英文版：
 
 ```text
-Install the npm package ggb-plugins-dsh@0.8.2 into the desktop profile, run
-setup-plugin in the installed copy, then remind me to restart DSH.
+Install the npm package ggb-plugins-dsh@0.8.5 into the desktop profile (use web
+for the Web host), run setup-plugin in the installed copy, then remind me to
+restart DSH.
 ```
 
 升级时把命令和提示里的版本号换成新版本即可；不要混用不同版本的包与安装说明。
@@ -41,9 +54,9 @@ setup-plugin in the installed copy, then remind me to restart DSH.
 
 1. 检查前置：Node.js 22+、pnpm 11、`curl`、`unzip`，以及 Google Chrome 或
    Microsoft Edge。
-2. 安装 npm 包：`dsh plugin --profile desktop add ggb-plugins-dsh@0.8.2`。
-   维护者提供本地 TGZ 时改用其绝对路径，并先校验随附的 `.sha256`；
-   校验不通过就停止，不安装。
+2. 安装 npm 包：`dsh plugin --profile desktop add ggb-plugins-dsh@0.8.5`。
+   DSH 插件中心或 Web 宿主把 `desktop` 换成 `web`。维护者提供本地 TGZ 时
+   改用其绝对路径，并先校验随附的 `.sha256`；校验不通过就停止，不安装。
 3. 确认 profile：桌面应用使用 `desktop`（目录
    `~/.dsh/profiles/desktop`）；若设置了 `DSH_PROFILE`，以它为准。
 4. 解析实际安装目录：

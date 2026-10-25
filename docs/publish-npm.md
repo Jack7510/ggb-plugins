@@ -57,23 +57,32 @@ npm pack --dry-run <pluginDirectory>
 ```sh
 npm view ggb-plugins-dsh version dist.tarball engines.dsh
 npm stage list                              # 不应再有待审项
-npm dist-tag add ggb-plugins-dsh@0.8.2 latest   # latest 若仍指向占位包
+npm dist-tag add ggb-plugins-dsh@0.8.5 latest   # latest 若仍指向占位包
 npm unpublish ggb-plugins-dsh@0.0.0-stage       # 清理占位（发布后 72 小时内可撤销）
+```
+
+再用隔离的 `DSH_HOME` 验证当前 DSH 真的能安装，而不只看 registry：
+
+```sh
+tmp=$(mktemp -d)
+DSH_HOME=$tmp dsh plugin --profile web add ggb-plugins-dsh@0.8.5
+rm -rf "$tmp"
 ```
 
 ## 5. 用户安装
 
 ```sh
-dsh plugin --profile desktop add ggb-plugins-dsh@0.8.2
-node ~/.dsh/profiles/desktop/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
+profile=desktop   # DSH 插件中心/Web 宿主改为 web
+dsh plugin --profile "$profile" add ggb-plugins-dsh@0.8.5
+node ~/.dsh/profiles/$profile/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 # 重启 DSH
 ```
 
 给老师的版本（粘贴到 DSH 对话框）：
 
 ```text
-请安装 npm 包 ggb-plugins-dsh@0.8.2 到 desktop profile，运行安装副本里的
-setup-plugin，然后提醒我重启 DSH。
+请安装 npm 包 ggb-plugins-dsh@0.8.5 到 desktop profile（Web 宿主改用 web），
+运行安装副本里的 setup-plugin，然后提醒我重启 DSH。
 ```
 
 ## 6. 升级与回滚
@@ -103,3 +112,10 @@ setup-plugin，然后提醒我重启 DSH。
 0.8.1 有一次未完成的发布在 registry 留下了「已发布」记录，导致该版本无法再
 暂存；发布 0.8.2 绕过该记录。若以后遇到同类情况，优先提升版本号，不要强行
 unpublish 正式版本。
+
+## 本次记录（0.8.5）
+
+0.8.4 把 `engines.dsh` 固定为 `0.2.1-rc.2`，当前 DSH `0.2.1-rc.3` 会拒绝安装；
+0.8.5 改为 `>=0.2.1-rc.2 <0.2.2`，并在 rc.3 的隔离 `web` profile 验证安装与
+配置加载。受限 SDK Server 入口仍只接受已验证的 `0.2.1-rc.2`，不因本次范围放宽
+而改变。发布前不要移动已发布标签；用户可见版本以 npm 和 GitHub Release 为准。
