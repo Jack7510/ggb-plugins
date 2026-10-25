@@ -7,12 +7,13 @@
 
 | 项目 | 状态 |
 | --- | --- |
-| npm `0.8.5` | 本地候选包已验证；npm 认证待完成，发布后更新索引时间戳 |
+| npm `0.8.5` | 已发布，latest；索引时间戳已同步 |
 | DSH `0.2.1-rc.3` 安装 | 0.8.5 的 `engines.dsh` 为 `>=0.2.1-rc.2 <0.2.2` |
-| 隔离安装验收 | 安装、`setup-plugin`、GeoGebra 5.4.932.1 下载、doctor 通过 |
-| GitHub topic `dsh-plugin` | 需在仓库 About 中添加 |
-| dsh-plugin.org 收录 | 待提交 Issue |
-| DSH Discover 索引 | [market/index.json](market/index.json) 已准备；npm 发布前不要分享 |
+| 隔离安装验收 | TGZ 与 npm registry 安装、`setup-plugin`、GeoGebra 5.4.932.1 下载、doctor 均通过 |
+| GitHub Release | [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5) 已发布 |
+| GitHub topic `dsh-plugin` | 已添加；同时添加 `deepseek-harness`、`geogebra` 等 |
+| dsh-plugin.org 收录 | [Issue #436](https://github.com/dshplugin/dsh-plugin-hub/issues/436) 已提交 |
+| DSH Discover 索引 | [market/index.json](market/index.json) 已可分享 |
 
 ## 一句话介绍
 
@@ -108,17 +109,18 @@ DSH 不自带统一索引，任何静态 `index.json` 都能作为插件源。�
 - jsDelivr：`https://cdn.jsdelivr.net/gh/Jack7510/ggb-plugins@main/docs/market/index.json`。
 
 在 DSH 中打开 **Plugins → More → Experimental plugins → Custom plugin markets**，
-启用后在 **Discover → Add index source** 填入地址。发布 0.8.5 后，把
-`docs/market/index.json` 中 0.8.5 的 `publishTimestamp` 改为 npm 的实际发布时间：
+启用后在 **Discover → Add index source** 填入地址。0.8.5 的
+`publishTimestamp` 已更新为 npm 发布时间；后续版本发布后同样更新：
 
 ```sh
-npm view ggb-plugins-dsh time.0.8.5
+npm view ggb-plugins-dsh time.<版本>
 ```
 
 ## 社区公告
 
-先发 GitHub Release `v0.8.5`，附 Codex ZIP、DSH TGZ、SHA-256 和 30 秒演示 GIF，
-再到 [DSH 插件社区展示区](https://github.com/moyuqing-man/dsh-plugin-community/discussions/categories/plugin-showcase)
+GitHub Release [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5)
+已发布，附 Codex ZIP、DSH TGZ 和校验文件；发帖时可另配 30 秒演示 GIF。再到
+[DSH 插件社区展示区](https://github.com/moyuqing-man/dsh-plugin-community/discussions/categories/plugin-showcase)
 发作者自荐。发帖前读一遍
 [官方社区规则](https://github.com/deepseek-ai/deepseek-harness/discussions/1797)。
 
@@ -143,12 +145,13 @@ node ~/.dsh/profiles/web/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 
 ## 发布检查清单
 
-- [ ] `0.8.5` 已发布到 npm，且 `npm view ggb-plugins-dsh engines.dsh` 显示范围
-- [ ] 用隔离 `DSH_HOME` 和 `web` profile 安装成功
-- [ ] `setup-plugin` 与 `doctor` 通过
-- [ ] `docs/market/index.json` 的时间戳已更新
-- [ ] GitHub Release `v0.8.5` 含两种包和校验文件
+- [x] `0.8.5` 已发布到 npm，且 `npm view ggb-plugins-dsh engines.dsh` 显示范围
+- [x] 用隔离 `DSH_HOME` 和 `web` profile 安装成功
+- [x] `setup-plugin` 与 `doctor` 通过
+- [x] `docs/market/index.json` 的时间戳已更新
+- [x] GitHub Release `v0.8.5` 含两种包和校验文件
+- [x] GitHub topics 包含 `dsh-plugin`
 - [ ] README 首屏有安装命令、截图和兼容范围
-- [ ] GitHub topics 包含 `dsh-plugin`
-- [ ] dsh-plugin.org Issue 已提交
+- [ ] 演示 GIF 已制作
+- [x] dsh-plugin.org Issue 已提交（[#436](https://github.com/dshplugin/dsh-plugin-hub/issues/436)）
 - [ ] 社区展示帖已发布
