@@ -5,13 +5,11 @@
 
 ## 版本与适用范围
 
-当前源码为 **0.8.5，未公开发布**。本轮不创建标签，不推送，不发布 GitHub Release、
-npm 包或官方插件目录。0.8.5 的安装包由维护者本地封装并提供。
+当前版本为 **0.8.5**。[GitHub Release v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5)
+已提供 Codex ZIP 与校验文件；Codex 包尚未提交公共插件目录。DSH npm 也已发布 0.8.5，
+两个客户端各自安装，不能用 DSH 的发布状态推断 Codex 的安装状态。
 
-2026-10-20 核对的 GitHub 远端标签只有 `v0.8.0`。DSH npm 的 0.8.4 不等于
-Codex 已发布同版本。不要使用不存在的 `v0.8.2`、`v0.8.3`、`v0.8.4` 或
-`v0.8.5` 标签安装。
-本页的安装引导针对包含 `skills/setup/SKILL.md` 的新包；历史包不承诺有设置入口。
+本页的安装引导针对包含 `skills/setup/SKILL.md` 的 0.8.5 包；历史包不承诺有设置入口。
 
 需要支持本地插件的 Codex 客户端、PATH 中的 Node.js 22+、pnpm 11、curl、unzip，
 以及 Google Chrome 或 Microsoft Edge。从 GitHub 安装还需要 Git。
@@ -37,7 +35,7 @@ Codex 必须取得安装器完整退出结果。校验不符或 doctor 失败时
 
 ## 安装 ZIP（命令行）
 
-以下示例针对维护者提供的 0.8.5 本地包，不是公开下载地址。
+以下示例针对 GitHub Release v0.8.5 的 Codex ZIP。
 不要使用 GitHub 自动生成的 Source code ZIP 代替预编译插件包。
 
 在存放 ZIP 和校验文件的目录执行：
@@ -116,7 +114,8 @@ codex plugin add ggb-plugins@ggb-plugins-local --json
 ```
 
 然后按本页运行安装引导。Git 来源包含源码；安装器会重新构建，不能把陈旧 dist 当作成功。
-固定标签不自动切换到其他版本。不要将尚未公开的本机 0.8.5 冒充远端可安装版本。
+固定标签不自动切换到其他版本。安装 0.8.5 请使用 Release 中的 ZIP 和 `.sha256`，
+不要用 Source code ZIP 代替预编译包。
 
 ## 更新与卸载
 

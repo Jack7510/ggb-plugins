@@ -32,16 +32,30 @@ and `npm`.
 
 ## Installation
 
-Published packages are listed in [GitHub Releases](https://github.com/Jack7510/ggb-plugins/releases).
-The current Codex onboarding changes are unpublished. Local packages include a setup skill; see the
-Codex guide for package availability, installation, and runtime preparation:
+The current release is [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5).
+It ships a Codex ZIP and the DSH npm bundle. The Codex package is not yet in a public plugin
+directory, but the Release ZIP is installable; see the
+[0.8.5 release notes](https://github.com/Jack7510/ggb-plugins/blob/main/docs/releases/v0.8.5.md).
 
 - Codex: [installation and upgrade guide](codex/README.md), in Chinese.
 - DSH: [independent headless profile guide](dsh/README.md), in Chinese.
 
-The DSH bundle is also on npm: `dsh plugin --profile desktop add ggb-plugins-dsh@0.8.5`.
+The DSH bundle is also on npm:
+
+```sh
+profile=desktop   # use web for the DSH Discover or Web host
+dsh plugin --profile "$profile" add ggb-plugins-dsh@0.8.5
+node ~/.dsh/profiles/$profile/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
+```
 
 Desktop users can paste [one install message](dsh/README.md#用一句对话安装桌面应用) into the DSH chat instead of running the commands themselves.
+
+To browse the plugin from DSH, enable **Experimental plugins → Custom plugin markets**, then add
+this source under **Discover → Add index source**:
+
+```text
+https://cdn.jsdelivr.net/gh/Jack7510/ggb-plugins@main/docs/market/index.json
+```
 
 The two clients install independently and share one execution and verification pipeline. Both
 guides end with runtime preparation (`setup-plugin`, which also reports the browser it will use)

@@ -25,14 +25,29 @@
 
 ## 安装
 
-已公开资产见 [GitHub Releases](https://github.com/Jack7510/ggb-plugins/releases)。当前 Codex 安装引导改动尚未公开发布；本地包已包含引导 Skill。版本可用性、安装与运行依赖准备见各客户端说明：
+当前版本为 [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5)，提供
+Codex ZIP 与 DSH npm 包。Codex 包尚未提交公共插件目录，但 Release ZIP 可直接安装；
+版本说明见 [0.8.5 发布记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/releases/v0.8.5.md)。
 
 - Codex：[安装与升级说明](codex/README.md)。
 - DSH：[独立 headless profile 安装说明](dsh/README.md)。
 
-DSH bundle 也已发布到 npm：`dsh plugin --profile desktop add ggb-plugins-dsh@0.8.5`。
+DSH bundle 已发布到 npm：
+
+```sh
+profile=desktop   # DSH 插件中心或 Web 宿主改为 web
+dsh plugin --profile "$profile" add ggb-plugins-dsh@0.8.5
+node ~/.dsh/profiles/$profile/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
+```
 
 桌面用户可以把[这一句安装指令](dsh/README.md#用一句对话安装桌面应用)粘贴到 DSH 对话框，由 DSH 代为安装。
+
+想在 DSH 中浏览并安装，启用 **Experimental plugins → Custom plugin markets**，然后在
+**Discover → Add index source** 添加：
+
+```text
+https://cdn.jsdelivr.net/gh/Jack7510/ggb-plugins@main/docs/market/index.json
+```
 
 两个客户端各自安装，共用同一套执行与核验管线。两份说明都以运行依赖准备（`setup-plugin`，会报告实际使用的浏览器）和就绪检查（`doctor`）结束。
 
