@@ -15,6 +15,7 @@
 | GitHub Release | [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5) 已发布 |
 | GitHub topic `dsh-plugin` | 已添加；同时添加 `deepseek-harness`、`geogebra` 等 |
 | dsh-plugin.org 收录 | [Issue #436](https://github.com/dshplugin/dsh-plugin-hub/issues/436) 已提交 |
+| 社区展示帖 | [Discussion #4](https://github.com/moyuqing-man/dsh-plugin-community/discussions/4) 已发布 |
 | DSH Discover 索引 | [market/index.json](market/index.json) 已可分享 |
 
 ## 一句话介绍
@@ -156,4 +157,4 @@ node ~/.dsh/profiles/web/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 - [x] README 首屏有安装命令、截图和兼容范围
 - [x] 演示 GIF 已制作并加入 README
 - [x] dsh-plugin.org Issue 已提交（[#436](https://github.com/dshplugin/dsh-plugin-hub/issues/436)）
-- [ ] 社区展示帖已发布
+- [x] 社区展示帖已发布（[Discussion #4](https://github.com/moyuqing-man/dsh-plugin-community/discussions/4)）
