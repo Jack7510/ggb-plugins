@@ -2,6 +2,12 @@
 
 本包是独立的 DSH npm bundle，提供 `ggb-construction` Skill、同一套编译后的 GeoGebra CLI、页面与安装器。无需 Codex、开发仓库或另一个插件的缓存。数学程序、核验与 GGB 交付仍使用统一管线。
 
+## 演示
+
+![拖动 C 时圆周角保持为圆心角的一半](https://raw.githubusercontent.com/Jack7510/ggb-plugins/main/docs/assets/ggb-construction-demo.gif)
+
+拖动 C 时，圆周角保持为圆心角的一半；交付的 GGB 可继续拖动、查看并核验。
+
 源码工程中的 Desktop 验证、日志留存与修复提示词见 [操作流程](docs/dsh-desktop-validation.md)。该流程用于开发协作，不代替下文的独立安装包验收；随包阅读时请到源码仓库查阅此文档。
 
 ## 从 npm 安装（推荐）

@@ -3,6 +3,8 @@
 本文用于把 `ggb-plugins-dsh` 发布到 npm、DSH 内置 Discover 和社区市场。
 安装步骤只在 [DSH 安装说明](../dsh/README.md) 维护；本文只保留曝光与上架文案。
 
+![拖动 C 时圆周角保持为圆心角的一半](assets/ggb-construction-demo.gif)
+
 ## 当前状态
 
 | 项目 | 状态 |
@@ -151,7 +153,7 @@ node ~/.dsh/profiles/web/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 - [x] `docs/market/index.json` 的时间戳已更新
 - [x] GitHub Release `v0.8.5` 含两种包和校验文件
 - [x] GitHub topics 包含 `dsh-plugin`
-- [ ] README 首屏有安装命令、截图和兼容范围
-- [ ] 演示 GIF 已制作
+- [x] README 首屏有安装命令、截图和兼容范围
+- [x] 演示 GIF 已制作并加入 README
 - [x] dsh-plugin.org Issue 已提交（[#436](https://github.com/dshplugin/dsh-plugin-hub/issues/436)）
 - [ ] 社区展示帖已发布

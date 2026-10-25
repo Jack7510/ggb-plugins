@@ -11,6 +11,12 @@ Chinese and English are supported. The agent picks the working language from you
 and context, keeps the original problem text, and never invents answers: it analyses conditions
 and builds the construction only.
 
+## Demo
+
+![Dragging C keeps the inscribed angle at half the central angle](https://raw.githubusercontent.com/Jack7510/ggb-plugins/main/docs/assets/ggb-construction-demo.gif)
+
+Dragging C keeps ∠ACB at half of ∠AOB while the construction, dependencies and checks stay live.
+
 ## What you need
 
 | Requirement | Why |

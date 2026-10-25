@@ -6,6 +6,12 @@
 
 支持中文和英文。Agent 根据你的偏好和上下文选择工作语言，保留题目原文，且只分析条件与构图方法，不替你给出题目答案。
 
+## 演示
+
+![拖动 C 时圆周角保持为圆心角的一半](https://raw.githubusercontent.com/Jack7510/ggb-plugins/main/docs/assets/ggb-construction-demo.gif)
+
+拖动 C 时，圆周角保持为圆心角的一半；构造、依赖和核验结果同步更新。
+
 ## 需要什么
 
 | 依赖 | 用途 |
