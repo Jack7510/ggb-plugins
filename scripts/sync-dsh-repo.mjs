@@ -87,12 +87,23 @@ Do not open pull requests here; the tree is regenerated on each release.
 `;
 }
 
+/** Prepends a generated-repository notice to the bundle readme once. */
+async function markReadme(directory, version) {
+  const path = join(directory, 'README.md');
+  const text = await readFile(path, 'utf8');
+  if (text.includes('Source and license: ' + SOURCE)) return;
+  const banner = `> Generated artifacts for the DSH package \`ggb-plugins-dsh\` ${version}.\n` +
+    `> Source, issues and the MIT license: ${SOURCE} (directory \`dsh/\`).\n\n`;
+  await writeFile(path, banner + text);
+}
+
 /** Copies the staged package over the distribution repository. */
 async function sync(manifest) {
   await assertTarget();
   await rm(target, { recursive: true, force: true });
   await cp(manifest.directory, target, { recursive: true });
   await writeFile(join(target, 'SOURCE.md'), sourceNote(manifest.version));
+  await markReadme(target, manifest.version);
   console.log(`Synced ${manifest.name}@${manifest.version} into ${target}`);
   console.log('Next: git add -A && git commit -m "ggb-plugins-dsh <version>"');
 }
