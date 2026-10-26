@@ -6,6 +6,17 @@ import { join, resolve } from 'node:path';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const lock = JSON.parse(await readFile(join(root, 'runtime.lock.json'), 'utf8'));
+/** Reuses an installed runtime that matches the lock file. */
+async function installed() {
+  try {
+    const current = JSON.parse(await readFile(join(root, '.runtime', 'runtime.json'), 'utf8'));
+    return current.sha256 === lock.sha256 && current.url === lock.url;
+  } catch { return false; }
+}
+if (!process.argv[2] && await installed()) {
+  console.log(`GeoGebra ${lock.version} already installed.`);
+  process.exit(0);
+}
 const temp = await mkdtemp(join(root, '.runtime-'));
 try {
   const archive = process.argv[2] ? resolve(process.argv[2]) : join(temp, 'runtime.zip');

@@ -25,6 +25,11 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - name: Select the pinned Playwright browser for every test
         run: node --input-type=module -e 'import {chromium} from "playwright"; console.log("DSH_GGB_BROWSER="+chromium.executablePath())' >> "$GITHUB_ENV"
+      - name: Cache GeoGebra runtime
+        uses: actions/cache@v4
+        with:
+          path: .runtime
+          key: ggb-runtime-${{ hashFiles('runtime.lock.json') }}
       - run: pnpm run setup:runtime
       - run: pnpm build
       - run: pnpm test
