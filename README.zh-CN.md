@@ -121,4 +121,4 @@ pnpm demo
 - 原生命令可以接入，不等于全部命令与重载都已验收；边界见 [命令覆盖记录](skills/ggb-construction/references/command-coverage.md)。
 - 数值采样与未决 CAS 结果是证据，不是证明。
 
-项目采用 MIT 许可。GeoGebra 的独立许可与归属见 [第三方说明](THIRD_PARTY_NOTICES.md)。
+项目采用 MIT 许可，源码位于 [github.com/Jack7510/ggb-plugins](https://github.com/Jack7510/ggb-plugins)。GeoGebra 的独立许可与归属见 [第三方说明](THIRD_PARTY_NOTICES.md)。

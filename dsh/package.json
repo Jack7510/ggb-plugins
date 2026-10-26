@@ -78,5 +78,8 @@
     "url": "git+https://github.com/Jack7510/ggb-plugins.git",
     "directory": "dsh"
   },
-  "homepage": "https://github.com/Jack7510/ggb-plugins/tree/main/dsh"
+  "homepage": "https://github.com/Jack7510/ggb-plugins/tree/main/dsh",
+  "bugs": {
+    "url": "https://github.com/Jack7510/ggb-plugins/issues"
+  }
 }

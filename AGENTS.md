@@ -66,7 +66,7 @@
 
 ## 打包与发布
 
-`package.json`、`plugin.json` 和 `dsh/package.json` 的版本必须一致。先验证两种封装，再提供 `docs/releases/v<version>.md`。 发布到 npm 的步骤见 [docs/publish-npm.md](docs/publish-npm.md)。发布工作流从固定标签构建；不要移动已发布标签。安装步骤只在安装说明（`codex/README.md`、`dsh/README.md`）维护，本文件不复制。
+`package.json`、`plugin.json` 和 `dsh/package.json` 的版本必须一致。先验证两种封装，再提供 `docs/releases/v<version>.md`。 发布到 npm 的步骤见 [docs/publish-npm.md](docs/publish-npm.md)。 DSH 分发仓库与开源声明见 [docs/dsh-discovery.md](docs/dsh-discovery.md)，用 `node scripts/sync-dsh-repo.mjs` 同步。发布工作流从固定标签构建；不要移动已发布标签。安装步骤只在安装说明（`codex/README.md`、`dsh/README.md`）维护，本文件不复制。
 
 ## Skill 与参考文档
 
@@ -94,6 +94,7 @@ Skill 描述的是**通用解**：稳定的分析流程、构法选择原则、�
 | `docs/CHANGES.md` | 已发布与未发布的重要修改记录 |
 | `codex/README.md`、`dsh/README.md` | 各客户端安装与运行说明 |
 | `docs/publish-npm.md` | DSH bundle 的 npm 发布流程与错误处理 |
+| `docs/dsh-discovery.md` | DSH 分发仓库、开源声明位置与收录流程 |
 | `skills/ggb-construction/references/` | `capabilities.md` 是字段与谓词契约，`patterns.md` 是可复用构法参考 |
 | `codex/docs/`、`dsh/docs/` 下的验收记录 | 各客户端的测试与验收证据 |
 

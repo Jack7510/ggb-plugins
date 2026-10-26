@@ -156,5 +156,5 @@ commands, the working rules for coding agents, and the release process live in
   boundaries.
 - Numeric sampling and unresolved CAS results are evidence, not proof.
 
-The project uses the MIT license. GeoGebra has separate licensing and attribution requirements;
+The project uses the MIT license; the source is [github.com/Jack7510/ggb-plugins](https://github.com/Jack7510/ggb-plugins). GeoGebra has separate licensing and attribution requirements;
 see [third-party notices](THIRD_PARTY_NOTICES.md).

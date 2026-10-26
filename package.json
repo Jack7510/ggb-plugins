@@ -30,5 +30,13 @@
   "devDependencies": {
     "@types/node": "26.6.5",
     "typescript": "7.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jack7510/ggb-plugins.git"
+  },
+  "homepage": "https://github.com/Jack7510/ggb-plugins",
+  "bugs": {
+    "url": "https://github.com/Jack7510/ggb-plugins/issues"
   }
 }

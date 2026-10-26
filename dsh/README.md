@@ -86,6 +86,13 @@ restart DSH.
   `--from-default-profile` 初始化它。
 - 校验和只证明文件完整，不代表公共目录审核通过。
 
+## 许可证与源码
+
+本包采用 MIT 许可，源码与问题反馈位于
+[Jack7510/ggb-plugins](https://github.com/Jack7510/ggb-plugins)（目录 `dsh/`）。
+npm 包 `ggb-plugins-dsh` 与分发仓库都由该源码构建；分发仓库只含构建产物，
+不单独接受修改。GeoGebra 运行时有独立许可，见包内 `THIRD_PARTY_NOTICES.md`。
+
 ## 安装到独立 headless profile
 
 下载同版本的 `ggb-plugins-dsh-<version>.tgz` 和 `.tgz.sha256`，先运行 `shasum -a 256 -c <file>.tgz.sha256`。需要本机 DSH、Node.js 22+、pnpm 11、curl 和 unzip，以及一个 Chromium 内核浏览器（Google Chrome 或 Microsoft Edge）；安装器直接使用该浏览器，不再下载 Chromium。
