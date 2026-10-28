@@ -1,0 +1,16 @@
+{
+  "name": "ggb-plugins",
+  "description": "分析中英文二维数学题、作图并核验交付 GeoGebra 文件，不提供题目答案；Agent 自选中文或英文工作语言。",
+  "author": {
+    "name": "Jack7510"
+  },
+  "homepage": "https://github.com/Jack7510/ggb-plugins",
+  "repository": "https://github.com/Jack7510/ggb-plugins",
+  "license": "MIT",
+  "keywords": [
+    "geogebra",
+    "geometry",
+    "mathematics",
+    "math-education"
+  ]
+}

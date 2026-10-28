@@ -3,9 +3,9 @@
 **English** | [简体中文](README.zh-CN.md)
 
 Turn a 2D math problem — given as text or an image — into an interactive GeoGebra file.
-A host agent (Codex or DeepSeek Harness) reads the problem and writes a native Algebra/CAS
-program; this project runs it locally, verifies every stated condition, exports the `.ggb`,
-reloads it, and delivers the file with a verification report and a screenshot.
+A host agent (Codex, DeepSeek Harness, or WorkBuddy) reads the problem and writes a native
+Algebra/CAS program; this project runs it locally, verifies every stated condition, exports
+the `.ggb`, reloads it, and delivers the file with a verification report and a screenshot.
 
 Chinese and English are supported. The agent picks the working language from your preferences
 and context, keeps the original problem text, and never invents answers: it analyses conditions
@@ -21,7 +21,7 @@ Dragging C keeps ∠ACB at half of ∠AOB while the construction, dependencies a
 
 | Requirement | Why |
 | --- | --- |
-| Codex or DeepSeek Harness (DSH) | Interprets the problem and writes the native GeoGebra program |
+| Codex, DeepSeek Harness (DSH), or WorkBuddy | Interprets the problem and writes the native GeoGebra program |
 | Node.js 22+ with pnpm 11 | Runs the local CLI and prepares dependencies |
 | `curl` and `unzip` | Download and unpack the pinned GeoGebra runtime |
 | Google Chrome or Microsoft Edge | Drives the applet headless during verification |
@@ -33,12 +33,14 @@ and `npm`.
 ## Installation
 
 The current release is [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5).
-It ships a Codex ZIP and the DSH npm bundle. The Codex package is not yet in a public plugin
-directory, but the Release ZIP is installable; see the
+It ships the Codex ZIP and the DSH npm bundle; the WorkBuddy ZIP is built from the same source
+with `pnpm pack:workbuddy` and is not published yet. No package is in a public plugin
+directory, but the Release archives are installable; see the
 [0.8.5 release notes](https://github.com/Jack7510/ggb-plugins/blob/main/docs/releases/v0.8.5.md).
 
 - Codex: [installation and upgrade guide](codex/README.md), in Chinese.
 - DSH: [independent headless profile guide](dsh/README.md), in Chinese.
+- WorkBuddy: [plugin installation guide](workbuddy/README.md), in Chinese.
 
 The DSH bundle is also on npm:
 
@@ -57,8 +59,8 @@ this source under **Discover → Add index source**:
 https://cdn.jsdelivr.net/gh/Jack7510/ggb-plugins@main/docs/market/index.json
 ```
 
-The two clients install independently and share one execution and verification pipeline. Both
-guides end with runtime preparation (`setup-plugin`, which also reports the browser it will use)
+The clients install independently and share one execution and verification pipeline. Every
+guide ends with runtime preparation (`setup-plugin`, which also reports the browser it will use)
 and a readiness check (`doctor`).
 
 ## Your first problem
@@ -136,8 +138,8 @@ commands, the working rules for coding agents, and the release process live in
 
 - `src/` — CLI, execution, verification, and delivery pipeline.
 - `viewer/` — the local page that hosts the GeoGebra applet.
-- `skills/` — the shared Skill both hosts load.
-- `codex/`, `dsh/` — host-specific plugin assets, install guides, and acceptance records.
+- `skills/` — the shared Skill every host loads.
+- `codex/`, `dsh/`, `workbuddy/` — host-specific plugin assets, install guides, and acceptance records.
 - `examples/`, `tests/` — runnable inputs and regression tests.
 - `scripts/` — dependency setup, packaging, and coverage tools.
 - `docs/` — [requirements and design](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md),

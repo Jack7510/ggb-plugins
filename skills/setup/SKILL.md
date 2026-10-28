@@ -1,6 +1,6 @@
 ---
 name: ggb-setup
-description: 安装或升级 GeoGebra Construction 后，准备当前 Codex 安装副本的依赖和 GeoGebra 运行时，执行就绪检查。用于插件初始化和安装故障定位，不用于数学作图。
+description: 安装或升级 GeoGebra Construction 后，准备当前宿主安装副本的依赖和 GeoGebra 运行时，执行就绪检查。用于插件初始化和安装故障定位，不用于数学作图。
 ---
 
 # GeoGebra Construction 安装引导
@@ -10,13 +10,14 @@ description: 安装或升级 GeoGebra Construction 后，准备当前 Codex 安�
 ## 定位与前置检查
 
 从本 Skill 所在的 `skills/setup/` 向上两级取得插件根目录。
-以 Codex 提供的安装路径为准，不猜用户名、缓存版本或源码目录。
-确认根目录存在 `plugin.json`、`scripts/setup-plugin.mjs` 和
+以宿主提供的安装路径为准，不猜用户名、缓存版本或源码目录。
+确认根目录存在清单文件、`scripts/setup-plugin.mjs` 和
 `runtime.lock.json`；预编译包还须有 `dist/src/cli.js`。
-读取 `plugin.json` 的版本，后续与 doctor 返回的版本核对。
+清单为 Codex 的 `plugin.json` 或 WorkBuddy 的 `.codebuddy-plugin/plugin.json`，
+读取其中版本，后续与 doctor 返回的版本核对。
 
 检查 PATH 中的 Node.js 22+、pnpm 11、curl、unzip，以及本机 Chrome 或 Edge。
-使用独立的 `node`，不要把 Electron 或 Codex 的可执行文件作为 Node.js。
+使用独立的 `node`，不要把 Electron 或宿主的可执行文件作为 Node.js。
 缺少系统依赖时说明具体缺项和下一步，不擅自更改全局配置或安装系统软件。
 需要选择浏览器时，使用当前进程的 `DSH_GGB_BROWSER` 指定浏览器；不复制其他插件的运行时。
 
@@ -31,7 +32,7 @@ node "<installed-plugin>/scripts/setup-plugin.mjs"
 安装器准备依赖，按锁定摘要下载并校验 GeoGebra，并运行 doctor。
 首次联网安装可能需要等待。保留进程标识并读取完成结果，不并行启动第二个安装器。
 安装需要网络和写入安装副本的权限；权限不足时通过宿主正常授权流程处理。
-不得借用开发 checkout、DSH 或旧 Codex 副本的 node_modules、dist 或 .runtime。
+不得借用开发 checkout、其他宿主或旧副本的 node_modules、dist 或 .runtime。
 
 只有安装器正常退出，且 doctor 返回 `ok: true`、`smoke: passed`、
 `casSmoke: passed`，工具版本与本副本一致，才能报告“设置完成”。

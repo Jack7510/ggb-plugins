@@ -23,7 +23,7 @@
 | `pnpm test` | 输入、资源、安装、打包及适配层测试 |
 | `pnpm test:browser` | 真实 applet、交付、故障与启动回归；先 build |
 | `pnpm coverage:commands` | 重建固定 runtime 的命令调用证据 |
-| `pnpm pack:plugin` / `pnpm pack:dsh` | 分别构建 Codex ZIP / DSH TGZ |
+| `pnpm pack:plugin` / `pnpm pack:dsh` / `pnpm pack:workbuddy` | 分别构建 Codex ZIP、DSH TGZ、WorkBuddy ZIP |
 | `git diff --check` | 检查补丁空白错误 |
 
 按改动选择必要检查：数学执行、核验、交付或浏览器驱动改动需要真实浏览器回归；纯文档改动只检查命令、链接、锚点与 diff，不为此启动浏览器。`pnpm build` 已含类型检查，同一源码状态不再额外运行 `pnpm check`。
@@ -66,7 +66,7 @@
 
 ## 打包与发布
 
-`package.json`、`plugin.json` 和 `dsh/package.json` 的版本必须一致。先验证两种封装，再提供 `docs/releases/v<version>.md`。 发布到 npm 的步骤见 [docs/publish-npm.md](docs/publish-npm.md)。 DSH 分发仓库与开源声明见 [docs/dsh-discovery.md](docs/dsh-discovery.md)，用 `node scripts/sync-dsh-repo.mjs` 同步。发布工作流从固定标签构建；不要移动已发布标签。安装步骤只在安装说明（`codex/README.md`、`dsh/README.md`）维护，本文件不复制。
+`package.json`、`plugin.json` 和 `dsh/package.json` 的版本必须一致；WorkBuddy 清单由 `package-plugin` 从根 `package.json` 生成，不单独维护版本。先验证三种封装，再提供 `docs/releases/v<version>.md`。 发布到 npm 的步骤见 [docs/publish-npm.md](docs/publish-npm.md)。 DSH 分发仓库与开源声明见 [docs/dsh-discovery.md](docs/dsh-discovery.md)，用 `node scripts/sync-dsh-repo.mjs` 同步。发布工作流从固定标签构建；不要移动已发布标签。安装步骤只在安装说明（`codex/README.md`、`dsh/README.md`、`workbuddy/README.md`）维护，本文件不复制。
 
 ## Skill 与参考文档
 
@@ -92,7 +92,7 @@ Skill 描述的是**通用解**：稳定的分析流程、构法选择原则、�
 | `AGENTS.md` | Agent 工作契约：验证、效率、修改约束、编程规范、发布 |
 | `docs/ggb-plugins-design.md` | 需求、设计思路、责任边界与取舍 |
 | `docs/CHANGES.md` | 已发布与未发布的重要修改记录 |
-| `codex/README.md`、`dsh/README.md` | 各客户端安装与运行说明 |
+| `codex/README.md`、`dsh/README.md`、`workbuddy/README.md` | 各客户端安装与运行说明 |
 | `docs/publish-npm.md` | DSH bundle 的 npm 发布流程与错误处理 |
 | `docs/dsh-discovery.md` | DSH 分发仓库、开源声明位置与收录流程 |
 | `skills/ggb-construction/references/` | `capabilities.md` 是字段与谓词契约，`patterns.md` 是可复用构法参考 |

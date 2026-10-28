@@ -6,8 +6,8 @@
 ## 版本与适用范围
 
 当前版本为 **0.8.5**。[GitHub Release v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5)
-已提供 Codex ZIP 与校验文件；Codex 包尚未提交公共插件目录。DSH npm 也已发布 0.8.5，
-两个客户端各自安装，不能用 DSH 的发布状态推断 Codex 的安装状态。
+已提供 Codex ZIP 与校验文件；Codex 包尚未提交公共插件目录。DSH npm 与 WorkBuddy ZIP 也已发布
+0.8.5，三个客户端各自安装，不能用其他客户端的发布状态推断 Codex 的安装状态。
 
 本页的安装引导针对包含 `skills/setup/SKILL.md` 的 0.8.5 包；历史包不承诺有设置入口。
 

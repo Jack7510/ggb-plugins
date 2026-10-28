@@ -2,7 +2,7 @@
 
 [English](README.md) | **简体中文**
 
-把文字或图片中的二维数学题变成可交互的 GeoGebra 文件。宿主 Agent（Codex 或 DeepSeek Harness）理解题意并编写原生 Algebra／CAS 程序；本项目在本地执行、逐条件核验、导出 `.ggb`、重新加载，并交付文件、核验报告和截图。
+把文字或图片中的二维数学题变成可交互的 GeoGebra 文件。宿主 Agent（Codex、DeepSeek Harness 或 WorkBuddy）理解题意并编写原生 Algebra／CAS 程序；本项目在本地执行、逐条件核验、导出 `.ggb`、重新加载，并交付文件、核验报告和截图。
 
 支持中文和英文。Agent 根据你的偏好和上下文选择工作语言，保留题目原文，且只分析条件与构图方法，不替你给出题目答案。
 
@@ -16,7 +16,7 @@
 
 | 依赖 | 用途 |
 | --- | --- |
-| Codex 或 DeepSeek Harness（DSH） | 理解题意并编写原生 GeoGebra 程序 |
+| Codex、DeepSeek Harness（DSH）或 WorkBuddy | 理解题意并编写原生 GeoGebra 程序 |
 | Node.js 22+ 与 pnpm 11 | 运行本地 CLI、准备依赖 |
 | `curl` 与 `unzip` | 下载并解压固定版本的 GeoGebra 运行时 |
 | Google Chrome 或 Microsoft Edge | 核验时以 headless 方式驱动 applet |
@@ -26,11 +26,13 @@
 ## 安装
 
 当前版本为 [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5)，提供
-Codex ZIP 与 DSH npm 包。Codex 包尚未提交公共插件目录，但 Release ZIP 可直接安装；
+Codex ZIP 与 DSH npm 包；WorkBuddy ZIP 由同一源码通过 `pnpm pack:workbuddy` 构建，尚未发布。
+三个包都未提交公共插件目录，但 Release 归档可直接安装；
 版本说明见 [0.8.5 发布记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/releases/v0.8.5.md)。
 
 - Codex：[安装与升级说明](codex/README.md)。
 - DSH：[独立 headless profile 安装说明](dsh/README.md)。
+- WorkBuddy：[插件安装与使用说明](workbuddy/README.md)。
 
 DSH bundle 已发布到 npm：
 
@@ -49,7 +51,7 @@ node ~/.dsh/profiles/$profile/node_modules/ggb-plugins-dsh/scripts/setup-plugin.
 https://cdn.jsdelivr.net/gh/Jack7510/ggb-plugins@main/docs/market/index.json
 ```
 
-两个客户端各自安装，共用同一套执行与核验管线。两份说明都以运行依赖准备（`setup-plugin`，会报告实际使用的浏览器）和就绪检查（`doctor`）结束。
+三个客户端各自安装，共用同一套执行与核验管线。三份说明都以运行依赖准备（`setup-plugin`，会报告实际使用的浏览器）和就绪检查（`doctor`）结束。
 
 ## 第一道题
 
@@ -108,10 +110,10 @@ pnpm demo
 
 - `src/`：CLI、执行、核验与交付管线。
 - `viewer/`：承载 GeoGebra applet 的本地页面。
-- `skills/`：两个宿主共用的 Skill。
-- `codex/`、`dsh/`：各宿主的插件资产、安装说明与验收记录。
+- `skills/`：各宿主共用的 Skill。
+- `codex/`、`dsh/`、`workbuddy/`：各宿主的插件资产、安装说明与验收记录。
 - `examples/`、`tests/`：可运行输入与回归用例。
-- `scripts/`：依赖准备、两种打包与覆盖记录工具。
+- `scripts/`：依赖准备、三种打包与覆盖记录工具。
 - `docs/`：[需求与设计](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md)、[重要修改记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)与跨客户端验收记录；历史阶段结果见[归档索引](https://github.com/Jack7510/ggb-plugins/blob/main/docs/archive/README.md)。
 
 ## 支持范围与边界

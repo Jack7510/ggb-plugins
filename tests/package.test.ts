@@ -6,7 +6,7 @@ import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFile, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { delimiter, join } from 'node:path';
+import { delimiter, dirname, join } from 'node:path';
 import test from 'node:test';
 import { promisify } from 'node:util';
 import { pathToFileURL } from 'node:url';
@@ -49,6 +49,44 @@ test('DSH tarball carries its own skill, references and the identical compiled r
     assert.equal(candidate.resourceBase.path, join(canonical, 'skills/ggb-construction'));
     assert((await provider.get(candidate)).content.includes(canonical));
     assert(!String(await readFile(join(bundle, 'index.js'))).includes('.codex'));
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('WorkBuddy ZIP generates one manifest and ships the identical skill', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ggb-workbuddy-package-'));
+  try {
+    const result = JSON.parse((await run(process.execPath,
+      [join(root, 'scripts/package-plugin.mjs'), directory, '--target=workbuddy'])).stdout);
+    assert.match(result.archive, /ggb-plugins-workbuddy-[0-9.]+\.zip$/);
+    const listing = (await run('unzip', ['-Z1', result.archive])).stdout.trim().split('\n');
+    assert(listing.every(path => path.startsWith('ggb-plugins/') && !path.includes('..')));
+    const topLevel = /^ggb-plugins\/(?:node_modules|\.runtime|src|tests|\.agents|dsh)\//;
+    assert(!listing.some(path => topLevel.test(path)));
+    assert(!listing.includes('ggb-plugins/plugin.json'));
+    assert(listing.includes('ggb-plugins/.codebuddy-plugin/plugin.json'));
+    await run('unzip', ['-q', result.archive, '-d', join(directory, 'unpacked')]);
+    const plugin = join(directory, 'unpacked', 'ggb-plugins');
+    const shared = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
+    const manifest = JSON.parse(await readFile(
+      join(plugin, '.codebuddy-plugin/plugin.json'), 'utf8'));
+    assert.equal(manifest.name, shared.name);
+    assert.equal(manifest.version, shared.version);
+    assert((manifest.description as string).length > 0);
+    // WorkBuddy hands the agent a skill base directory; the shared skill locates
+    // the installation root two levels above it, without any injected path.
+    assert.equal(dirname(dirname(join(plugin, 'skills/ggb-construction'))), plugin);
+    for (const file of ['SKILL.md', 'worker.md', 'references/capabilities.md',
+      'references/command-coverage.md', 'references/patterns.md',
+      'references/worker-request.md']) {
+      assert.deepEqual(await readFile(join(plugin, 'skills/ggb-construction', file)),
+        await readFile(join(root, 'skills/ggb-construction', file)));
+    }
+    assert.deepEqual(await readFile(join(plugin, 'skills/setup/SKILL.md')),
+      await readFile(join(root, 'skills/setup/SKILL.md')));
+    assert.deepEqual(await readFile(join(plugin, 'INSTALL.md')),
+      await readFile(join(root, 'workbuddy/README.md')));
+    assert((await stat(join(plugin, 'dist/src/cli.js'))).isFile());
+    assert((await stat(join(plugin, 'viewer/index.html'))).isFile());
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
@@ -163,23 +201,23 @@ test('plugin ZIP contains a standalone compiled tool and discoverable skill, not
 });
 
 
-test('both packages ship English and Chinese readmes and a Chinese guide',
+test('all packages ship English and Chinese readmes and a Chinese guide',
   async () => {
     const directory = await mkdtemp(join(tmpdir(), 'ggb-readme-package-'));
     try {
-      for (const target of ['codex', 'dsh']) {
+      for (const target of ['codex', 'dsh', 'workbuddy']) {
         const command = [join(root, 'scripts/package-plugin.mjs'),
           directory, '--target=' + target];
         const result = JSON.parse((await run(process.execPath, command)).stdout);
         const extracted = join(directory, target);
         await mkdir(extracted);
-        if (target === 'codex') {
-          await run('unzip', ['-q', result.archive, '-d', extracted]);
-        } else {
+        if (target === 'dsh') {
           await run('tar', ['-xzf', result.archive, '-C', extracted]);
+        } else {
+          await run('unzip', ['-q', result.archive, '-d', extracted]);
         }
         const plugin = join(extracted,
-          target === 'codex' ? 'ggb-plugins' : 'package');
+          target === 'dsh' ? 'package' : 'ggb-plugins');
         const english = await readFile(join(plugin, 'README.md'), 'utf8');
         const chinese = await readFile(join(plugin, 'README.zh-CN.md'), 'utf8');
         assert.match(english, /## Installation/);
@@ -201,11 +239,11 @@ test('both packages ship English and Chinese readmes and a Chinese guide',
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
 
-/** Checks onboarding against the actual two distribution archives. */
-test('only the Codex archive ships its declared onboarding skill', async () => {
+/** Checks onboarding against every distribution archive. */
+test('onboarding skill ships only where the host can discover it', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ggb-onboarding-'));
   try {
-    for (const target of ['codex', 'dsh']) {
+    for (const target of ['codex', 'dsh', 'workbuddy']) {
       const result = JSON.parse((await run(process.execPath, [
         join(root, 'scripts/package-plugin.mjs'), directory,
         '--target=' + target,
@@ -215,16 +253,20 @@ test('only the Codex archive ships its declared onboarding skill', async () => {
         assert(!listing.includes('skills/setup/'));
         continue;
       }
-      const extracted = join(directory, 'extracted');
+      const extracted = join(directory, 'extracted-' + target);
       await run('unzip', ['-q', result.archive, '-d', extracted]);
       const plugin = join(extracted, 'ggb-plugins');
-      const metadata = JSON.parse(await readFile(
-        join(plugin, 'plugin.json'), 'utf8'));
-      const entry = metadata.extensions['com.openai'].onboardingSkill;
-      assert.equal(entry, './skills/setup/SKILL.md');
+      const entry = 'skills/setup/SKILL.md';
       assert.deepEqual(await readFile(join(plugin, entry)),
         await readFile(join(root, entry)));
       assert((await stat(join(plugin, 'scripts/setup-plugin.mjs'))).isFile());
+      const manifestFile = target === 'codex' ? 'plugin.json' :
+        '.codebuddy-plugin/plugin.json';
+      const metadata = JSON.parse(await readFile(
+        join(plugin, manifestFile), 'utf8'));
+      // Codex declares onboarding in its manifest; WorkBuddy discovers skills/.
+      assert.equal(metadata.extensions?.['com.openai']?.onboardingSkill,
+        target === 'codex' ? './skills/setup/SKILL.md' : undefined);
     }
   } finally {
     await rm(directory, { recursive: true, force: true });

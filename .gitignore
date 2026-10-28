@@ -8,3 +8,4 @@ output/
 talks/
 *.mov
 .playwright-cli/
+.workbuddy/

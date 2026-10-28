@@ -1,6 +1,6 @@
 /**
- * @fileoverview Packages independent Codex and DSH distributions with a shared
- * runtime and bilingual entry documentation.
+ * @fileoverview Packages independent Codex, DSH and WorkBuddy distributions
+ * with a shared runtime and bilingual entry documentation.
  */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -15,7 +15,8 @@ const manifest = JSON.parse(await readFile(join(root, 'plugin.json'), 'utf8'));
 assert.equal(manifest.name, pkg.name); assert.equal(manifest.version, pkg.version);
 const args = process.argv.slice(2);
 const target = args.find(arg => arg.startsWith('--target='))?.slice(9) ?? 'codex';
-assert(['codex', 'dsh'].includes(target), 'Expected --target=codex or --target=dsh');
+assert(['codex', 'dsh', 'workbuddy'].includes(target),
+  'Expected --target=codex, --target=dsh or --target=workbuddy');
 assert(args.filter(arg => !arg.startsWith('--target=')).length <= 1, 'Expected one output directory');
 const output = resolve(args.find(arg => !arg.startsWith('--target=')) ?? join(root, 'output/plugin'));
 await mkdir(output, { recursive: true });
@@ -32,8 +33,8 @@ try {
     'skills/ggb-construction/references/worker-request.md',
     ...(target === 'codex' ? [
       'plugin.json', '.agents/plugins/marketplace.json',
-      'skills/setup/SKILL.md',
-    ] : [])];
+    ] : []),
+    ...(target === 'dsh' ? [] : ['skills/setup/SKILL.md'])];
   for (const file of files) {
     const target = join(plugin, file); await mkdir(dirname(target), { recursive: true });
     await cp(join(root, file), target, { dereference: true });
@@ -75,12 +76,26 @@ try {
         {recursive: true});
     }
   }
+  if (target === 'workbuddy') {
+    // The manifest template omits version; this build owns the single source.
+    const template = JSON.parse(await readFile(
+      join(root, 'workbuddy/plugin.json'), 'utf8'));
+    const workbuddy = { ...template, name: pkg.name, version: pkg.version };
+    await mkdir(join(plugin, '.codebuddy-plugin'), { recursive: true });
+    await writeFile(join(plugin, '.codebuddy-plugin/plugin.json'),
+      JSON.stringify(workbuddy, null, 2) + '\n');
+  }
   await writeFile(join(plugin, 'package.json'), JSON.stringify(metadata, null, 2) + '\n');
-  const guide = target === 'codex' ? 'codex/README.md' : 'dsh/README.md';
+  const guides = {
+    codex: 'codex/README.md',
+    dsh: 'dsh/README.md',
+    workbuddy: 'workbuddy/README.md',
+  };
+  const guide = guides[target];
   await cp(join(root, guide), join(plugin, 'INSTALL.md'));
   for (const file of ['README.md', 'README.zh-CN.md']) {
     let text = await readFile(join(plugin, file), 'utf8');
-    for (const path of ['codex/README.md', 'dsh/README.md']) {
+    for (const path of Object.values(guides)) {
       const link = path === guide ? 'INSTALL.md' :
         'https://github.com/Jack7510/ggb-plugins/blob/main/' + path;
       text = text.replaceAll('](' + path + ')', '](' + link + ')');
@@ -88,8 +103,12 @@ try {
     }
     await writeFile(join(plugin, file), text);
   }
-  const archive = join(staging, `${pkg.name}${target === 'dsh' ? '-dsh' : ''}-${pkg.version}.${target === 'dsh' ? 'tgz' : 'zip'}`);
-  if (target === 'codex') execFileSync('zip', ['-qr', archive, pkg.name], { cwd: staging });
+  const suffix = target === 'dsh' ? '-dsh' :
+    target === 'workbuddy' ? '-workbuddy' : '';
+  const extension = target === 'dsh' ? 'tgz' : 'zip';
+  const archive = join(staging,
+    `${pkg.name}${suffix}-${pkg.version}.${extension}`);
+  if (target !== 'dsh') execFileSync('zip', ['-qr', archive, pkg.name], { cwd: staging });
   else {
     const result = JSON.parse(execFileSync('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', staging], { cwd: plugin, encoding: 'utf8' }));
     await rename(join(staging, result[0].filename), archive);

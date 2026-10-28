@@ -40,12 +40,14 @@ jobs:
           pnpm test
           node scripts/package-plugin.mjs > release.json
           node scripts/package-plugin.mjs --target=dsh > release-dsh.json
-      - name: Publish Codex ZIP and DSH TGZ with checksums
+          node scripts/package-plugin.mjs --target=workbuddy > release-workbuddy.json
+      - name: Publish Codex ZIP, DSH TGZ and WorkBuddy ZIP with checksums
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           archive=$(node -p 'JSON.parse(require("fs").readFileSync("release.json")).archive')
           dsh_archive=$(node -p 'JSON.parse(require("fs").readFileSync("release-dsh.json")).archive')
-          gh release create "$RELEASE_TAG" "$archive" "$archive.sha256" "$dsh_archive" "$dsh_archive.sha256" --verify-tag --draft --title "GeoGebra Construction $RELEASE_TAG" --notes-file "docs/releases/$RELEASE_TAG.md"
+          workbuddy_archive=$(node -p 'JSON.parse(require("fs").readFileSync("release-workbuddy.json")).archive')
+          gh release create "$RELEASE_TAG" "$archive" "$archive.sha256" "$dsh_archive" "$dsh_archive.sha256" "$workbuddy_archive" "$workbuddy_archive.sha256" --verify-tag --draft --title "GeoGebra Construction $RELEASE_TAG" --notes-file "docs/releases/$RELEASE_TAG.md"
           gh release edit "$RELEASE_TAG" --draft=false --latest

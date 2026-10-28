@@ -151,7 +151,7 @@ Web 宿主使用公开子路径，不安装到用户 desktop profile，也不使
 先在独立安装根安装精确 TGZ；无需修改本包文件。宿主通过包解析 `ggb-plugins-dsh/installation`，
 调用 `loadInstallation()` 得到 serverPatch，再传给 `DeepSeekHarness` 的 patches。
 使用独立 dshHome，并把实际 SDK 包版本通过 `GGB_DSH_SDK_VERSION` 注入子进程。
-当前服务端入口只验证了 SDK `0.2.1-rc.2`；详细边界见 [双生态契约](https://github.com/Jack7510/ggb-plugins/blob/main/docs/dual-ecosystem.md#受限-sdk-server-入口)。
+当前服务端入口只验证了 SDK `0.2.1-rc.2`；详细边界见 [宿主封装契约](https://github.com/Jack7510/ggb-plugins/blob/main/docs/dual-ecosystem.md#受限-sdk-server-入口)。
 
 加载测试只需已编译安装包；构图前仍须 setup/doctor。工具依赖宿主协议 3 的认证网关，不能直接连接
 旧版 Web 宿主。不得为启动成功而开启通用 shell，也不应把 SDK 初始化通过视为真实构图验收。

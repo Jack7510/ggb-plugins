@@ -4,6 +4,12 @@
 
 ## 未发布
 
+- 新增 WorkBuddy 封装：`--target=workbuddy` 产出独立 ZIP，清单
+  `.codebuddy-plugin/plugin.json` 由构建从根 `package.json` 注入 `name` 与 `version`；
+  Skill、能力契约与编译产物与另两个宿主逐字节一致，共享 SKILL.md、请求协议和核验门禁
+  不变。安装说明见 `workbuddy/README.md`。尚未在真实 WorkBuddy 客户端装载，也未做
+  代表案例验收；本地装载与首道题的结果需要单独记录。
+
 - 准备 0.8.5：DSH 桌面 bundle 的 `engines.dsh` 从固定 `0.2.1-rc.2` 改为
   `>=0.2.1-rc.2 <0.2.2`，修复当前 `0.2.1-rc.3` 拒绝安装 0.8.4 的问题；受限
   SDK Server 入口仍只接受已验证的 `0.2.1-rc.2`。`setup-plugin` 在 DSH profile
