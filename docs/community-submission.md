@@ -93,7 +93,7 @@ https://github.com/Jack7510/ggb-plugins
 dsh plugin --profile web add ggb-plugins-dsh@0.9.0
 
 ### 兼容与运行要求
-DSH >=0.2.1-rc.2（桌面 bundle 只设下限；已在 0.2.2-rc.1 通过引擎检查，正式版仍待验收）；Node.js 22+；pnpm 11；
+DSH >=0.2.1-rc.2（桌面 bundle 只设下限；已在 0.2.2-rc.1 完成隔离安装与 doctor，正式版仍待验收）；Node.js 22+；pnpm 11；
 Google Chrome 或 Microsoft Edge；固定 GeoGebra 5.4.932.1。安装后需运行
 setup-plugin 下载 runtime 并执行 doctor。
 
@@ -156,7 +156,7 @@ GitHub Release [v0.9.0](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.
 负责执行、逐条件核验、导出、重载和交付。失败或无法核验的条件会阻止交付，
 不会跳过；它不是答案生成器。
 
-安装（DSH 0.2.1-rc.3）：
+安装（DSH 0.2.2-rc.1）：
 dsh plugin --profile web add ggb-plugins-dsh@0.9.0
 node ~/.dsh/profiles/web/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 

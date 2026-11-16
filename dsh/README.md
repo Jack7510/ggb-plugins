@@ -31,7 +31,7 @@ node ~/.dsh/profiles/$profile/node_modules/ggb-plugins-dsh/scripts/setup-plugin.
 
 | 入口 | `engines.dsh` / SDK | 说明 |
 | --- | --- | --- |
-| 桌面 bundle | `>=0.2.1-rc.2` | 不再设上界；0.2.1-rc.3 已验收，0.2.2-rc.1 通过引擎检查 |
+| 桌面 bundle | `>=0.2.1-rc.2` | 不再设上界；0.2.1-rc.3 与 0.2.2-rc.1 已验收 |
 | 受限 SDK Server | 仅 `0.2.1-rc.2` | 精确白名单；扩大范围需先验证宿主协议、工具注入和交付回执 |
 
 桌面 bundle 的引擎范围不自动覆盖服务端入口；两条路径分别验收。0.2.2 正式版的桌面安装仍需在发布前重跑安装、setup、doctor 和代表案例。Node.js 22+、pnpm 11、curl、unzip，以及 Google Chrome 或 Microsoft Edge 仍是运行前置。
