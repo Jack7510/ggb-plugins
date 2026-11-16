@@ -23,7 +23,7 @@
 
 - 0.9.0 已发布到 npm；隔离 Web profile 已完成安装、doctor、真实会话交付和卡片验收，见
   [发布记录](releases/v0.9.0.md)与[本机验证](../dsh/docs/v0.9.0-validation.md)。GitHub Release
-  和分发仓库在发布流程完成后更新。
+  已发布；分发仓库待同步。
 
 ## 未发布（0.8.5 及更早）
 

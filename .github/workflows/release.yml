@@ -35,6 +35,7 @@ jobs:
         run: |
           node --input-type=module -e 'import pkg from "./package.json" with {type:"json"}; if (process.env.RELEASE_TAG !== `v${pkg.version}`) throw new Error("Tag and package version differ");'
           pnpm install --frozen-lockfile --ignore-scripts
+          pnpm setup:runtime
           pnpm check
           pnpm build
           pnpm test

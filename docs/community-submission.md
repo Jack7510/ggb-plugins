@@ -13,7 +13,7 @@
 | npm `0.8.5` | 上一版 |
 | DSH 桌面兼容 | `engines.dsh` 为 `>=0.2.1-rc.2`（只设下限） |
 | 隔离安装验收 | TGZ 与 npm registry 安装、`setup-plugin`、GeoGebra 5.4.932.1 下载、doctor 均通过 |
-| GitHub Release | [v0.9.0](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.9.0) 待发布 |
+| GitHub Release | [v0.9.0](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.9.0) 已发布 |
 | GitHub topic `dsh-plugin` | 已添加；同时添加 `deepseek-harness`、`geogebra` 等 |
 | dsh-plugin.org 收录 | 已收录（2026-10-27）；[Issue #436](https://github.com/dshplugin/dsh-plugin-hub/issues/436) 已于 2026-10-26 关闭 |
 | awesome-dsh-plugin 主索引 | 尚未进入 5,539 条 npm 索引；待提交 [awesome-entry.yml](market/awesome-entry.yml) |
@@ -171,7 +171,7 @@ node ~/.dsh/profiles/web/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 - [x] 用隔离 `DSH_HOME` 和 `web` profile 安装成功
 - [x] `setup-plugin` 与 `doctor` 通过
 - [x] `docs/market/index.json` 的时间戳已更新
-- [ ] GitHub Release `v0.9.0` 含两种包和校验文件（tag 推送后由 workflow 创建）
+- [x] GitHub Release `v0.9.0` 含两种包和校验文件
 - [x] GitHub topics 包含 `dsh-plugin`
 - [x] README 首屏有安装命令、截图和兼容范围
 - [x] 演示 GIF 已制作并加入 README
