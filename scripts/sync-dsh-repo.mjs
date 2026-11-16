@@ -7,7 +7,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import {
-  cp, readFile, readdir, rm, writeFile,
+  cp, mkdir, readFile, readdir, rm, writeFile,
 } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -103,10 +103,19 @@ async function markReadme(directory, version) {
   await writeFile(path, banner + text);
 }
 
+/** Clears generated files while preserving the distribution repository's Git metadata. */
+async function cleanTarget() {
+  await mkdir(target, { recursive: true });
+  for (const entry of await readdir(target)) {
+    if (entry === '.git') continue;
+    await rm(join(target, entry), { recursive: true, force: true });
+  }
+}
+
 /** Copies the staged package over the distribution repository. */
 async function sync(manifest) {
   await assertTarget();
-  await rm(target, { recursive: true, force: true });
+  await cleanTarget();
   await cp(manifest.directory, target, { recursive: true });
   await writeFile(join(target, 'SOURCE.md'), sourceNote(manifest.version));
   await markReadme(target, manifest.version);
