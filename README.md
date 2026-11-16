@@ -36,7 +36,7 @@ The current release is [v0.9.0](https://github.com/Jack7510/ggb-plugins/releases
 It ships the Codex ZIP and the DSH npm bundle; the WorkBuddy ZIP is built from the same source
 with `pnpm pack:workbuddy` and is not published yet. The DSH package is listed on
 [dsh-plugin.org](https://dsh-plugin.org/plugins/jack7510/ggb-plugins-dsh); the curated
-5,539-entry awesome index is still pending. See the
+5,539-entry awesome index PR is pending review. See the
 [0.9.0 release notes](https://github.com/Jack7510/ggb-plugins/blob/main/docs/releases/v0.9.0.md).
 
 - Codex: [installation and upgrade guide](codex/README.md), in Chinese.

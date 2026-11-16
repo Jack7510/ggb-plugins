@@ -16,7 +16,7 @@
 | GitHub Release | [v0.9.0](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.9.0) 已发布 |
 | GitHub topic `dsh-plugin` | 已添加；同时添加 `deepseek-harness`、`geogebra` 等 |
 | dsh-plugin.org 收录 | 已收录（2026-10-27）；[Issue #436](https://github.com/dshplugin/dsh-plugin-hub/issues/436) 已于 2026-10-26 关闭 |
-| awesome-dsh-plugin 主索引 | 尚未进入 5,539 条 npm 索引；待提交 [awesome-entry.yml](market/awesome-entry.yml) |
+| awesome-dsh-plugin 主索引 | PR [#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911) 已提交，待审核 |
 | dsh-market | 目录来自 awesome，随其同步；不单独投稿 |
 | dsh-plugin-radar | 自动扫描 GitHub topic；不单独投稿 |
 | 社区展示帖 | [Discussion #4](https://github.com/moyuqing-man/dsh-plugin-community/discussions/4) 已发布 |
@@ -24,7 +24,8 @@
 
 ## 进入 awesome 主索引
 
-dsh-plugin.org 已收录，但 awesome-dsh-plugin 的 5,539 条 npm 主索引仍没有本包。dsh-market
+dsh-plugin.org 已收录；awesome-dsh-plugin 的 5,539 条 npm 主索引 PR
+[#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911) 已提交，尚未合并。dsh-market
 读取同一份 awesome 目录，dsh-plugin-radar 自动扫描 GitHub topic，因此真正要提交的只有
 awesome 的一个文件：
 
@@ -176,5 +177,5 @@ node ~/.dsh/profiles/web/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 - [x] README 首屏有安装命令、截图和兼容范围
 - [x] 演示 GIF 已制作并加入 README
 - [x] dsh-plugin.org 已收录（2026-10-27），Issue #436 已关闭
-- [ ] awesome-dsh-plugin 主索引条目已准备，待提 PR（[awesome-entry.yml](market/awesome-entry.yml)）
+- [x] awesome-dsh-plugin 主索引 PR 已提交（[#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911)），待审核
 - [x] 社区展示帖已发布（[Discussion #4](https://github.com/moyuqing-man/dsh-plugin-community/discussions/4)）
