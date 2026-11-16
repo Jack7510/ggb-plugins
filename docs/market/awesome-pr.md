@@ -23,4 +23,4 @@ conditions before delivery.
   does not complete setup. Its DSH engine range is >=0.2.1-rc.2.
 ```
 
-已提交 PR：[#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911)。等待维护者审核；合并后再验证上游目录、dsh-market 和实际客户端中的搜索与安装。投稿或合并不代表安装及运行验收通过。
+已提交 PR：[#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911)。CI 已通过；等待维护者审核；合并后再验证上游目录、dsh-market 和实际客户端中的搜索与安装。投稿或合并不代表安装及运行验收通过。

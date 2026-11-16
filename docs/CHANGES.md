@@ -26,7 +26,7 @@
   runtime，避免无 runtime 的 CI 失败。
 - 0.9.0 已发布到 npm；隔离 Web profile 已完成安装、doctor、真实会话交付和卡片验收，见
   [发布记录](releases/v0.9.0.md)与[本机验证](../dsh/docs/v0.9.0-validation.md)。GitHub Release 已发布；分发仓库已同步为 0.9.0；awesome 投稿 PR
-  [#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911) 待审核。
+  [#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911) 已提交，CI 通过，待审核。
 
 ## 未发布（0.8.5 及更早）
 
