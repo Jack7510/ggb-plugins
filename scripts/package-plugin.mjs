@@ -26,18 +26,24 @@ try {
   const modules = (await readdir(join(root, 'src'))).filter(name => name.endsWith('.ts')).map(name => 'dist/src/' + name.replace(/\.ts$/, '.js'));
   const files = [...modules, 'pnpm-lock.yaml', 'runtime.lock.json', 'capabilities.json',
     'README.md', 'README.zh-CN.md',
-    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'viewer/index.html', 'scripts/setup-plugin.mjs', 'scripts/setup-runtime.mjs',
+    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'viewer/index.html', 'scripts/setup-plugin.mjs', 'scripts/setup-runtime.mjs', 'scripts/render-report.mjs',
     'skills/ggb-construction/SKILL.md', 'skills/ggb-construction/worker.md',
     'skills/ggb-construction/references/capabilities.md', 'skills/ggb-construction/references/command-coverage.md',
     'skills/ggb-construction/references/patterns.md',
     'skills/ggb-construction/references/worker-request.md',
+    'skills/setup/SKILL.md',
     ...(target === 'codex' ? [
       'plugin.json', '.agents/plugins/marketplace.json',
-    ] : []),
-    ...(target === 'dsh' ? [] : ['skills/setup/SKILL.md'])];
+    ] : [])];
   for (const file of files) {
     const target = join(plugin, file); await mkdir(dirname(target), { recursive: true });
     await cp(join(root, file), target, { dereference: true });
+  }
+  // Teacher-facing content travels with every client package.
+  for (const directory of ['examples/templates', 'examples/v2-cases',
+    'examples/geometry-benchmark', 'docs/cases']) {
+    await cp(join(root, directory), join(plugin, directory),
+      { recursive: true, dereference: true });
   }
   // Codex discovers implicit invocation through plugin-root skill metadata that
   // lives with the Codex client assets, outside the shared skill directory.
@@ -46,7 +52,7 @@ try {
     await mkdir(dirname(join(plugin, asset)), { recursive: true });
     await cp(join(root, 'codex/agents/openai.yaml'), join(plugin, asset));
   }
-  const scripts = Object.fromEntries(['ggb', 'preview', 'setup:plugin', 'setup:runtime'].map(key => [key, pkg.scripts[key]]));
+  const scripts = Object.fromEntries(['ggb', 'preview', 'report', 'setup:plugin', 'setup:runtime'].map(key => [key, pkg.scripts[key]]));
   // Keep dependency metadata aligned with the frozen lockfile; --prod omits dev tools.
   let metadata = { ...pkg, scripts };
   if (target === 'dsh') {
@@ -54,7 +60,7 @@ try {
     assert.equal(dsh.version, pkg.version, 'DSH and runtime versions must match');
     metadata = { ...metadata, ...dsh, scripts };
     await cp(join(root, 'pnpm-lock.yaml'), join(plugin, 'dependencies.lock'));
-    for (const file of ['index.js', 'cordis.patch.yml', 'locale']) await cp(join(root, 'dsh', file), join(plugin, file), { recursive: true });
+    for (const file of ['index.js', 'client.js', 'delivery-card.js', 'cordis.patch.yml', 'icon.svg', 'locale']) await cp(join(root, 'dsh', file), join(plugin, file), { recursive: true });
     for (const file of ['server.js', 'server.patch.yml', 'installation.js', 'executor.js', 'request-schema.js']) {
       await mkdir(join(plugin, 'dsh'), { recursive: true });
       await cp(join(root, 'dsh', file), join(plugin, 'dsh', file));
@@ -69,7 +75,7 @@ try {
     const inputs = ['src', 'dsh', 'scripts', 'tsconfig.json',
       'tsconfig.host-protocol.json', 'package.json', 'pnpm-lock.yaml',
       'runtime.lock.json', 'capabilities.json',
-      'skills/ggb-construction'];
+      'skills/ggb-construction', 'skills/setup'];
     for (const input of inputs) {
       const target = input === 'pnpm-lock.yaml' ? 'dependencies.lock' : input;
       await cp(join(root, input), join(plugin, 'source', target),

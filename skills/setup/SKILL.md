@@ -30,7 +30,9 @@ node "<installed-plugin>/scripts/setup-plugin.mjs"
 ```
 
 安装器准备依赖，按锁定摘要下载并校验 GeoGebra，并运行 doctor。
-首次联网安装可能需要等待。保留进程标识并读取完成结果，不并行启动第二个安装器。
+首次联网安装可能需要等待。下载失败时保留 `.runtime-download/runtime.zip`，重跑安装器会续传；
+可用 `GGB_RUNTIME_URL` 指向同一官方 ZIP 的镜像，最终仍按 `runtime.lock.json` 的 SHA-256 校验。
+保留进程标识并读取完成结果，不并行启动第二个安装器。
 安装需要网络和写入安装副本的权限；权限不足时通过宿主正常授权流程处理。
 不得借用开发 checkout、其他宿主或旧副本的 node_modules、dist 或 .runtime。
 

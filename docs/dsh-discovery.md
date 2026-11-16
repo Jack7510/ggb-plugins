@@ -41,6 +41,11 @@ git tag v<version> && git push --tags
 DSH 插件目录按固定周期扫描仓库根。分发仓库根带 `package.json` 的
 `dsh.bundle` 与 `SOURCE.md`，可直接被发现；源码仓库不参与该扫描。
 
+当前状态：dsh-plugin.org 已于 2026-10-27 收录 `jack7510/ggb-plugins-dsh`；
+awesome-dsh-plugin 的 5,539 条 npm 主索引仍待提交，条目模板见
+[market/awesome-entry.yml](market/awesome-entry.yml)。dsh-market 从 awesome 目录同步，
+dsh-plugin-radar 自动扫描 topic，均不需要单独投稿。
+
 ## 发版检查
 
 1. 三处版本一致，`capabilities.json` 已重新生成；

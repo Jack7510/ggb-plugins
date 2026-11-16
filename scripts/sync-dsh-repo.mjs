@@ -69,6 +69,12 @@ async function assertPackage(directory) {
   if (manifest.dsh?.bundle?.patch !== './cordis.patch.yml') {
     throw new Error('Missing dsh.bundle patch');
   }
+  if (manifest.dsh?.client?.platform !== 'web') {
+    throw new Error('Missing dsh.client web entry');
+  }
+  if (manifest.exports?.['./client'] !== './client.js') {
+    throw new Error('Missing client export');
+  }
   if (!manifest.license || !manifest.repository?.url) {
     throw new Error('Missing license or repository metadata');
   }

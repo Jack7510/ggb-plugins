@@ -191,7 +191,7 @@ test('plugin ZIP contains a standalone compiled tool and discoverable skill, not
       assert(!code.includes('/Users/'), 'Compiled tool must not depend on a developer path');
       for (const [, target] of code.matchAll(/from ['"]\.\/([^'"]+)['"]/g)) assert((await stat(join(plugin, 'dist/src', target!))).isFile());
     }
-    for (const file of ['viewer/index.html', 'runtime.lock.json', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'scripts/setup-plugin.mjs', 'scripts/setup-runtime.mjs', 'capabilities.json', 'skills/ggb-construction/worker.md', 'skills/ggb-construction/references/capabilities.md', 'skills/ggb-construction/references/command-coverage.md', 'skills/ggb-construction/references/patterns.md']) {
+    for (const file of ['viewer/index.html', 'runtime.lock.json', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'scripts/setup-plugin.mjs', 'scripts/setup-runtime.mjs', 'capabilities.json', 'skills/ggb-construction/worker.md', 'skills/ggb-construction/references/capabilities.md', 'skills/ggb-construction/references/command-coverage.md', 'skills/ggb-construction/references/patterns.md', 'examples/templates/templates.json', 'docs/cases/README.md']) {
       assert((await stat(join(plugin, file))).size > 0);
     }
     assert.deepEqual(await readFile(join(plugin, 'pnpm-lock.yaml')), await readFile(join(root, 'pnpm-lock.yaml')));
@@ -250,7 +250,11 @@ test('onboarding skill ships only where the host can discover it', async () => {
       ])).stdout);
       if (target === 'dsh') {
         const listing = (await run('tar', ['-tzf', result.archive])).stdout;
-        assert(!listing.includes('skills/setup/'));
+        assert(listing.includes('skills/setup/SKILL.md'));
+        const metadata = JSON.parse((await run('tar',
+          ['-xOzf', result.archive, 'package/package.json'])).stdout);
+        assert.equal(metadata.extensions?.['com.openai']?.onboardingSkill,
+          undefined);
         continue;
       }
       const extracted = join(directory, 'extracted-' + target);

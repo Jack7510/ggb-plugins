@@ -2,7 +2,30 @@
 
 只记录影响用途、行为、兼容性或维护方式的重要变化。这里说明“改了什么”；需求依据见[设计文档](ggb-plugins-design.md)，操作方法见 [README](../README.md)，具体测试与产物见对应验收记录。
 
-## 未发布
+## 0.9.0（准备发布）
+
+- DSH 桌面 bundle 的 `engines.dsh` 改为只设下限 `>=0.2.1-rc.2`，不再因 0.2.2
+  正式版或后续 0.2.x 版本被引擎检查拒绝；受限 SDK Server 入口仍只接受已验证的
+  `0.2.1-rc.2`，扩大服务端范围仍需单独验收。`dsh/README` 与安装文案同步；
+  `docs/market/index.json` 仍记录已发布的 0.8.5，待 0.9.0 发布后更新。
+- `ggb-setup` 安装引导随 DSH bundle 发布；DSH 适配器注册第二个 Skill。安装器增加
+  Node、pnpm、curl、unzip 的前置检查，GeoGebra 下载支持 `GGB_RUNTIME_URL` 镜像、
+  5 次重试、断点续传和失败后保留部分文件；doctor 成功时输出一行摘要。
+- DSH 桌面 bundle 新增交付卡片：`ggb_delivery` 工具读取 `verification.json`、
+  `manifest.json` 和 `preview.png`，卡片显示逐阶段通过数、失败原因、缩略图，并可打开
+  交互预览、报告和 GGB；`/ggb-preview <交付目录>` 命令复用同一预览入口。Web/SDK 路径的
+  `ggb_build` 卡片读取执行回执摘要。卡片只展示，不重新核验或改变交付门禁。
+- 新增 10 个题型模板索引 [examples/templates](../examples/templates/README.md)、教师
+  [一题一档案例库](cases/README.md) 和可打印 HTML 报告
+  `scripts/render-report.mjs`。模板复用现有请求，不增加 Skill 题型分支。
+- 修正分发状态：README 不再声称“没有公共目录收录”；dsh-plugin.org 已于 2026-10-27
+  收录，Issue #436 已关闭；新增 awesome-dsh-plugin 一文件条目
+  [market/awesome-entry.yml](market/awesome-entry.yml)，5,539 条主索引仍待提交。
+
+- 0.9.0 的本地构建资产见 [0.9.0 发布记录](releases/v0.9.0.md)；npm、GitHub Release
+  和分发仓库尚未发布。
+
+## 未发布（0.8.5 及更早）
 
 - 新增 WorkBuddy 封装：`--target=workbuddy` 产出独立 ZIP，清单
   `.codebuddy-plugin/plugin.json` 由构建从根 `package.json` 注入 `name` 与 `version`；

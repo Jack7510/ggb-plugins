@@ -27,6 +27,15 @@ node ~/.dsh/profiles/$profile/node_modules/ggb-plugins-dsh/scripts/setup-plugin.
 
 不需要构建权限，也不需要校验压缩包；npm 分发的是预编译产物。
 
+## 兼容范围
+
+| 入口 | `engines.dsh` / SDK | 说明 |
+| --- | --- | --- |
+| 桌面 bundle | `>=0.2.1-rc.2` | 不再设上界；0.2.1-rc.3 已验收，0.2.2-rc.1 通过引擎检查 |
+| 受限 SDK Server | 仅 `0.2.1-rc.2` | 精确白名单；扩大范围需先验证宿主协议、工具注入和交付回执 |
+
+桌面 bundle 的引擎范围不自动覆盖服务端入口；两条路径分别验收。0.2.2 正式版的桌面安装仍需在发布前重跑安装、setup、doctor 和代表案例。Node.js 22+、pnpm 11、curl、unzip，以及 Google Chrome 或 Microsoft Edge 仍是运行前置。
+
 也可以在 DSH 中启用 **Experimental plugins → Custom plugin markets**，在
 **Discover → Add index source** 添加本仓库的索引查看并安装：
 
@@ -73,7 +82,8 @@ restart DSH.
 
    取该路径所在目录作为 `<installed-plugin>`。
 5. 在安装副本里准备依赖与 runtime：
-   `node <installed-plugin>/scripts/setup-plugin.mjs`。
+   `node <installed-plugin>/scripts/setup-plugin.mjs`。本包同时携带
+   `ggb-setup` 安装引导；新会话也可以直接让 Agent 运行它。
 6. 就绪检查：`node <installed-plugin>/dist/src/cli.js doctor`，必须返回
    `ok: true`。
 7. 告诉用户**重启 DSH 桌面应用**；bundle 在启动时加载，重启前仍是旧版本。
@@ -136,11 +146,30 @@ node <installed-plugin>/dist/src/cli.js preview --delivery /absolute/delivery
 
 自动验收使用 `preview --delivery <dir> --headless --once`，复核完成后退出并释放资源。一次性 headless 宿主退出可能回收子进程，不能依靠它保留最终窗口。通过页面“结束预览”或取消进程释放服务，不回写 GGB；页面加载后预览进程自动退出，窗口继续可用；关闭窗口结束预览。
 
+### 交付卡片
+
+桌面 bundle 注册 `ggb_delivery` 工具和 `/ggb-preview <交付目录>` 命令。Agent 在构建成功后调用
+`ggb_delivery`，对话内卡片显示构造/重载/交互的通过数、失败条件及其原因、preview.png 缩略图，
+并可在系统默认浏览器打开交互预览，或打开报告和 GGB。预览命令使用 PATH 中的 `node`，必要时用 `DSH_GGB_NODE` 指定绝对路径。卡片只读取已落盘的 `verification.json`、`manifest.json` 和
+`preview.png`，不重新核验，也不改变交付门禁；交付目录必须位于当前会话工作区内。Web/SDK 路径的 `ggb_build` 卡片读取执行回执的
+`verification.summary`；完整报告仍是独立产物。
+
+Agent 同时应使用宿主的 `present` 工具声明 GGB、preview.png 和 verification.json，让对话尾部
+的原生文件卡可以打开这些文件。两者都只做展示，不替代交付校验。
+
+### 模板与案例
+
+包内 `examples/templates/` 提供 10 类题型模板索引，`docs/cases/` 提供教师向的一题一档
+说明；两者复用现有请求与核验，不进入 Skill 正文，也不增加题型路由。打印报告使用
+`node <installed-plugin>/scripts/render-report.mjs --delivery <交付目录> --output <文件.html>`。
+
 升级使用同一 profile 的 `dsh plugin --profile ggb-plugins add <new.tgz>`，然后在实际包目录重新执行安装器并重启该 profile。卸载使用 `dsh plugin --profile ggb-plugins remove @local/ggb-plugins-dsh`，不会删除工作区交付文件。
 
 配置 `pluginRoot`（兼容旧字段 skillRoot）可显式指定完整包的绝对路径；两字段同时提供时必须指向同一包，防止 Skill 与 CLI 混版。默认无需配置。源码开发可以从本模块的父目录取得共享资源，但发布验收必须在仓库外安装完整 TGZ。
 
-本包是本地分发包，不等于已上架 DSH 插件市场。二维命令开放和全部命令验收的区别见包内 references/command-coverage.md。GeoGebra 许可见 THIRD_PARTY_NOTICES.md。
+本包已发布到 npm，并已在 dsh-plugin.org 收录；这不等于已进入 awesome-dsh-plugin 的
+5,539 条主索引或 dsh-market。二维命令开放和全部命令验收的区别见包内
+references/command-coverage.md。GeoGebra 许可见 THIRD_PARTY_NOTICES.md。
 
 TGZ 中的 `dependencies.lock` 与源码 pnpm-lock.yaml 内容相同。npm 自动排除原名称；安装器先还原锁文件，再用 `--ignore-workspace --frozen-lockfile` 安装本包依赖，避免使用上层 DSH profile 的 workspace。
 
@@ -151,7 +180,8 @@ Web 宿主使用公开子路径，不安装到用户 desktop profile，也不使
 先在独立安装根安装精确 TGZ；无需修改本包文件。宿主通过包解析 `ggb-plugins-dsh/installation`，
 调用 `loadInstallation()` 得到 serverPatch，再传给 `DeepSeekHarness` 的 patches。
 使用独立 dshHome，并把实际 SDK 包版本通过 `GGB_DSH_SDK_VERSION` 注入子进程。
-当前服务端入口只验证了 SDK `0.2.1-rc.2`；详细边界见 [宿主封装契约](https://github.com/Jack7510/ggb-plugins/blob/main/docs/dual-ecosystem.md#受限-sdk-server-入口)。
+当前服务端入口只验证了 SDK `0.2.1-rc.2`；桌面 bundle 的 `engines.dsh` 只设下限
+`>=0.2.1-rc.2`。详细边界见 [宿主封装契约](https://github.com/Jack7510/ggb-plugins/blob/main/docs/dual-ecosystem.md#受限-sdk-server-入口)。
 
 加载测试只需已编译安装包；构图前仍须 setup/doctor。工具依赖宿主协议 3 的认证网关，不能直接连接
 旧版 Web 宿主。不得为启动成功而开启通用 shell，也不应把 SDK 初始化通过视为真实构图验收。

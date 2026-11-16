@@ -1,0 +1,86 @@
+{
+  "format": 1,
+  "description": "Ten reusable problem shapes. Each source is a complete request used by the regression suite; copy it and replace the prompt while keeping the stated checks.",
+  "templates": [
+    {
+      "id": "midpoint-median",
+      "title": { "zh": "中点与中线", "en": "Midpoint and median" },
+      "source": "../v2-cases/triangle.json",
+      "case": "../../docs/cases/midpoint-median.md",
+      "focus": { "zh": "取一边中点，连接顶点，核验中点、线段依赖与拖动稳定性。", "en": "Construct a side midpoint, join the opposite vertex, and verify the midpoint, segment dependency and drag stability." },
+      "checks": ["midpoint", "dependsOn", "drag"]
+    },
+    {
+      "id": "inscribed-angle",
+      "title": { "zh": "圆周角与圆心角", "en": "Inscribed and central angles" },
+      "source": "../geometry-benchmark/05-inscribed-angle.json",
+      "case": "../../docs/cases/inscribed-angle.md",
+      "focus": { "zh": "同弧所对圆周角等于圆心角的一半，并让 C 在有效弧段上移动。", "en": "Keep the inscribed angle at half the central angle and let C move on the valid arc." },
+      "checks": ["angle relation", "pointOn", "drag"]
+    },
+    {
+      "id": "moving-slider",
+      "title": { "zh": "动点与滑块", "en": "Moving point and slider" },
+      "source": "../v2-cases/slider-polygon.json",
+      "case": "../../docs/cases/moving-slider.md",
+      "focus": { "zh": "用滑块驱动多边形边数或参数，核验参数往返与对象存活。", "en": "Drive a polygon parameter with a slider and verify round-trip values and object survival." },
+      "checks": ["slider", "parameter round-trip", "defined"]
+    },
+    {
+      "id": "function-graph",
+      "title": { "zh": "函数图像", "en": "Function graph" },
+      "source": "../v2-cases/parabola.json",
+      "case": "../../docs/cases/function-graph.md",
+      "focus": { "zh": "由函数表达式生成图像，核验定义域、关键点与代数/绘图一致。", "en": "Build a graph from a function expression and verify its domain, key points and algebra-view consistency." },
+      "checks": ["expression", "pointOn", "view"]
+    },
+    {
+      "id": "midpoint-locus",
+      "title": { "zh": "轨迹与中点路径", "en": "Locus and midpoint path" },
+      "source": "../geometry-benchmark/10-midpoint-locus.json",
+      "case": "../../docs/cases/midpoint-locus.md",
+      "focus": { "zh": "用路径点与轨迹表达动点关系，核验真实依赖而非固定采样点。", "en": "Express a moving relation with a path point and locus, and verify real dependencies rather than fixed samples." },
+      "checks": ["locus", "path point", "dependsOn"]
+    },
+    {
+      "id": "circumcircle",
+      "title": { "zh": "外接圆", "en": "Circumcircle" },
+      "source": "../geometry-benchmark/01-circumcircle.json",
+      "case": "../../docs/cases/circumcircle.md",
+      "focus": { "zh": "过三点的外接圆与圆心，核验等距关系和拖动后的稳定性。", "en": "Construct the circle through three points with its center and verify equal distances after dragging." },
+      "checks": ["circle", "center", "equal distance"]
+    },
+    {
+      "id": "incircle",
+      "title": { "zh": "内切圆", "en": "Incircle" },
+      "source": "../geometry-benchmark/02-incircle.json",
+      "case": "../../docs/cases/incircle.md",
+      "focus": { "zh": "三角形内切圆与内心，核验半径、切点和定义依赖。", "en": "Construct the triangle incircle and incenter, and verify the radius, tangency and definitions." },
+      "checks": ["circle", "tangency", "incenter"]
+    },
+    {
+      "id": "tangents",
+      "title": { "zh": "切线", "en": "Tangents" },
+      "source": "../geometry-benchmark/06-tangents.json",
+      "case": "../../docs/cases/tangents.md",
+      "focus": { "zh": "从圆外一点作两条切线，核验切点、垂直关系与拖动样本。", "en": "Draw two tangents from an external point and verify contact points, perpendicularity and drag samples." },
+      "checks": ["tangent", "perpendicular", "drag"]
+    },
+    {
+      "id": "shortest-path",
+      "title": { "zh": "最短路径", "en": "Shortest path" },
+      "source": "../geometry-benchmark/09-shortest-path.json",
+      "case": "../../docs/cases/shortest-path.md",
+      "focus": { "zh": "将军饮马型最短路径，核验对称点、共线与长度最小。", "en": "Model a reflected-path minimum and verify the mirror point, collinearity and minimal length." },
+      "checks": ["reflection", "collinear", "distance"]
+    },
+    {
+      "id": "ellipse-focus",
+      "title": { "zh": "椭圆焦点", "en": "Ellipse foci" },
+      "source": "../v2-cases/ellipse-focus-triangle.json",
+      "case": "../../docs/cases/ellipse-focus.md",
+      "focus": { "zh": "椭圆焦点与焦点三角形，核验焦点定义、距离和与样式。", "en": "Build an ellipse with its foci and focus triangle, and verify focus definitions, distance sums and styling." },
+      "checks": ["focus", "distance sum", "presentation"]
+    }
+  ]
+}

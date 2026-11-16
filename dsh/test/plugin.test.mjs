@@ -10,6 +10,7 @@ import { apply, createProvider, inject, name, parseSkill, renderInjection, resol
 const pluginRoot = fileURLToPath(new URL('../../', import.meta.url));
 const dshRoot = fileURLToPath(new URL('../', import.meta.url));
 const canonicalSkill = join(pluginRoot, 'skills/ggb-construction/SKILL.md');
+const canonicalSetup = join(pluginRoot, 'skills/setup/SKILL.md');
 const canonicalReference = join(pluginRoot, 'skills/ggb-construction/references/capabilities.md');
 delete process.env.DSH_GGB_PLUGIN_ROOT;
 
@@ -27,7 +28,9 @@ after(async () => {
 const fakePlugin = async ({ runtime }) => {
   const root = await scratch();
   await mkdir(join(root, 'skills/ggb-construction/references'), { recursive: true });
+  await mkdir(join(root, 'skills/setup'), { recursive: true });
   await cp(canonicalSkill, join(root, 'skills/ggb-construction/SKILL.md'));
+  await cp(canonicalSetup, join(root, 'skills/setup/SKILL.md'));
   await cp(canonicalReference, join(root, 'skills/ggb-construction/references/capabilities.md'));
   await writeFile(join(root, 'plugin.json'), JSON.stringify({ name: 'ggb-plugins', version: '0.0.0-test' }));
   if (runtime) {
@@ -63,6 +66,9 @@ test('parses the shared Codex skill instead of duplicating it', async () => {
   assert.throws(() => parseSkill('# no frontmatter\n', 'fixture'), /has no YAML frontmatter/);
   assert.throws(() => parseSkill('---\nname: other\ndescription: d\n---\n', 'fixture'), /declares skill "other"/);
   assert.throws(() => parseSkill('---\nname: ggb-construction\n---\n', 'fixture'), /has no description/);
+  const setup = await readFile(canonicalSetup, 'utf8');
+  assert.equal(parseSkill(setup, canonicalSetup, 'ggb-setup').content.startsWith('# GeoGebra Construction 安装引导'), true);
+  assert.throws(() => parseSkill(setup, canonicalSetup), /declares skill "ggb-setup"/);
 });
 
 test('the DSH bundle carries no second copy of the skill', () => {
@@ -86,14 +92,15 @@ test('resolveRoots honours configuration and rejects unusable roots', async () =
   assert.throws(() => resolveRoots({ skillRoot: unbuilt, pluginRoot: unbuilt }, isolated), /has no dist\/src\/cli\.js/);
 });
 
-test('the provider serves the shared body plus resolved absolute paths', async () => {
+test('the provider serves both shared bodies plus resolved absolute paths', async () => {
   const root = await fakePlugin({ runtime: true });
   const empty = await scratch();
-  const { provider, candidate } = createProvider({ skillRoot: root, pluginRoot: root }, { from: empty, home: empty });
+  const { provider, candidates } = createProvider({ skillRoot: root, pluginRoot: root }, { from: empty, home: empty });
 
   assert.equal(provider.name, 'ggb-plugins-dsh');
-  assert.deepEqual(await provider.list(), [candidate]);
-  assert.equal(candidate.name, 'ggb-construction');
+  assert.deepEqual(await provider.list(), candidates);
+  assert.deepEqual(candidates.map(item => item.name), ['ggb-construction', 'ggb-setup']);
+  const candidate = candidates[0];
   assert.equal(candidate.rank, 300);
   assert.equal(candidate.provider, 'ggb-plugins-dsh');
   assert.deepEqual(candidate.invocation, { modelInvocable: true, userInvocable: true });
@@ -106,6 +113,12 @@ test('the provider serves the shared body plus resolved absolute paths', async (
   assert.ok(definition.content.includes('# GeoGebra 二维数学与代数'));
   assert.ok(definition.content.includes(join(root, 'dist/src/cli.js')));
   assert.ok(definition.content.includes('"node": "node"'));
+
+  const setup = candidates[1];
+  assert.deepEqual(setup.resourceBase, { kind: 'directory', path: join(root, 'skills/setup') });
+  const setupDefinition = await provider.get(setup, {});
+  assert.ok(setupDefinition.content.includes('# GeoGebra Construction 安装引导'));
+  assert.ok(setupDefinition.content.includes(`插件根目录：\`${root}\``));
 });
 
 test('an unbuilt checkout still loads and states how to fix it', async () => {
@@ -127,12 +140,25 @@ test('applying registers exactly one provider on the registry', async () => {
   assert.throws(() => apply(stubContext(), { skillRoot: root, pluginRoot: root, rank: Number.NaN }), /rank must be a finite number/);
 });
 
+test('host features wait for their injected services', async () => {
+  const root = await fakePlugin({ runtime: true });
+  const ctx = stubContext();
+  const injections = [];
+  ctx.inject = (services, callback) => { injections.push(services); callback({ get: () => undefined }); };
+  apply(ctx, { skillRoot: root, pluginRoot: root });
+  assert.deepEqual(injections,
+    [['tools', 'commands', 'attachments', 'workingDirectory']]);
+});
+
 test('renderInjection reports paths only for a resolved runtime', () => {
   assert.match(renderInjection(undefined), /没有找到已构建的 GeoGebra CLI/);
   assert.ok(!renderInjection(undefined).includes('```json'));
   const rendered = renderInjection('/tmp/ggb-plugin-root');
   assert.ok(rendered.includes(join('/tmp/ggb-plugin-root', 'dist/src/cli.js')));
   assert.ok(rendered.includes('"node": "node"'));
+  const setup = renderInjection('/tmp/ggb-plugin-root', 'ggb-setup');
+  assert.ok(setup.includes('插件根目录：`/tmp/ggb-plugin-root`'));
+  assert.ok(!setup.includes('```json'));
 });
 
 test('isolated bundle resolves its own payload without Codex or a checkout', async () => {
@@ -154,4 +180,5 @@ test('the Codex plugin remains the shipped client contract', async () => {
   const dshManifest = JSON.parse(await readFile(join(dshRoot, 'package.json'), 'utf8'));
   assert.equal(dshManifest.name, 'ggb-plugins-dsh');
   assert.equal(dshManifest.dsh.bundle.patch, './cordis.patch.yml');
+  assert.equal(dshManifest.engines.dsh, '>=0.2.1-rc.2');
 });

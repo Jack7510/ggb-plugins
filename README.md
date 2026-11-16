@@ -34,8 +34,9 @@ and `npm`.
 
 The current release is [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5).
 It ships the Codex ZIP and the DSH npm bundle; the WorkBuddy ZIP is built from the same source
-with `pnpm pack:workbuddy` and is not published yet. No package is in a public plugin
-directory, but the Release archives are installable; see the
+with `pnpm pack:workbuddy` and is not published yet. The DSH package is listed on
+[dsh-plugin.org](https://dsh-plugin.org/plugins/jack7510/ggb-plugins-dsh); the curated
+5,539-entry awesome index is still pending. See the
 [0.8.5 release notes](https://github.com/Jack7510/ggb-plugins/blob/main/docs/releases/v0.8.5.md).
 
 - Codex: [installation and upgrade guide](codex/README.md), in Chinese.
@@ -90,7 +91,8 @@ A successful run writes one delivery directory:
 | `request.json`, `manifest.json` | Archived input and delivery manifest |
 
 Reports state which checks ran and how far finite interaction samples reach; they never claim a
-general proof.
+general proof. A standalone printable HTML report is produced with
+`node scripts/render-report.mjs --delivery <delivery> --output <file.html>`.
 
 The delivery directory sits at `<outputDir>/<title>/delivery/`. `<title>` comes from the problem
 and also names the GGB file; a repeated title gets `-2`, `-3` instead of overwriting an earlier
@@ -140,11 +142,12 @@ commands, the working rules for coding agents, and the release process live in
 - `viewer/` — the local page that hosts the GeoGebra applet.
 - `skills/` — the shared Skill every host loads.
 - `codex/`, `dsh/`, `workbuddy/` — host-specific plugin assets, install guides, and acceptance records.
-- `examples/`, `tests/` — runnable inputs and regression tests.
-- `scripts/` — dependency setup, packaging, and coverage tools.
+- `examples/`, `tests/` — runnable inputs, the 10-type template index, and regression tests.
+- `scripts/` — dependency setup, packaging, report rendering, and coverage tools.
 - `docs/` — [requirements and design](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md),
-  [change record](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md), and
-  cross-client validation records. Historical records are indexed in the
+  [change record](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md),
+  the teacher [case library](https://github.com/Jack7510/ggb-plugins/blob/main/docs/cases/README.md),
+  and cross-client validation records. Historical records are indexed in the
   [stage archive](https://github.com/Jack7510/ggb-plugins/blob/main/docs/archive/README.md).
 
 ## Scope and limits

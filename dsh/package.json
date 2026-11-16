@@ -1,6 +1,6 @@
 {
   "name": "ggb-plugins-dsh",
-  "version": "0.8.5",
+  "version": "0.9.0",
   "private": false,
   "type": "module",
   "description": "GeoGebra construction Skill and verified delivery CLI for DeepSeek Harness",
@@ -25,11 +25,16 @@
     "./drafts": {
       "types": "./dist/src/draft-requests.d.ts",
       "default": "./dist/src/draft-requests.js"
-    }
+    },
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
   },
   "files": [
     "index.js",
+    "client.js",
     "cordis.patch.yml",
+    "icon.svg",
     "locale",
     "README.md",
     "README.zh-CN.md",
@@ -38,9 +43,15 @@
     "viewer/index.html",
     "scripts/setup-plugin.mjs",
     "scripts/setup-runtime.mjs",
+    "scripts/render-report.mjs",
     "skills/ggb-construction/SKILL.md",
     "skills/ggb-construction/worker.md",
     "skills/ggb-construction/references",
+    "skills/setup/SKILL.md",
+    "examples/templates",
+    "examples/v2-cases",
+    "examples/geometry-benchmark",
+    "docs/cases",
     "capabilities.json",
     "dependencies.lock",
     "runtime.lock.json",
@@ -52,17 +63,25 @@
     "dist/src/*.d.ts",
     "dsh/executor.js",
     "dsh/request-schema.js",
+    "delivery-card.js",
     "source"
   ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
     }
   },
   "license": "MIT",
   "engines": {
     "node": "^22.19.0 || >=24.0.0",
-    "dsh": ">=0.2.1-rc.2 <0.2.2"
+    "dsh": ">=0.2.1-rc.2"
   },
   "keywords": [
     "dsh-plugin",

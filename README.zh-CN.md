@@ -27,7 +27,8 @@
 
 当前版本为 [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5)，提供
 Codex ZIP 与 DSH npm 包；WorkBuddy ZIP 由同一源码通过 `pnpm pack:workbuddy` 构建，尚未发布。
-三个包都未提交公共插件目录，但 Release 归档可直接安装；
+DSH 包已在 [dsh-plugin.org](https://dsh-plugin.org/plugins/jack7510/ggb-plugins-dsh) 收录；
+awesome-dsh-plugin 的 5,539 条主索引仍待提交；
 版本说明见 [0.8.5 发布记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/releases/v0.8.5.md)。
 
 - Codex：[安装与升级说明](codex/README.md)。
@@ -72,7 +73,8 @@ https://cdn.jsdelivr.net/gh/Jack7510/ggb-plugins@main/docs/market/index.json
 | `preview.png` | 交付构型截图 |
 | `request.json`、`manifest.json` | 输入留档与交付清单 |
 
-报告会说明实际执行了哪些检查、有限交互样本覆盖到哪里，不会声称构成一般性证明。
+报告会说明实际执行了哪些检查、有限交互样本覆盖到哪里，不会声称构成一般性证明。需要打印时运行
+`node scripts/render-report.mjs --delivery <交付目录> --output <文件.html>` 生成独立 HTML 报告。
 
 交付目录位于 `<outputDir>/<题目>/delivery/`；`<题目>` 同时是 GGB 文件名，同名题目自动追加 `-2`、`-3`，不覆盖旧文件。
 
@@ -112,9 +114,9 @@ pnpm demo
 - `viewer/`：承载 GeoGebra applet 的本地页面。
 - `skills/`：各宿主共用的 Skill。
 - `codex/`、`dsh/`、`workbuddy/`：各宿主的插件资产、安装说明与验收记录。
-- `examples/`、`tests/`：可运行输入与回归用例。
-- `scripts/`：依赖准备、三种打包与覆盖记录工具。
-- `docs/`：[需求与设计](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md)、[重要修改记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)与跨客户端验收记录；历史阶段结果见[归档索引](https://github.com/Jack7510/ggb-plugins/blob/main/docs/archive/README.md)。
+- `examples/`、`tests/`：可运行输入、10 类题型模板索引与回归用例。
+- `scripts/`：依赖准备、三种打包、打印报告与覆盖记录工具。
+- `docs/`：[需求与设计](https://github.com/Jack7510/ggb-plugins/blob/main/docs/ggb-plugins-design.md)、[重要修改记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/CHANGES.md)、[教师案例库](https://github.com/Jack7510/ggb-plugins/blob/main/docs/cases/README.md)与跨客户端验收记录；历史阶段结果见[归档索引](https://github.com/Jack7510/ggb-plugins/blob/main/docs/archive/README.md)。
 
 ## 支持范围与边界
 

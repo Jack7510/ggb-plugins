@@ -10,13 +10,32 @@
 | 项目 | 状态 |
 | --- | --- |
 | npm `0.8.5` | 已发布，latest；索引时间戳已同步 |
-| DSH `0.2.1-rc.3` 安装 | 0.8.5 的 `engines.dsh` 为 `>=0.2.1-rc.2 <0.2.2` |
+| npm `0.9.0` | 本地资产已构建；尚未发布，索引与安装说明仍指向 0.8.5 |
+| DSH 桌面兼容 | `engines.dsh` 为 `>=0.2.1-rc.2`（只设下限） |
 | 隔离安装验收 | TGZ 与 npm registry 安装、`setup-plugin`、GeoGebra 5.4.932.1 下载、doctor 均通过 |
 | GitHub Release | [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5) 已发布 |
 | GitHub topic `dsh-plugin` | 已添加；同时添加 `deepseek-harness`、`geogebra` 等 |
-| dsh-plugin.org 收录 | [Issue #436](https://github.com/dshplugin/dsh-plugin-hub/issues/436) 已提交 |
+| dsh-plugin.org 收录 | 已收录（2026-10-27）；[Issue #436](https://github.com/dshplugin/dsh-plugin-hub/issues/436) 已于 2026-10-26 关闭 |
+| awesome-dsh-plugin 主索引 | 尚未进入 5,539 条 npm 索引；待提交 [awesome-entry.yml](market/awesome-entry.yml) |
+| dsh-market | 目录来自 awesome，随其同步；不单独投稿 |
+| dsh-plugin-radar | 自动扫描 GitHub topic；不单独投稿 |
 | 社区展示帖 | [Discussion #4](https://github.com/moyuqing-man/dsh-plugin-community/discussions/4) 已发布 |
 | DSH Discover 索引 | [market/index.json](market/index.json) 已可分享 |
+
+## 进入 awesome 主索引
+
+dsh-plugin.org 已收录，但 awesome-dsh-plugin 的 5,539 条 npm 主索引仍没有本包。dsh-market
+读取同一份 awesome 目录，dsh-plugin-radar 自动扫描 GitHub topic，因此真正要提交的只有
+awesome 的一个文件：
+
+1. 复制 [awesome-entry.yml](market/awesome-entry.yml) 到 awesome 仓库的
+   `data/plugins/jack7510__ggb-plugins-dsh.yml`；
+2. 确认 URL 指向分发仓库 `Jack7510/ggb-plugins-dsh`（根 `package.json` 已声明
+   `dsh.bundle`，仓库有 `dsh-plugin` topic，且已发布 npm 包）；
+3. 提交 PR，等待维护者按代码核对描述；合并后 README 与 dsh-market 会自动同步。
+
+不要把条目提交到 dsh-market 仓库：它明确只消费 awesome 目录。也不要虚构 dsh-plugin-radar
+的收录状态；它按扫描快照自动更新。
 
 ## 一句话介绍
 
@@ -73,7 +92,7 @@ https://github.com/Jack7510/ggb-plugins
 dsh plugin --profile web add ggb-plugins-dsh@0.8.5
 
 ### 兼容与运行要求
-DSH >=0.2.1-rc.2 <0.2.2（已在 0.2.1-rc.3 验证安装）；Node.js 22+；pnpm 11；
+DSH >=0.2.1-rc.2（桌面 bundle 只设下限；已在 0.2.2-rc.1 通过引擎检查，正式版仍待验收）；Node.js 22+；pnpm 11；
 Google Chrome 或 Microsoft Edge；固定 GeoGebra 5.4.932.1。安装后需运行
 setup-plugin 下载 runtime 并执行 doctor。
 
@@ -113,7 +132,8 @@ DSH 不自带统一索引，任何静态 `index.json` 都能作为插件源。�
 
 在 DSH 中打开 **Plugins → More → Experimental plugins → Custom plugin markets**，
 启用后在 **Discover → Add index source** 填入地址。0.8.5 的
-`publishTimestamp` 已更新为 npm 发布时间；后续版本发布后同样更新：
+`publishTimestamp` 已更新为 npm 发布时间；索引里的 `engines.dsh` 仍记录已发布
+tarball 的范围，下一版发布后再同步为只设下限，避免在包发布前提前承诺。后续版本发布后同样更新：
 
 ```sh
 npm view ggb-plugins-dsh time.<版本>
@@ -156,5 +176,6 @@ node ~/.dsh/profiles/web/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 - [x] GitHub topics 包含 `dsh-plugin`
 - [x] README 首屏有安装命令、截图和兼容范围
 - [x] 演示 GIF 已制作并加入 README
-- [x] dsh-plugin.org Issue 已提交（[#436](https://github.com/dshplugin/dsh-plugin-hub/issues/436)）
+- [x] dsh-plugin.org 已收录（2026-10-27），Issue #436 已关闭
+- [ ] awesome-dsh-plugin 主索引条目已准备，待提 PR（[awesome-entry.yml](market/awesome-entry.yml)）
 - [x] 社区展示帖已发布（[Discussion #4](https://github.com/moyuqing-man/dsh-plugin-community/discussions/4)）

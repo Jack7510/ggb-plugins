@@ -96,6 +96,7 @@ Skill 描述的是**通用解**：稳定的分析流程、构法选择原则、�
 | `docs/publish-npm.md` | DSH bundle 的 npm 发布流程与错误处理 |
 | `docs/dsh-discovery.md` | DSH 分发仓库、开源声明位置与收录流程 |
 | `skills/ggb-construction/references/` | `capabilities.md` 是字段与谓词契约，`patterns.md` 是可复用构法参考 |
+| `examples/templates/`、`docs/cases/` | 题型模板索引与教师一题一档案例；只做内容资产，不进入 Skill 正文 |
 | `codex/docs/`、`dsh/docs/` 下的验收记录 | 各客户端的测试与验收证据 |
 
 规则：README 与 AGENTS 不重复维护项目结构、技术栈或架构；字段与调用细节以能力契约为准，安装细节只在安装说明，测试数量与证据只在验收记录。
