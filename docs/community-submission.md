@@ -10,7 +10,7 @@
 | 项目 | 状态 |
 | --- | --- |
 | npm `0.8.5` | 已发布，latest；索引时间戳已同步 |
-| npm `0.9.0` | 本地资产已构建；尚未发布，索引与安装说明仍指向 0.8.5 |
+| npm `0.9.0` | 本地资产已构建；隔离 Web 安装、doctor 与交付卡片已验证；尚未发布 |
 | DSH 桌面兼容 | `engines.dsh` 为 `>=0.2.1-rc.2`（只设下限） |
 | 隔离安装验收 | TGZ 与 npm registry 安装、`setup-plugin`、GeoGebra 5.4.932.1 下载、doctor 均通过 |
 | GitHub Release | [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5) 已发布 |

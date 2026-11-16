@@ -22,8 +22,9 @@
   收录，Issue #436 已关闭；新增 awesome-dsh-plugin 一文件条目
   [market/awesome-entry.yml](market/awesome-entry.yml)，5,539 条主索引仍待提交。
 
-- 0.9.0 的本地构建资产见 [0.9.0 发布记录](releases/v0.9.0.md)；npm、GitHub Release
-  和分发仓库尚未发布。
+- 0.9.0 的本地构建资产见 [0.9.0 发布记录](releases/v0.9.0.md)；隔离 Web profile
+  已完成安装、doctor、真实会话交付和卡片验收，见
+  [本机验证](../dsh/docs/v0.9.0-validation.md)。npm、GitHub Release 和分发仓库尚未发布。
 
 ## 未发布（0.8.5 及更早）
 
