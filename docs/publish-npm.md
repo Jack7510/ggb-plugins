@@ -57,7 +57,7 @@ npm pack --dry-run <pluginDirectory>
 ```sh
 npm view ggb-plugins-dsh version dist.tarball engines.dsh
 npm stage list                              # 不应再有待审项
-npm dist-tag add ggb-plugins-dsh@0.8.5 latest   # latest 若仍指向占位包
+npm dist-tag add ggb-plugins-dsh@0.9.0 latest   # latest 若仍指向占位包
 npm unpublish ggb-plugins-dsh@0.0.0-stage       # 清理占位（发布后 72 小时内可撤销）
 ```
 
@@ -65,7 +65,7 @@ npm unpublish ggb-plugins-dsh@0.0.0-stage       # 清理占位（发布后 72 �
 
 ```sh
 tmp=$(mktemp -d)
-DSH_HOME=$tmp dsh plugin --profile web add ggb-plugins-dsh@0.8.5
+DSH_HOME=$tmp dsh plugin --profile web add ggb-plugins-dsh@0.9.0
 rm -rf "$tmp"
 ```
 
@@ -73,7 +73,7 @@ rm -rf "$tmp"
 
 ```sh
 profile=desktop   # DSH 插件中心/Web 宿主改为 web
-dsh plugin --profile "$profile" add ggb-plugins-dsh@0.8.5
+dsh plugin --profile "$profile" add ggb-plugins-dsh@0.9.0
 node ~/.dsh/profiles/$profile/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 # 重启 DSH
 ```
@@ -81,7 +81,7 @@ node ~/.dsh/profiles/$profile/node_modules/ggb-plugins-dsh/scripts/setup-plugin.
 给老师的版本（粘贴到 DSH 对话框）：
 
 ```text
-请安装 npm 包 ggb-plugins-dsh@0.8.5 到 desktop profile（Web 宿主改用 web），
+请安装 npm 包 ggb-plugins-dsh@0.9.0 到 desktop profile（Web 宿主改用 web），
 运行安装副本里的 setup-plugin，然后提醒我重启 DSH。
 ```
 
@@ -120,18 +120,20 @@ unpublish 正式版本。
 配置加载。受限 SDK Server 入口仍只接受已验证的 `0.2.1-rc.2`，不因本次范围放宽
 而改变。发布前不要移动已发布标签；用户可见版本以 npm 和 GitHub Release 为准。
 
-## 本次记录（0.9.0，准备发布）
+## 本次记录（0.9.0）
 
-0.9.0 的三端本地资产已构建，DSH TGZ 的 SHA-256 为
-`fbe4efbbbf0f37f9b085cfb3f41e42932aeac3ebe614309dba2cf9bf3bc425a8`。在隔离
-`DSH_HOME` 的 `web` profile 中安装 TGZ、运行 `setup-plugin`、下载并校验
+0.9.0 已发布到 npm（2026-11-16T12:04:07Z），`latest` 指向 0.9.0。DSH TGZ 的
+SHA-256 为 `fbe4efbbbf0f37f9b085cfb3f41e42932aeac3ebe614309dba2cf9bf3bc425a8`。
+在隔离 `DSH_HOME` 的 `web` profile 中安装 TGZ、运行 `setup-plugin`、下载并校验
 GeoGebra 5.4.932.1、执行 `doctor` 均通过（`smoke`、`casSmoke`、`pathSmoke`）。
-npm、GitHub Release 和分发仓库尚未发布；发布时再更新 `docs/market/index.json` 的
-版本、`publishTimestamp` 与安装说明。不要用 0.9.0 的本地范围描述已发布的 0.8.5。
+`docs/market/index.json` 已加入 0.9.0，`publishTimestamp` 为 `1794830647`，
+`engines.dsh` 为 `>=0.2.1-rc.2`。
 
-## 下一版兼容声明（未发布）
+发布过程中 npm registry 曾返回 202 并短暂出现“staged version”提示；版本在传播后
+可用，重试发布返回 409。以后遇到同一现象先观察 `npm view`，不要立即提升版本。
 
-桌面 bundle 的 `engines.dsh` 已改为只设下限 `>=0.2.1-rc.2`，避免 0.2.2 正式版
-和后续 0.2.x 被拒绝；发布前仍需在目标 0.2.2 版本上重跑安装、setup、doctor 和
-代表案例。受限 SDK Server 入口没有随之下放，仍只接受 `0.2.1-rc.2`；若要放开，
-必须先验证该 SDK 的宿主协议、工具注入和交付回执。
+## 兼容边界
+
+桌面 bundle 的 `engines.dsh` 为 `>=0.2.1-rc.2`；0.2.2 正式版发布前仍需重跑安装、
+setup、doctor 和代表案例。受限 SDK Server 入口没有随之下放，仍只接受
+`0.2.1-rc.2`；若要放开，必须先验证该 SDK 的宿主协议、工具注入和交付回执。

@@ -18,12 +18,9 @@ conditions before delivery.
 - Distribution repository: https://github.com/Jack7510/ggb-plugins-dsh
 - Source and issues: https://github.com/Jack7510/ggb-plugins
 - npm package: https://www.npmjs.com/package/ggb-plugins-dsh
-- The published 0.8.5 package requires setup-plugin after installation to
+- The published 0.9.0 package requires setup-plugin after installation to
   prepare dependencies and the GeoGebra runtime; a package install alone
-  does not complete setup. Its DSH engine range is >=0.2.1-rc.2 <0.2.2.
+  does not complete setup. Its DSH engine range is >=0.2.1-rc.2.
 ```
-
-0.9.0 发布后，把正文里的 `0.8.5` 和旧范围 `>=0.2.1-rc.2 <0.2.2` 替换为
-`0.9.0` 与 `>=0.2.1-rc.2`，再提交；不要在 npm 还没有 0.9.0 时提前投稿。
 
 提交后等待维护者审核；合并后再验证上游目录、dsh-market 和实际客户端中的搜索与安装。投稿或合并不代表安装及运行验收通过。

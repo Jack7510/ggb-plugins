@@ -6,7 +6,7 @@
 
 ## 版本与适用范围
 
-插件包与 Codex、DSH 同版本构建，当前为 **0.8.5**，由 `pnpm pack:workbuddy` 产出 ZIP 与
+插件包与 Codex、DSH 同版本构建，当前为 **0.9.0**，由 `pnpm pack:workbuddy` 产出 ZIP 与
 `.zip.sha256` 校验文件。该 ZIP 尚未随 GitHub Release 发布，也未提交 WorkBuddy 插件市场；
 装包前先确认来源与校验值。插件格式通过、本地装载成功与公共市场上架是三件不同的事，
 不能用其中一项推断其余两项。Codex 与 DSH 各自发布、各自安装，不要用本页结果判断
@@ -53,10 +53,10 @@ WorkBuddy 只从版本化缓存加载已安装插件，路径为
 `~/.workbuddy/plugins/cache/<市场名>/ggb-plugins/<版本>/`：
 
 ```sh
-shasum -a 256 -c ggb-plugins-workbuddy-0.8.5.zip.sha256
-unzip -q ggb-plugins-workbuddy-0.8.5.zip -d /tmp/ggb
-mkdir -p ~/.workbuddy/plugins/cache/local/ggb-plugins/0.8.5
-cp -R /tmp/ggb/ggb-plugins/. ~/.workbuddy/plugins/cache/local/ggb-plugins/0.8.5/
+shasum -a 256 -c ggb-plugins-workbuddy-0.9.0.zip.sha256
+unzip -q ggb-plugins-workbuddy-0.9.0.zip -d /tmp/ggb
+mkdir -p ~/.workbuddy/plugins/cache/local/ggb-plugins/0.9.0
+cp -R /tmp/ggb/ggb-plugins/. ~/.workbuddy/plugins/cache/local/ggb-plugins/0.9.0/
 ```
 
 随后 `/reload-plugins`。这种方式不受市场管理，升级需要手工替换整个目录。

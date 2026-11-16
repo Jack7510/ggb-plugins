@@ -9,11 +9,11 @@
 
 | 项目 | 状态 |
 | --- | --- |
-| npm `0.8.5` | 已发布，latest；索引时间戳已同步 |
-| npm `0.9.0` | 本地资产已构建；隔离 Web 安装、doctor 与交付卡片已验证；尚未发布 |
+| npm `0.9.0` | 已发布，latest；索引时间戳已同步；隔离 Web 安装、doctor 与交付卡片已验证 |
+| npm `0.8.5` | 上一版 |
 | DSH 桌面兼容 | `engines.dsh` 为 `>=0.2.1-rc.2`（只设下限） |
 | 隔离安装验收 | TGZ 与 npm registry 安装、`setup-plugin`、GeoGebra 5.4.932.1 下载、doctor 均通过 |
-| GitHub Release | [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5) 已发布 |
+| GitHub Release | [v0.9.0](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.9.0) 待发布 |
 | GitHub topic `dsh-plugin` | 已添加；同时添加 `deepseek-harness`、`geogebra` 等 |
 | dsh-plugin.org 收录 | 已收录（2026-10-27）；[Issue #436](https://github.com/dshplugin/dsh-plugin-hub/issues/436) 已于 2026-10-26 关闭 |
 | awesome-dsh-plugin 主索引 | 尚未进入 5,539 条 npm 索引；待提交 [awesome-entry.yml](market/awesome-entry.yml) |
@@ -55,7 +55,7 @@ awesome 的一个文件：
 
 ```sh
 profile=desktop   # DSH 插件中心/Web 宿主改为 web
-dsh plugin --profile "$profile" add ggb-plugins-dsh@0.8.5
+dsh plugin --profile "$profile" add ggb-plugins-dsh@0.9.0
 node ~/.dsh/profiles/$profile/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 ```
 
@@ -89,7 +89,7 @@ https://github.com/Jack7510/ggb-plugins
 技能与智能体
 
 ### 安装命令
-dsh plugin --profile web add ggb-plugins-dsh@0.8.5
+dsh plugin --profile web add ggb-plugins-dsh@0.9.0
 
 ### 兼容与运行要求
 DSH >=0.2.1-rc.2（桌面 bundle 只设下限；已在 0.2.2-rc.1 通过引擎检查，正式版仍待验收）；Node.js 22+；pnpm 11；
@@ -131,9 +131,8 @@ DSH 不自带统一索引，任何静态 `index.json` 都能作为插件源。�
 - jsDelivr：`https://cdn.jsdelivr.net/gh/Jack7510/ggb-plugins@main/docs/market/index.json`。
 
 在 DSH 中打开 **Plugins → More → Experimental plugins → Custom plugin markets**，
-启用后在 **Discover → Add index source** 填入地址。0.8.5 的
-`publishTimestamp` 已更新为 npm 发布时间；索引里的 `engines.dsh` 仍记录已发布
-tarball 的范围，下一版发布后再同步为只设下限，避免在包发布前提前承诺。后续版本发布后同样更新：
+启用后在 **Discover → Add index source** 填入地址。0.9.0 的
+`publishTimestamp` 已更新为 npm 发布时间，`engines.dsh` 已同步为只设下限。后续版本发布后同样更新：
 
 ```sh
 npm view ggb-plugins-dsh time.<版本>
@@ -141,7 +140,7 @@ npm view ggb-plugins-dsh time.<版本>
 
 ## 社区公告
 
-GitHub Release [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5)
+GitHub Release [v0.9.0](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.9.0)
 已发布，附 Codex ZIP、DSH TGZ 和校验文件；发帖时可另配 30 秒演示 GIF。再到
 [DSH 插件社区展示区](https://github.com/moyuqing-man/dsh-plugin-community/discussions/categories/plugin-showcase)
 发作者自荐。发帖前读一遍
@@ -157,7 +156,7 @@ GitHub Release [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.
 不会跳过；它不是答案生成器。
 
 安装（DSH 0.2.1-rc.3）：
-dsh plugin --profile web add ggb-plugins-dsh@0.8.5
+dsh plugin --profile web add ggb-plugins-dsh@0.9.0
 node ~/.dsh/profiles/web/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 
 适合：几何、函数、方程、统计等二维题目；需要 Chrome 或 Edge。
@@ -168,11 +167,11 @@ node ~/.dsh/profiles/web/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 
 ## 发布检查清单
 
-- [x] `0.8.5` 已发布到 npm，且 `npm view ggb-plugins-dsh engines.dsh` 显示范围
+- [x] `0.9.0` 已发布到 npm，且 `npm view ggb-plugins-dsh engines.dsh` 显示范围
 - [x] 用隔离 `DSH_HOME` 和 `web` profile 安装成功
 - [x] `setup-plugin` 与 `doctor` 通过
 - [x] `docs/market/index.json` 的时间戳已更新
-- [x] GitHub Release `v0.8.5` 含两种包和校验文件
+- [ ] GitHub Release `v0.9.0` 含两种包和校验文件（tag 推送后由 workflow 创建）
 - [x] GitHub topics 包含 `dsh-plugin`
 - [x] README 首屏有安装命令、截图和兼容范围
 - [x] 演示 GIF 已制作并加入 README

@@ -5,11 +5,11 @@
 
 ## 版本与适用范围
 
-当前版本为 **0.8.5**。[GitHub Release v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5)
+当前版本为 **0.9.0**。[GitHub Release v0.9.0](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.9.0)
 已提供 Codex ZIP 与校验文件；Codex 包尚未提交公共插件目录。DSH npm 与 WorkBuddy ZIP 也已发布
-0.8.5，三个客户端各自安装，不能用其他客户端的发布状态推断 Codex 的安装状态。
+0.9.0，三个客户端各自安装，不能用其他客户端的发布状态推断 Codex 的安装状态。
 
-本页的安装引导针对包含 `skills/setup/SKILL.md` 的 0.8.5 包；历史包不承诺有设置入口。
+本页的安装引导针对包含 `skills/setup/SKILL.md` 的 0.9.0 包；历史包不承诺有设置入口。
 
 需要支持本地插件的 Codex 客户端、PATH 中的 Node.js 22+、pnpm 11、curl、unzip，
 以及 Google Chrome 或 Microsoft Edge。从 GitHub 安装还需要 Git。
@@ -35,14 +35,14 @@ Codex 必须取得安装器完整退出结果。校验不符或 doctor 失败时
 
 ## 安装 ZIP（命令行）
 
-以下示例针对 GitHub Release v0.8.5 的 Codex ZIP。
+以下示例针对 GitHub Release v0.9.0 的 Codex ZIP。
 不要使用 GitHub 自动生成的 Source code ZIP 代替预编译插件包。
 
 在存放 ZIP 和校验文件的目录执行：
 
 ```sh
-shasum -a 256 -c ggb-plugins-0.8.5.zip.sha256
-unzip ggb-plugins-0.8.5.zip
+shasum -a 256 -c ggb-plugins-0.9.0.zip.sha256
+unzip ggb-plugins-0.9.0.zip
 ```
 
 校验必须成功，才执行解压和安装。`<plugin>` 是解压后的 `ggb-plugins` 绝对路径。
@@ -114,7 +114,7 @@ codex plugin add ggb-plugins@ggb-plugins-local --json
 ```
 
 然后按本页运行安装引导。Git 来源包含源码；安装器会重新构建，不能把陈旧 dist 当作成功。
-固定标签不自动切换到其他版本。安装 0.8.5 请使用 Release 中的 ZIP 和 `.sha256`，
+固定标签不自动切换到其他版本。安装 0.9.0 请使用 Release 中的 ZIP 和 `.sha256`，
 不要用 Source code ZIP 代替预编译包。
 
 ## 更新与卸载

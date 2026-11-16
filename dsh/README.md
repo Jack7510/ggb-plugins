@@ -17,11 +17,11 @@ DSH 插件中心或 Web 宿主使用 `web` profile：
 
 ```sh
 profile=desktop   # DSH 插件中心/Web 宿主改为 web
-dsh plugin --profile "$profile" add ggb-plugins-dsh@0.8.5
+dsh plugin --profile "$profile" add ggb-plugins-dsh@0.9.0
 node ~/.dsh/profiles/$profile/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 ```
 
-然后重启 DSH。升级时把 `@0.8.5` 换成新版本；版本列表见
+然后重启 DSH。升级时把 `@0.9.0` 换成新版本；版本列表见
 `npm view ggb-plugins-dsh versions`。发布流程见
 [发布到 npm](https://github.com/Jack7510/ggb-plugins/blob/main/docs/publish-npm.md)。
 
@@ -51,14 +51,14 @@ https://cdn.jsdelivr.net/gh/Jack7510/ggb-plugins@main/docs/market/index.json
 给桌面用户发这一句，让他粘贴到 DSH 对话框；DSH 会自己下载、校验并安装：
 
 ```text
-请安装 npm 包 ggb-plugins-dsh@0.8.5 到 desktop profile（Web 宿主改用 web），
+请安装 npm 包 ggb-plugins-dsh@0.9.0 到 desktop profile（Web 宿主改用 web），
 运行安装副本里的 setup-plugin，然后提醒我重启 DSH。
 ```
 
 英文版：
 
 ```text
-Install the npm package ggb-plugins-dsh@0.8.5 into the desktop profile (use web
+Install the npm package ggb-plugins-dsh@0.9.0 into the desktop profile (use web
 for the Web host), run setup-plugin in the installed copy, then remind me to
 restart DSH.
 ```
@@ -69,7 +69,7 @@ restart DSH.
 
 1. 检查前置：Node.js 22+、pnpm 11、`curl`、`unzip`，以及 Google Chrome 或
    Microsoft Edge。
-2. 安装 npm 包：`dsh plugin --profile desktop add ggb-plugins-dsh@0.8.5`。
+2. 安装 npm 包：`dsh plugin --profile desktop add ggb-plugins-dsh@0.9.0`。
    DSH 插件中心或 Web 宿主把 `desktop` 换成 `web`。维护者提供本地 TGZ 时
    改用其绝对路径，并先校验随附的 `.sha256`；校验不通过就停止，不安装。
 3. 确认 profile：桌面应用使用 `desktop`（目录

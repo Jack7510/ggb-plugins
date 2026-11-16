@@ -25,11 +25,11 @@
 
 ## 安装
 
-当前版本为 [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5)，提供
+当前版本为 [v0.9.0](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.9.0)，提供
 Codex ZIP 与 DSH npm 包；WorkBuddy ZIP 由同一源码通过 `pnpm pack:workbuddy` 构建，尚未发布。
 DSH 包已在 [dsh-plugin.org](https://dsh-plugin.org/plugins/jack7510/ggb-plugins-dsh) 收录；
 awesome-dsh-plugin 的 5,539 条主索引仍待提交；
-版本说明见 [0.8.5 发布记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/releases/v0.8.5.md)。
+版本说明见 [0.9.0 发布记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/releases/v0.9.0.md)。
 
 - Codex：[安装与升级说明](codex/README.md)。
 - DSH：[独立 headless profile 安装说明](dsh/README.md)。
@@ -39,7 +39,7 @@ DSH bundle 已发布到 npm：
 
 ```sh
 profile=desktop   # DSH 插件中心或 Web 宿主改为 web
-dsh plugin --profile "$profile" add ggb-plugins-dsh@0.8.5
+dsh plugin --profile "$profile" add ggb-plugins-dsh@0.9.0
 node ~/.dsh/profiles/$profile/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 ```
 

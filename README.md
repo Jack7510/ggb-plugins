@@ -32,12 +32,12 @@ and `npm`.
 
 ## Installation
 
-The current release is [v0.8.5](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.8.5).
+The current release is [v0.9.0](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.9.0).
 It ships the Codex ZIP and the DSH npm bundle; the WorkBuddy ZIP is built from the same source
 with `pnpm pack:workbuddy` and is not published yet. The DSH package is listed on
 [dsh-plugin.org](https://dsh-plugin.org/plugins/jack7510/ggb-plugins-dsh); the curated
 5,539-entry awesome index is still pending. See the
-[0.8.5 release notes](https://github.com/Jack7510/ggb-plugins/blob/main/docs/releases/v0.8.5.md).
+[0.9.0 release notes](https://github.com/Jack7510/ggb-plugins/blob/main/docs/releases/v0.9.0.md).
 
 - Codex: [installation and upgrade guide](codex/README.md), in Chinese.
 - DSH: [independent headless profile guide](dsh/README.md), in Chinese.
@@ -47,7 +47,7 @@ The DSH bundle is also on npm:
 
 ```sh
 profile=desktop   # use web for the DSH Discover or Web host
-dsh plugin --profile "$profile" add ggb-plugins-dsh@0.8.5
+dsh plugin --profile "$profile" add ggb-plugins-dsh@0.9.0
 node ~/.dsh/profiles/$profile/node_modules/ggb-plugins-dsh/scripts/setup-plugin.mjs
 ```
 

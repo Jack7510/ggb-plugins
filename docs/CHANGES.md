@@ -2,12 +2,11 @@
 
 只记录影响用途、行为、兼容性或维护方式的重要变化。这里说明“改了什么”；需求依据见[设计文档](ggb-plugins-design.md)，操作方法见 [README](../README.md)，具体测试与产物见对应验收记录。
 
-## 0.9.0（准备发布）
+## 0.9.0
 
 - DSH 桌面 bundle 的 `engines.dsh` 改为只设下限 `>=0.2.1-rc.2`，不再因 0.2.2
   正式版或后续 0.2.x 版本被引擎检查拒绝；受限 SDK Server 入口仍只接受已验证的
-  `0.2.1-rc.2`，扩大服务端范围仍需单独验收。`dsh/README` 与安装文案同步；
-  `docs/market/index.json` 仍记录已发布的 0.8.5，待 0.9.0 发布后更新。
+  `0.2.1-rc.2`，扩大服务端范围仍需单独验收。`dsh/README` 与安装文案同步；`docs/market/index.json` 已加入 0.9.0。
 - `ggb-setup` 安装引导随 DSH bundle 发布；DSH 适配器注册第二个 Skill。安装器增加
   Node、pnpm、curl、unzip 的前置检查，GeoGebra 下载支持 `GGB_RUNTIME_URL` 镜像、
   5 次重试、断点续传和失败后保留部分文件；doctor 成功时输出一行摘要。
@@ -22,9 +21,9 @@
   收录，Issue #436 已关闭；新增 awesome-dsh-plugin 一文件条目
   [market/awesome-entry.yml](market/awesome-entry.yml)，5,539 条主索引仍待提交。
 
-- 0.9.0 的本地构建资产见 [0.9.0 发布记录](releases/v0.9.0.md)；隔离 Web profile
-  已完成安装、doctor、真实会话交付和卡片验收，见
-  [本机验证](../dsh/docs/v0.9.0-validation.md)。npm、GitHub Release 和分发仓库尚未发布。
+- 0.9.0 已发布到 npm；隔离 Web profile 已完成安装、doctor、真实会话交付和卡片验收，见
+  [发布记录](releases/v0.9.0.md)与[本机验证](../dsh/docs/v0.9.0-validation.md)。GitHub Release
+  和分发仓库在发布流程完成后更新。
 
 ## 未发布（0.8.5 及更早）
 
