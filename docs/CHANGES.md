@@ -20,13 +20,13 @@
 - 修正分发状态：README 不再声称“没有公共目录收录”；dsh-plugin.org 已于 2026-10-27
   收录，Issue #436 已关闭；新增 awesome-dsh-plugin 一文件条目
   [market/awesome-entry.yml](market/awesome-entry.yml)；5,539 条主索引的 PR
-  [#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911) 已提交，待审核。
+  [#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911) 已合并。
 
 - 修复 `sync-dsh-repo` 覆盖分发仓库 `.git` 的问题；发布工作流在测试前准备 GeoGebra
   runtime，避免无 runtime 的 CI 失败。
 - 0.9.0 已发布到 npm；隔离 Web profile 已完成安装、doctor、真实会话交付和卡片验收，见
   [发布记录](releases/v0.9.0.md)与[本机验证](../dsh/docs/v0.9.0-validation.md)。GitHub Release 已发布；分发仓库已同步为 0.9.0；awesome 投稿 PR
-  [#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911) 已提交，CI 通过，待审核。
+  [#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911) 已合并。
 
 ## 未发布（0.8.5 及更早）
 

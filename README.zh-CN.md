@@ -26,9 +26,10 @@
 ## 安装
 
 当前版本为 [v0.9.0](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.9.0)，提供
-Codex ZIP 与 DSH npm 包；WorkBuddy ZIP 由同一源码通过 `pnpm pack:workbuddy` 构建，尚未发布。
-DSH 包已在 [dsh-plugin.org](https://dsh-plugin.org/plugins/jack7510/ggb-plugins-dsh) 收录；
-awesome-dsh-plugin 的 5,539 条主索引 PR 已提交，待审核；
+Codex ZIP、DSH npm 包与 WorkBuddy ZIP；WorkBuddy ZIP 由同一源码通过
+`pnpm pack:workbuddy` 构建并随同一 Release 发布。
+DSH 包已在 [dsh-plugin.org](https://dsh-plugin.org/plugins/jack7510/ggb-plugins-dsh) 收录，
+并已合并进 awesome-dsh-plugin 主索引；
 版本说明见 [0.9.0 发布记录](https://github.com/Jack7510/ggb-plugins/blob/main/docs/releases/v0.9.0.md)。
 
 - Codex：[安装与升级说明](codex/README.md)。
