@@ -23,7 +23,8 @@
   [#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911) 已合并。
 
 - 修复 `sync-dsh-repo` 覆盖分发仓库 `.git` 的问题；发布工作流在测试前准备 GeoGebra
-  runtime，避免无 runtime 的 CI 失败。
+  runtime。`v0.9.0` 的自动 workflow 因旧 runner 缺 runtime 失败，本次 Release 用本地
+  校验资产手动创建；下一版标签验证修复后的 workflow。
 - 0.9.0 已发布到 npm；隔离 Web profile 已完成安装、doctor、真实会话交付和卡片验收，见
   [发布记录](releases/v0.9.0.md)与[本机验证](../dsh/docs/v0.9.0-validation.md)。GitHub Release 已发布；分发仓库已同步为 0.9.0；awesome 投稿 PR
   [#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911) 已合并。

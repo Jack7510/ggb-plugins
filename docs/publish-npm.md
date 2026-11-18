@@ -132,6 +132,11 @@ GeoGebra 5.4.932.1、执行 `doctor` 均通过（`smoke`、`casSmoke`、`pathSmo
 发布过程中 npm registry 曾返回 202 并短暂出现“staged version”提示；版本在传播后
 可用，重试发布返回 409。以后遇到同一现象先观察 `npm view`，不要立即提升版本。
 
+`v0.9.0` 的自动 Release workflow（run 43863937107）因 GitHub runner 没有
+`.runtime` 在 `preview-layout` 测试失败；已修复 workflow，在测试前运行
+`pnpm setup:runtime`。本次 Release 使用本地构建并校验的同一组资产手动创建；
+下一版标签需要验证修复后的 workflow。
+
 ## 兼容边界
 
 桌面 bundle 的 `engines.dsh` 为 `>=0.2.1-rc.2`；0.2.2 正式版发布前仍需重跑安装、
