@@ -27,7 +27,7 @@ git tag v<version> && git push --tags
 
 | 位置 | 声明内容 | 维护方式 |
 | --- | --- | --- |
-| `dsh/package.json` | `license`、`repository`（含 `directory`）、`homepage`、`bugs` | 手工，随包发布 |
+| `dsh/package.json` | `license`、`repository`（分发仓库）、`homepage` 和 `bugs`（源码仓库） | 手工，随包发布 |
 | 仓库根 `package.json` | 同上，供仓库级工具读取 | 手工 |
 | `LICENSE` | MIT 全文 | 随包分发（Codex ZIP、DSH TGZ、npm） |
 | `THIRD_PARTY_NOTICES.md` | GeoGebra 等第三方许可 | 随包分发 |
@@ -41,11 +41,7 @@ git tag v<version> && git push --tags
 DSH 插件目录按固定周期扫描仓库根。分发仓库根带 `package.json` 的
 `dsh.bundle` 与 `SOURCE.md`，可直接被发现；源码仓库不参与该扫描。
 
-当前状态：dsh-plugin.org 已于 2026-10-27 收录 `jack7510/ggb-plugins-dsh`（当时为 0.8.5）；
-0.9.0 已发布到 npm，等待下一次扫描更新详情页。awesome-dsh-plugin 的 5,539 条 npm
-主索引 PR [#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911)
-已合并；条目见 [market/awesome-entry.yml](market/awesome-entry.yml)。npm 目录索引 `dsh-plugin-catalog` 2026-11-17 构建尚未包含本条目，待上游重建。dsh-market 从
-awesome 目录同步，dsh-plugin-radar 自动扫描 topic，均不需要单独投稿。
+各市场状态、npm 仓库映射规则和发布后核对见 [DSH 社区分发与上架](community-submission.md#awesome-收录与-dsh-market-同步)。
 
 ## 发版检查
 

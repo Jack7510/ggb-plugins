@@ -1,6 +1,6 @@
 {
   "name": "ggb-plugins-dsh",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "private": false,
   "type": "module",
   "description": "GeoGebra construction Skill and verified delivery CLI for DeepSeek Harness",
@@ -94,8 +94,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Jack7510/ggb-plugins.git",
-    "directory": "dsh"
+    "url": "git+https://github.com/Jack7510/ggb-plugins-dsh.git"
   },
   "homepage": "https://github.com/Jack7510/ggb-plugins/tree/main/dsh",
   "bugs": {

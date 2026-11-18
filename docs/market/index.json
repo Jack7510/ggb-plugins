@@ -22,11 +22,16 @@
       "author": "Jack7510",
       "homepage": "https://github.com/Jack7510/ggb-plugins/tree/main/dsh",
       "repository": {
-        "url": "https://github.com/Jack7510/ggb-plugins",
-        "directory": "dsh"
+        "url": "https://github.com/Jack7510/ggb-plugins-dsh"
       },
       "metadata": { "category": "education" },
       "versions": [
+        {
+          "version": "0.9.1",
+          "publishTimestamp": 1794963763,
+          "source": { "type": "npm" },
+          "engines": { "dsh": ">=0.2.1-rc.2" }
+        },
         {
           "version": "0.9.0",
           "publishTimestamp": 1794830647,

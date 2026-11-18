@@ -9,34 +9,32 @@
 
 | 项目 | 状态 |
 | --- | --- |
-| npm `0.9.0` | 已发布，latest；索引时间戳已同步；隔离 Web 安装、doctor 与交付卡片已验证 |
-| npm `0.8.5` | 上一版 |
+| npm `0.9.1` | 已发布为 `latest`，已验证隔离 Web profile 从 registry 安装 |
+| npm `0.9.0` | 上一版，已验证 doctor 与交付卡片 |
 | DSH 桌面兼容 | `engines.dsh` 为 `>=0.2.1-rc.2`（只设下限） |
 | 隔离安装验收 | TGZ 与 npm registry 安装、`setup-plugin`、GeoGebra 5.4.932.1 下载、doctor 均通过 |
 | GitHub Release | [v0.9.0](https://github.com/Jack7510/ggb-plugins/releases/tag/v0.9.0) 已发布 |
 | GitHub topic `dsh-plugin` | 已添加；同时添加 `deepseek-harness`、`geogebra` 等 |
 | dsh-plugin.org 收录 | 已收录（2026-10-27，页面更新 2026-11-18）；Issue #436 已关闭 |
 | awesome-dsh-plugin 主索引 | PR [#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911) 已合并 |
-| dsh-market / dsh-plugin-catalog | 条目已合并到 awesome；`dsh-plugin-catalog` 2026-11-17 构建尚未包含本条目，待上游重建 |
+| dsh-market / dsh-plugin-catalog | 2026-11-18 复查时，`2026.1117.22685` 与市场镜像仍无本条目，等待上游探测 0.9.1 |
 | dsh-plugin-radar | 自动扫描 GitHub topic；不单独投稿 |
 | 社区展示帖 | [Discussion #4](https://github.com/moyuqing-man/dsh-plugin-community/discussions/4) 已发布 |
 | DSH Discover 索引 | [market/index.json](market/index.json) 已可分享 |
 
-## 进入 awesome 主索引
+## awesome 收录与 dsh-market 同步
 
-dsh-plugin.org 已收录；awesome-dsh-plugin 的 npm 主索引 PR
-[#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911) 已合并。dsh-market
-读取同一份 awesome 目录，dsh-plugin-radar 自动扫描 GitHub topic，因此真正要提交的只有
-awesome 的一个文件：
+awesome 已合并 [#15911](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15911)。
+其[条目数据](https://awesome-dsh-plugin.com/plugins.json)中，本插件的 `npm` 和 `version`
+仍为空。npm 的 `0.9.0` 清单指向源码仓库，而条目指向分发仓库。上游
+[npm 探测](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/scripts/probe-npm.mjs)
+使用 npm `latest` 的 `repository.url` 匹配条目仓库，
+[市场索引生成器](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/scripts/lib/market-index.mjs)
+跳过没有 npm 映射的条目。
 
-1. 复制 [awesome-entry.yml](market/awesome-entry.yml) 到 awesome 仓库的
-   `data/plugins/jack7510__ggb-plugins-dsh.yml`；
-2. 确认 URL 指向分发仓库 `Jack7510/ggb-plugins-dsh`（根 `package.json` 已声明
-   `dsh.bundle`，仓库有 `dsh-plugin` topic，且已发布 npm 包）；
-3. 提交 PR，等待维护者按代码核对描述；合并后 README 与 dsh-market 会自动同步。
-
-不要把条目提交到 dsh-market 仓库：它明确只消费 awesome 目录。也不要虚构 dsh-plugin-radar
-的收录状态；它按扫描快照自动更新。
+0.9.1 发布后已确认 npm `latest` 的 `repository.url` 指向分发仓库。下一次 catalog 发布后，
+检查 awesome 生成数据和 dsh-market 搜索结果。若映射仍为空，提供 `#15911` 和 0.9.1 的
+registry 元数据，请 awesome 维护者刷新缓存。Radar 的测试判定由其独立维护。
 
 ## 一句话介绍
 

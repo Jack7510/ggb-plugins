@@ -27,6 +27,10 @@ test('DSH tarball carries its own skill, references and the identical compiled r
     const pkg = JSON.parse(await readFile(join(bundle, 'package.json'), 'utf8'));
     const shared = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
     assert.equal(pkg.name, 'ggb-plugins-dsh');
+    assert.equal(pkg.repository.url,
+      'git+https://github.com/Jack7510/ggb-plugins-dsh.git');
+    assert.equal(pkg.repository.directory, undefined);
+    assert.equal(pkg.bugs.url, 'https://github.com/Jack7510/ggb-plugins/issues');
     assert.equal(pkg.version, shared.version);
     assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml');
     const compatibility = await import(pathToFileURL(join(bundle,
